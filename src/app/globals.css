@@ -1,0 +1,12 @@
+/* Global CSS reset and base styles */
+html,
+body,
+#__next {
+  height: 100%;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
