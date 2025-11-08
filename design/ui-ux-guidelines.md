@@ -49,9 +49,9 @@
   - EUR: €1.234,56
   - GBP: £1,234.56
 - **Currency Selector**: Use autocomplete dropdown with search for easy currency selection
-- **Exchange Rate Display**: Show exchange rates clearly with examples in Manage Currencies
-- **Conversion Indicator**: When viewing statistics, clearly indicate the display currency
+- **Currency Filter**: When viewing statistics, clearly show which currency is selected
 - **Multi-Currency Labels**: In expense/income tables, show currency code next to amounts
+- **No Conversion**: Make it clear that amounts are always shown in their original currency
 
 ## Performance Considerations
 
@@ -73,6 +73,37 @@
 - Multiple concurrent requests keep the progress bar visible until all complete
 - Provides consistent user feedback across all pages and operations
 
+## Guest Mode Guidelines
+
+### Guest Mode UI
+- **Login Page**: Prominent "Guest Mode" or "Continue as Guest" button
+  - Positioned below the sign-in form or as a secondary action
+  - Clear visual distinction from primary sign-in action
+  - Tooltip or helper text: "Explore the app with demo data"
+  
+- **Guest Mode Indicator**: Floating icon on the right side of the screen
+  - Fixed position: `right: 16px; top: 50%; transform: translateY(-50%)`
+  - Semi-transparent or subtle styling to avoid intrusion
+  - Material-UI icon (e.g., `PersonIcon`, `VisibilityIcon`, or `InfoIcon`)
+  - Tooltip on hover: "Guest Mode - Using demo data"
+  - Optional: Click to show dialog with option to exit Guest Mode
+  - Z-index high enough to stay above other content but below modals
+
+- **Guest Mode Behavior**:
+  - All API calls are intercepted client-side and handled by GuestDataService
+  - No server requests are made in Guest Mode (zero network overhead)
+  - Fake data is generated deterministically for consistent experience
+  - Minimal delay simulation (50-150ms) to maintain realistic UX
+  - All UI features work normally with fake data
+  - Clear indication that data is not persisted
+
+### Data Generation
+- Use a JavaScript library (e.g., Faker.js, @faker-js/faker) for generating realistic fake data
+- Generate data that matches the structure of real data (transactions, statistics, settings)
+- Use consistent seed values for deterministic generation based on query parameters
+- Generate realistic amounts, dates, descriptions, and tag names
+- Ensure generated data covers various scenarios (multiple profiles, currencies, transaction types)
+
 ## User Experience Best Practices
 
 ### General
@@ -80,23 +111,30 @@
 - Make profile switching intuitive and easily accessible
 - Provide clear explanations about profile separation during setup
 - Show confirmation dialogs when deleting profiles to prevent accidental data loss
+- Guest Mode should provide a seamless experience for exploring the app without authentication
 
 ### Profile Management
 - No profile photo storage; keep profile visuals simple and text-focused
 
 ### Transaction Management
-- Pre-select user's base/default currency in transaction forms
+- Pre-select user's default currency from IndexedDB in transaction forms
+- Include "Add New Currency" option in currency dropdown for quick addition
 - Color-coded amounts (red for expenses, green for incomes)
 - Type badges for quick identification
 - Month summary showing total income, total expense, and net balance
 
 ### Currency Management
-- Clearly indicate which currency is the base currency throughout the app
+- Currencies stored in IndexedDB (client-side) for offline access and fast loading
+- Clearly indicate which currency is the default currency throughout the app
 - Provide quick links to Manage Currencies when needed
-- Display clear conversion information in statistics (e.g., "All amounts shown in USD")
+- Allow inline currency addition during transaction entry
+- Display clear currency filter in statistics (e.g., "Showing only USD transactions")
 - Use consistent currency formatting throughout app
 - Show currency symbols where appropriate ($ £ € ¥)
-- Explain base currency concept during first-time setup with clear, simple language
+- Explain during first-time setup that currencies are stored locally
+- Make it clear that no currency conversion occurs
+- Inform users that currencies are NOT included in backups (stored locally)
+- Currencies are shared across all profiles on the same browser/device
 
 ### Loading and Feedback
 - Global progress bar provides consistent feedback for API operations without cluttering the UI
@@ -108,18 +146,19 @@
 ### Page Layout
 - Header with active profile name and two primary actions:
   - \"Download Backup\" (primary)
-  - \"Restore from ZIP\" (secondary, danger context)
-- No server-side list is displayed; backups are downloaded to the user's machine as a single `.zip`.
+  - \"Restore from CSV\" (secondary, danger context)
+- No server-side list is displayed; backups are downloaded to the user's machine as a single CSV file.
 
 ### Actions
 - Download Backup:
-  - Confirmation dialog explains a full database backup (CSV-in-zip) will be created
+  - Confirmation dialog explains a backup of the user's transaction data (CSV) will be created
   - Show global progress bar during export
-  - Trigger browser download of `backup-YYYYMMDDTHHmmssZ.zip`
-- Restore from ZIP:
+  - Trigger browser download of `backup-YYYYMMDDTHHmmssZ.csv`
+- Restore from CSV:
   - Danger-styled action; requires double confirmation
+  - Warning dialog clearly states that all current user transaction data will be deleted and replaced with backup data
   - Type-to-confirm app/profile name to proceed
-  - File picker accepts `.zip` only
+  - File picker accepts `.csv` only
   - Show global progress bar during restore
   - After success, reload affected data and show success snackbar
 

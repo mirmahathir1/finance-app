@@ -14,7 +14,14 @@
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │ │
 │  │  │   UI Layer   │  │  State Mgmt  │  │  Auth Layer  │ │ │
 │  │  │   (MUI)      │  │  (Context)   │  │ (Credentials)│ │ │
+│  │  │              │  │              │  │ (Guest Mode) │ │ │
 │  │  └──────────────┘  └──────────────┘  └──────────────┘ │ │
+│  │  ┌──────────────────────────────────────────────────┐  │ │
+│  │  │ Guest Mode Indicator (Floating Icon)              │  │ │
+│  │  └──────────────────────────────────────────────────┘  │ │
+│  │  ┌──────────────────────────────────────────────────┐  │ │
+│  │  │ IndexedDB (Profile & Currency Storage)           │  │ │
+│  │  └──────────────────────────────────────────────────┘  │ │
 │  └────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
                               ↕ HTTPS
@@ -24,6 +31,9 @@
 │  │  Auth API    │  │  Domain APIs │  │  Services    │     │
 │  │              │  │  (CRUD)      │  │  (Reports)   │     │
 │  └──────────────┘  └──────────────┘  └──────────────┘     │
+│                                                              │
+│  Note: Guest Mode bypasses server - data generated          │
+│  client-side using GuestDataService (Faker.js)              │
 └─────────────────────────────────────────────────────────────┘
                               ↕
 ┌─────────────────────────────────────────────────────────────┐
@@ -59,20 +69,25 @@
 
 ## Key Architectural Decisions
 
-1. **Database-backed Storage**: Normalize core entities (profiles, transactions, tags, currencies) in PostgreSQL (Neon).
+1. **Hybrid Storage Architecture**: 
+   - Core transaction data (transactions only) in PostgreSQL (Neon)
+   - Profile, tag, and currency data stored client-side in IndexedDB for offline availability
+   - Transactions include profile name and tag names as text fields
 2. **Session-based Auth**: First-party credentials with HTTP-only cookies; no third-party OAuth.
-3. **Profile Isolation**: Row-level ownership enforcement via service-layer checks (per-user `profiles`).
-4. **Mobile-First PWA**: Responsive design that works on all devices and can be installed as an app
-5. **Global Progress Indicator**: Unified loading feedback for API calls
-6. **Backups**: Full database backup to CSV files packaged in a single `.zip` for download; full restore by uploading that `.zip`.
+3. **Profile-Based Filtering**: Transactions filtered by profile name (text field) at query time
+4. **Embedded Tags**: Tag names stored as text array in transactions for simplicity
+5. **Mobile-First PWA**: Responsive design that works on all devices and can be installed as an app
+6. **Global Progress Indicator**: Unified loading feedback for API calls
+7. **Backups**: Per-user backup to a single CSV file containing only transaction data (excludes `id` and `user_id` columns) for download; restore by uploading that CSV file (replaces all user transaction data). Profile, tag, and currency data are not included in backups as they're stored locally in IndexedDB.
+8. **Guest Mode**: Allow users to explore the app without authentication. API calls are intercepted client-side before reaching the server, and a unified `GuestDataService` generates mock data directly in the browser using Faker.js. This approach eliminates the need for server-side guest routes, provides zero network overhead, and ensures instant responses. Guest mode state is stored in localStorage, and a floating indicator shows when Guest Mode is active.
 
 ## Data & Reporting Services
 
 ### Responsibilities
 - Aggregations and reporting (by date ranges, tags, categories)
-- Full backup/restore endpoints:
-  - `GET /api/backup` → streams `.zip` of CSVs + manifest
-  - `POST /api/restore` → uploads `.zip` and restores transactionally
+- Per-user backup/restore endpoints:
+  - `GET /api/backup` → streams CSV file of user's transactions (excludes `id` and `user_id` columns)
+  - `POST /api/restore` → uploads CSV file and restores user's transaction data transactionally (deletes existing user transaction data first)
 - Data retention and housekeeping tasks
 
 ### Notes

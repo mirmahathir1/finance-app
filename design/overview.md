@@ -7,28 +7,34 @@ This document provides an overview of the finance-app personal finance tracking 
 ## Key Features
 
 ### Core Functionality
-1. **PostgreSQL Storage (Neon)**: All data stored in a managed PostgreSQL database
-2. **Profile Management**: Create and manage multiple profiles (e.g., Personal, Business) with separate data
-3. **Relational Data Management**: Normalized tables for transactions, tags, and currencies
-4. **Multi-Currency Support**: Track expenses and incomes in different currencies with monthly exchange rates
+1. **Hybrid Storage Architecture**: PostgreSQL (Neon) for transaction data, IndexedDB for profiles, tags, and currencies
+2. **Profile Management**: Create and manage multiple profiles (e.g., Personal, Business) stored in IndexedDB
+3. **Simplified Data Model**: Only transactions table in PostgreSQL with embedded profile names and tag arrays
+4. **Multi-Currency Support**: Track expenses and incomes in different currencies
 5. **Expense & Income Tracking**: Categorized financial records with tags
-6. **Visual Statistics**: Pie charts and summaries with currency conversion
-7. **Tag Management**: Customizable categories with color coding
-8. **Currency Management**: Month-specific exchange rate tracking
+6. **Visual Statistics**: Pie charts and summaries with single-currency filtering
+7. **Tag Management**: Customizable categories with color coding, stored in IndexedDB (client-side)
+8. **Currency Management**: Simple currency list management in IndexedDB (client-side)
 9. **Mobile-First PWA**: Works on all devices, installable as Android app
-10. **Backup & Restore**: Full database backup to a single `.zip` of CSVs (download); full restore by uploading that `.zip`.
+10. **Backup & Restore**: Per-user backup to a single CSV file containing only transaction data (excludes `id` and `user_id` columns) for download; restore by uploading that CSV file (replaces all user transaction data). Profiles, tags, and currencies not included as they're stored locally.
+11. **Guest Mode**: Explore the app without authentication using generated fake data. All UI features work with mock data, and a floating indicator shows Guest Mode status.
 
 ### Multi-Currency System
-- **Monthly Exchange Rates**: Define different rates for each month to maintain historical accuracy
-- **User-Selected Base Currency**: User chooses their base currency during first-time setup (defaults to USD)
-- **Base Currency for Conversions**: All conversions use the base currency as the intermediate currency
-- **Flexible Display**: View statistics in any currency available for that month
-- **Automatic Conversion**: All calculations automatically convert between currencies
-- **Per-Transaction Currency**: Each expense/income can be in different currencies
+- **No Conversion**: Transactions are recorded and displayed in their original currency
+- **User-Selected Default Currency**: User chooses their first currency during initial setup (defaults to USD)
+- **Currency Filtering**: View statistics for one currency at a time via dropdown selector
+- **Per-Transaction Currency**: Each expense/income is recorded in its original currency
+- **Client-Side Storage**: Currencies stored in IndexedDB for offline availability
+- **Inline Currency Addition**: Add new currencies during transaction entry
+- **Simple Currency List**: No exchange rates, just currency codes
 
 ### Profile System
 - **Multiple Profiles**: Users can create multiple profiles (e.g., Personal, Business, Family) to keep finances separate
-- **Profile-Based Data Isolation**: Each profile has its own transactions, tags, and currencies in the database
+- **Client-Side Storage**: Profiles and tags stored in IndexedDB for offline access and fast loading
+- **Profile-Based Data Filtering**: Transactions in PostgreSQL include profile name for filtering
+- **Profile-Specific Tags**: Each profile has its own set of tags stored in IndexedDB
+- **Shared Currencies**: Currencies are stored in IndexedDB and shared across all profiles on the same browser
 - **Active Profile Selection**: Users choose which profile to use when starting the app
 - **Easy Profile Switching**: Switch between profiles from the dashboard without re-authentication
-- **Independent Management**: Each profile can have different tags, currencies, and transaction history
+- **Independent Management**: Each profile can have different tags and transaction history
+- **No Backend Required**: Profile and tag management happens entirely on the frontend

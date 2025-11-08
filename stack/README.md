@@ -1,3 +1,5 @@
+[← Back to Main README](../README.md)
+
 # Technology Stack Documentation
 
 This folder contains the technology stack documentation for the application. It is platform- and library-focused and intentionally avoids app-specific logic or workflows.
@@ -19,4 +21,5 @@ This folder contains the technology stack documentation for the application. It 
 - For developers starting: See [Core Technologies](./core-technologies.md) and [Development](./development.md)
 - For deployment: Check [Deployment](./deployment.md) and [Security](./security.md)
 - For understanding data structure: Review [Data Storage](./data-storage.md)
+- For setting up third-party services: See [Credentials Setup](../credentials-setup/README.md)
 
