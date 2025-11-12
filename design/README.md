@@ -1,29 +1,41 @@
-[← Back to Main README](../README.md)
+# Finance App
 
-# Design Documentation
+A personal finance tracking application built with Next.js, TypeScript, and PostgreSQL.
 
-This folder contains the complete design and architecture documentation for the finance-app personal finance tracking application.
+## Documentation
 
-## Documentation Structure
+This repository contains comprehensive documentation organized into the following sections:
 
-1. **[Overview](./overview.md)** - Application overview and key features
-2. **[Architecture](./architecture.md)** - High-level system architecture
-3. **[Data Models](./data-models.md)** - SQL schema and TypeScript interfaces
-4. **[Components](./components.md)** - UI component structure and pages
-5. **[User Flows](./user-flows.md)** - User journeys and interactions
-6. **[API Design](./api-design.md)** - API routes and state management
-7. **[Authentication](./authentication.md)** - Authentication flow and security
-8. **[File Operations](./file-operations.md)** - Data persistence with PostgreSQL
-9. **[Currency System](./currency-system.md)** - Multi-currency support without conversion
-10. **[UI/UX Guidelines](./ui-ux-guidelines.md)** - Design system and guidelines
-11. **[Deployment](./deployment.md)** - Deployment and PWA configuration
-12. **[Implementation](./implementation.md)** - Implementation notes and best practices
+### 📋 [Design Documentation](./ui/README.md)
+Complete design and architecture documentation including:
+- Application overview and features
+- System architecture
+- Data models and schemas
+- UI components and user flows
+- API design and authentication
+- Implementation guidelines
 
-## Quick Links
+### 🛠️ [Technology Stack](./stack/README.md)
+Technology stack documentation covering:
+- Core technologies (Next.js, TypeScript, Material UI)
+- Authentication and data storage
+- Deployment and security
+- Performance optimization
 
-- For developers starting implementation: Start with [Architecture](./architecture.md) and [Data Models](./data-models.md)
-- For UI/UX designers: See [Components](./components.md) and [UI/UX Guidelines](./ui-ux-guidelines.md)
-- For understanding user experience: Check [User Flows](./user-flows.md)
-- For backend development: Review [API Design](./api-design.md) and [File Operations](./file-operations.md)
-- For setting up third-party services: See [Credentials Setup](../credentials-setup/README.md)
+### 🔐 [Credentials Setup](./credentials-setup/README.md)
+Step-by-step guides for setting up third-party services:
+- [Brevo Credentials](./credentials-setup/brevo-credentials.md) - Email service for user verification
+- [Neon Credentials](./credentials-setup/neon-credentials.md) - PostgreSQL database hosting
+- [GCP Credentials](./credentials-setup/gcp-credentials.md) - Cloud platform for deployment
+
+## Key Features
+
+- Multi-currency transaction tracking
+- Profile-based data organization
+- Tag-based categorization
+- Guest mode for exploration
+- PWA support
+- Data backup and restore
+
+For detailed information, see the [Design Documentation](./ui/README.md).
 
