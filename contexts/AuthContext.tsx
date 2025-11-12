@@ -8,6 +8,7 @@ import {
   setGuestModeState,
   clearGuestModeState,
   getAllProfiles,
+  clearAllData,
 } from '@/utils/indexedDB'
 import { useApi } from '@/utils/useApi'
 import { guestDataService } from '@/services/guestDataService'
@@ -98,6 +99,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
+      // Preserve current guest mode state to decide post-login behavior
+      const wasGuestMode = isGuestMode
+      
       const response = await api.login(email, password)
       if (response.success && response.data) {
         setUser({
@@ -108,7 +112,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           createdAt: response.data.user.createdAt,
           updatedAt: response.data.user.updatedAt,
         })
-        setIsGuestMode(false)
+        
+        // If we were NOT in guest mode, ensure guest mode is cleared
+        // If we WERE in guest mode, keep it enabled so API stays mocked
+        if (!wasGuestMode) {
+          setIsGuestMode(false)
+          await clearGuestModeState()
+        }
         
         // Check if profiles exist - if not, redirect to setup
         try {
@@ -139,22 +149,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!isGuestMode) {
         await api.logout()
       }
+      
+      // Clear all frontend data
+      // 1. Clear all IndexedDB data (profiles, tags, currencies, settings, guest mode)
+      await clearAllData()
+      
+      // 2. Reset guest data service (in-memory data)
+      guestDataService.reset()
+      
+      // 3. Clear sessionStorage (e.g., setup step)
+      if (typeof window !== 'undefined') {
+        sessionStorage.clear()
+      }
+      
+      // 4. Clear local state
       setUser(null)
       setIsGuestMode(false)
-      await clearGuestModeState()
+      
       router.push('/auth/signin')
     } catch (error) {
       console.error('Error signing out:', error)
       // Still clear local state even if API call fails
+      try {
+        await clearAllData()
+        guestDataService.reset()
+        if (typeof window !== 'undefined') {
+          sessionStorage.clear()
+        }
+      } catch (clearError) {
+        console.error('Error clearing data during sign out:', clearError)
+      }
       setUser(null)
       setIsGuestMode(false)
-      await clearGuestModeState()
       router.push('/auth/signin')
     }
   }
 
   const enterGuestMode = async () => {
     try {
+      // Set guest mode state in IndexedDB first
       await setGuestModeState(true)
       setIsGuestMode(true)
 
@@ -169,7 +202,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updatedAt: userData.user.updatedAt,
       })
 
-      router.push('/')
+      // Only redirect if we're not already on the signin page
+      // This prevents clearing form data when entering guest mode from signin
+      if (typeof window !== 'undefined' && window.location.pathname !== '/auth/signin') {
+        router.push('/')
+      }
+      // If we're on signin page, stay there - StartupRedirect will handle the flow
     } catch (error) {
       console.error('Error entering guest mode:', error)
       throw error

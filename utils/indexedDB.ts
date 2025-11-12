@@ -629,3 +629,52 @@ export async function clearGuestModeState(): Promise<void> {
   }
 }
 
+/**
+ * Clear all data from IndexedDB
+ * This removes all profiles, tags, currencies, settings, and guest mode state
+ */
+export async function clearAllData(): Promise<void> {
+  if (typeof window === 'undefined') return
+
+  try {
+    const db = await initDB()
+    
+    // Clear all object stores
+    const stores = [
+      STORE_PROFILES,
+      STORE_TAGS,
+      STORE_CURRENCIES,
+      STORE_SETTINGS,
+      STORE_GUEST_MODE,
+    ]
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(stores, 'readwrite')
+      let completed = 0
+      let hasError = false
+
+      stores.forEach((storeName) => {
+        const store = transaction.objectStore(storeName)
+        const clearRequest = store.clear()
+
+        clearRequest.onerror = () => {
+          if (!hasError) {
+            hasError = true
+            reject(clearRequest.error)
+          }
+        }
+
+        clearRequest.onsuccess = () => {
+          completed++
+          if (completed === stores.length && !hasError) {
+            resolve()
+          }
+        }
+      })
+    })
+  } catch (error) {
+    console.error('Error clearing all data from IndexedDB:', error)
+    throw error
+  }
+}
+

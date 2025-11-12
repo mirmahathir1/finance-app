@@ -341,13 +341,21 @@ export default function TransactionsPage() {
         <Box sx={{ mb: 4 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h4">Transactions</Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => router.push('/transactions/create')}
-            >
-              Create Transaction
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="outlined"
+                onClick={() => router.push('/')}
+              >
+                Back to Dashboard
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => router.push('/transactions/create')}
+              >
+                Create Transaction
+              </Button>
+            </Box>
           </Box>
         </Box>
 

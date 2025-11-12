@@ -407,12 +407,11 @@ export async function apiCall<T = any>(
   // Parse endpoint to check if it's an auth endpoint
   const url = new URL(endpoint, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
   const path = url.pathname
-  const isAuthEndpoint = path.startsWith('/api/auth/')
   const guestMode = await isGuestMode()
 
-  // Always intercept auth endpoints (since backend is not available)
-  // Also intercept in Guest Mode - generate data client-side
-  if (guestMode || isAuthEndpoint) {
+  // Only intercept in Guest Mode - generate data client-side
+  // When NOT in guest mode, make real API calls (will fail if backend is not available)
+  if (guestMode) {
     try {
       const result = await handleGuestModeRequest(endpoint, options)
       return result as ApiResponse<T>

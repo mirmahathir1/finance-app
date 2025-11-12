@@ -36,13 +36,7 @@ export function StartupRedirect({ children }: { children: React.ReactNode }) {
     }
 
     // CRITICAL: Check authentication FIRST - do this immediately, don't wait
-    // If in guest mode, redirect to sign-in (guest mode should not bypass sign-in for new users)
-    if (isGuestMode) {
-      if (pathname !== '/auth/signin') {
-        router.replace('/auth/signin')
-      }
-      return
-    }
+    // Allow Guest Mode to proceed (API is intercepted client-side)
     
     // If not authenticated (no real user), redirect to sign-in immediately
     if (!user) {
@@ -106,10 +100,7 @@ export function StartupRedirect({ children }: { children: React.ReactNode }) {
     return null
   }
   
-  // If in guest mode, redirect to sign-in (don't allow guest mode for new users)
-  if (isGuestMode) {
-    return null
-  }
+  // Allow guest mode to render children as API is intercepted
 
   return <>{children}</>
 }

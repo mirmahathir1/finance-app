@@ -41,10 +41,7 @@ export default function DashboardPage() {
     return null
   }
   
-  // EARLY RETURN: If in guest mode, don't render (should redirect to sign-in)
-  if (!authLoading && isGuestMode) {
-    return null
-  }
+  // Allow guest mode to render (API is intercepted)
 
   // Load statistics for current month
   useEffect(() => {
@@ -136,11 +133,7 @@ export default function DashboardPage() {
     // Wait for auth to load first
     if (authLoading) return
     
-    // If in guest mode, redirect to sign-in (guest mode should not be used for new users)
-    if (isGuestMode) {
-      router.replace('/auth/signin')
-      return
-    }
+    // Allow guest mode to proceed (API is intercepted)
     
     // If not authenticated (no real user), redirect to sign-in immediately
     if (!user) {
@@ -169,10 +162,7 @@ export default function DashboardPage() {
     return null
   }
   
-  // If in guest mode, don't render (will redirect to sign-in)
-  if (isGuestMode) {
-    return null
-  }
+  // Allow guest mode to render
   
   // Wait for profiles to load if authenticated
   if (profilesLoading) {
