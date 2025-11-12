@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { Currency } from '@/types'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   getAllCurrencies,
   getCurrency,
@@ -42,6 +43,7 @@ function validateCurrencyCode(code: string): void {
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const api = useApi()
+  const { user, isGuestMode } = useAuth()
   const [currencies, setCurrencies] = useState<Currency[]>([])
   const [defaultCurrency, setDefaultCurrency] = useState<Currency | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -50,6 +52,19 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     loadCurrencies()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Reset or reload currencies when auth state changes (e.g., after sign out/in)
+  useEffect(() => {
+    // If signed out (no user) and not in guest mode, clear in-memory state
+    if (!user && !isGuestMode) {
+      setCurrencies([])
+      setDefaultCurrency(null)
+      return
+    }
+    // When a user (or guest) is available, reload from IndexedDB
+    loadCurrencies()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isGuestMode])
 
   const loadCurrencies = async () => {
     try {

@@ -216,9 +216,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const exitGuestMode = async () => {
     try {
+      // Clear guest mode flag
       await clearGuestModeState()
+      
+      // Clear all frontend data
+      // 1) IndexedDB stores (profiles, tags, currencies, settings, guest mode)
+      await clearAllData()
+      // 2) In-memory guest data
+      guestDataService.reset()
+      // 3) Session storage (e.g., setup progress)
+      if (typeof window !== 'undefined') {
+        sessionStorage.clear()
+      }
+      
+      // Reset local auth state
       setIsGuestMode(false)
       setUser(null)
+      
+      // Navigate to sign in
       router.push('/auth/signin')
     } catch (error) {
       console.error('Error exiting guest mode:', error)

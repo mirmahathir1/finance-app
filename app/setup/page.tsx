@@ -67,7 +67,7 @@ const POPULAR_CURRENCIES = [
 export default function SetupPage() {
   const router = useRouter()
   const { addProfile, profiles, isLoading: profilesLoading } = useProfile()
-  const { addCurrency, currencies, isLoading: currenciesLoading, setDefaultCurrency } = useCurrency()
+  const { addCurrency, currencies, defaultCurrency, isLoading: currenciesLoading, setDefaultCurrency } = useCurrency()
   const { addTag, isLoading: tagsLoading } = useTag()
   
   // Persist step in sessionStorage to survive remounts
@@ -85,7 +85,7 @@ export default function SetupPage() {
       sessionStorage.setItem('setup-active-step', activeStep.toString())
     }
   }, [activeStep])
-  const [profileName, setProfileName] = useState('')
+  const [profileName, setProfileName] = useState('Personal')
   const [selectedCurrency, setSelectedCurrency] = useState('USD')
   const [customCurrency, setCustomCurrency] = useState('')
   const [useCustomCurrency, setUseCustomCurrency] = useState(false)
@@ -103,6 +103,9 @@ export default function SetupPage() {
 
   // Check if currencies exist to conditionally show step 3
   const [showCurrencyStep, setShowCurrencyStep] = useState(false)
+  // Lock whether the currency step should appear in the stepper for this session
+  const [includeCurrencyStep, setIncludeCurrencyStep] = useState(true)
+  const includeCurrencyStepDecidedRef = useRef(false)
   
   // Use ref to track if we're in the middle of creating a profile
   // This prevents the step from resetting when profiles state updates
@@ -111,15 +114,23 @@ export default function SetupPage() {
   const intendedStepRef = useRef<number | null>(null)
 
   useEffect(() => {
-    // Check if currencies exist
+    // Show currency step if no default currency is set
     if (!currenciesLoading) {
-      if (currencies.length === 0) {
+      if (!defaultCurrency) {
         setShowCurrencyStep(true)
       } else {
         setShowCurrencyStep(false)
       }
     }
-  }, [currencies, currenciesLoading])
+  }, [defaultCurrency, currenciesLoading])
+  
+  // Decide ONCE whether to include the currency step in the stepper (don't collapse it later)
+  useEffect(() => {
+    if (!includeCurrencyStepDecidedRef.current && !currenciesLoading) {
+      setIncludeCurrencyStep(!defaultCurrency)
+      includeCurrencyStepDecidedRef.current = true
+    }
+  }, [defaultCurrency, currenciesLoading])
   
   // Prevent step reset when profiles change during profile creation
   useEffect(() => {
@@ -203,9 +214,6 @@ export default function SetupPage() {
     
     try {
       const trimmedName = profileName.trim()
-      // Get current currencies state before adding profile (to avoid stale closure)
-      const shouldShowCurrencyStep = currencies.length === 0
-      
       await addProfile(trimmedName)
       
       // Clear the profile name field
@@ -213,19 +221,15 @@ export default function SetupPage() {
       setErrors({})
       
       // Advance to next step directly
-      // Calculate the next step - check currencies again after profile is added
-      // in case currencies were added during profile creation
-      const currentCurrenciesCount = currencies.length
-      const nextStep = currentCurrenciesCount === 0 ? 2 : 3
-      
-      console.log('Setting step to:', nextStep, 'currencies:', currentCurrenciesCount, 'showCurrencyStep:', shouldShowCurrencyStep)
+      // Calculate the next step:
+      // If no default currency exists yet, go to currency selection; otherwise skip to initialization
+      const nextStep = !defaultCurrency ? 2 : 3
       
       // Store intended step in ref - useEffect will set it when profiles update
       intendedStepRef.current = nextStep
       
       // Set step using functional update to ensure we have the latest state
       setActiveStep((prevStep) => {
-        console.log('setActiveStep called, prevStep:', prevStep, 'nextStep:', nextStep)
         // Update sessionStorage immediately
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('setup-active-step', nextStep.toString())
@@ -241,7 +245,6 @@ export default function SetupPage() {
       // Reset flag after a delay to ensure state is committed
       setTimeout(() => {
         isCreatingProfileRef.current = false
-        console.log('Reset isCreatingProfileRef flag')
       }, 300)
       
       setSnackbar({
@@ -524,9 +527,9 @@ export default function SetupPage() {
   }
 
   // Adjust step labels based on whether currency step is shown
-  const adjustedSteps = showCurrencyStep ? steps : ['Welcome', 'Create Profile', 'Initialize']
-  // Map activeStep to display step (skip step 2 if currency step is not shown)
-  const currentStep = showCurrencyStep
+  const adjustedSteps = includeCurrencyStep ? steps : ['Welcome', 'Create Profile', 'Initialize']
+  // Map activeStep to display step (skip step 2 if currency step is not included)
+  const currentStep = includeCurrencyStep
     ? activeStep
     : activeStep === 3
     ? 2 // Map step 3 (initialization) to display step 2

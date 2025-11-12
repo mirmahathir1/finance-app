@@ -23,6 +23,7 @@ import {
 import { PageLayout } from '@/components/PageLayout'
 import { ProfileSelector } from '@/components/ProfileSelector'
 import { useProfile } from '@/contexts/ProfileContext'
+import { useCurrency } from '@/contexts/CurrencyContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useApi } from '@/utils/useApi'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
@@ -32,6 +33,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const { activeProfile, profiles, isLoading: profilesLoading } = useProfile()
   const { user, isGuestMode, isLoading: authLoading } = useAuth()
+  const { defaultCurrency, isLoading: currenciesLoading } = useCurrency()
   const api = useApi()
   const [statistics, setStatistics] = useState<StatisticsData | null>(null)
   const [isLoadingStats, setIsLoadingStats] = useState(false)
@@ -47,6 +49,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadStatistics = async () => {
       if (!activeProfile) return
+      const currencyCode = defaultCurrency?.code || 'USD'
 
       setIsLoadingStats(true)
       try {
@@ -58,7 +61,7 @@ export default function DashboardPage() {
           profile: activeProfile,
           from,
           to,
-          currency: '', // Use default currency
+          currency: currencyCode, // Use selected default currency
         })
 
         if (response.success && response.data) {
@@ -73,7 +76,7 @@ export default function DashboardPage() {
 
     loadStatistics()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeProfile])
+  }, [activeProfile, defaultCurrency?.code])
 
   const formatAmount = (amountMinor: number, currency: string = 'USD'): string => {
     const amount = amountMinor / 100
