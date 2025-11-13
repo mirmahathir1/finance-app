@@ -419,6 +419,76 @@ class GuestDataService {
     this.transactions.clear()
     this.generateInitialTransactions()
   }
+
+  /**
+   * Import transactions from CSV and replace existing data
+   * Expected CSV headers: profile,occurredAt,amountMinor,currency,type,tags,note
+   */
+  importTransactionsFromCSV(csv: string): { imported: number } {
+    this.transactions.clear()
+    const lines = csv
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0)
+
+    if (lines.length <= 1) {
+      return { imported: 0 }
+    }
+
+    // Assume first line is header
+    const header = lines[0].split(',').map((h) => h.trim())
+    const colIndex: Record<string, number> = {}
+    header.forEach((h, idx) => {
+      colIndex[h] = idx
+    })
+
+    const required = ['profile', 'occurredAt', 'amountMinor', 'currency', 'type', 'tags', 'note']
+    for (const req of required) {
+      if (!(req in colIndex)) {
+        // If missing columns, skip import to avoid corrupt state
+        return { imported: 0 }
+      }
+    }
+
+    let imported = 0
+    for (let i = 1; i < lines.length; i++) {
+      const row = lines[i]
+      if (!row) continue
+      // Basic CSV split; export doesn't include commas inside fields
+      const cols = row.split(',').map((c) => c.trim())
+      try {
+        const type = cols[colIndex['type']] as TransactionType
+        if (type !== 'expense' && type !== 'income') continue
+        const tagsStr = cols[colIndex['tags']] || ''
+        const tags = tagsStr ? tagsStr.split(';').map((t) => t.trim()).filter(Boolean) : []
+        const amountMinor = parseInt(cols[colIndex['amountMinor']], 10)
+        if (Number.isNaN(amountMinor)) continue
+
+        const transaction: Transaction = {
+          id: faker.string.uuid(),
+          userId: this.userId,
+          profile: cols[colIndex['profile']],
+          occurredAt: cols[colIndex['occurredAt']],
+          amountMinor,
+          currency: cols[colIndex['currency']].toUpperCase(),
+          type,
+          tags,
+          note: cols[colIndex['note']] || null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+
+        this.transactions.set(transaction.id, transaction)
+        imported++
+      } catch {
+        // Skip malformed rows
+        // eslint-disable-next-line no-continue
+        continue
+      }
+    }
+
+    return { imported }
+  }
 }
 
 // Singleton instance

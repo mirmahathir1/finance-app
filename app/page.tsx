@@ -127,7 +127,7 @@ export default function DashboardPage() {
       title: 'Backup & Restore',
       icon: <BackupIcon />,
       color: 'warning' as const,
-      onClick: () => router.push('/backup'),
+      onClick: () => router.push('/backup-restore'),
     },
   ]
 
