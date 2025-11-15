@@ -19,6 +19,8 @@ import {
   FormControl,
   InputLabel,
   Select,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import {
   CheckCircle as CheckCircleIcon,
@@ -70,6 +72,8 @@ export default function SetupPage() {
   const { addProfile, profiles, isLoading: profilesLoading } = useProfile()
   const { addCurrency, currencies, defaultCurrency, isLoading: currenciesLoading, setDefaultCurrency } = useCurrency()
   const { addTag, isLoading: tagsLoading } = useTag()
+  const theme = useTheme()
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'))
   
   // Persist step in sessionStorage to survive remounts
   const [activeStep, setActiveStep] = useState(() => {
@@ -552,13 +556,31 @@ export default function SetupPage() {
             Setup
           </Typography>
 
-          <Stepper activeStep={currentStep} sx={{ mt: 4, mb: 4 }}>
-            {adjustedSteps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
+          <Box sx={{ mt: 4, mb: 4, overflowX: 'auto' }}>
+            <Stepper
+              activeStep={currentStep}
+              alternativeLabel={!isSmallScreen}
+              orientation={isSmallScreen ? 'vertical' : 'horizontal'}
+              sx={{
+                flexDirection: isSmallScreen ? 'column' : 'row',
+                alignItems: isSmallScreen ? 'flex-start' : 'center',
+                '.MuiStep-root': {
+                  width: isSmallScreen ? '100%' : 'auto',
+                },
+                '.MuiStepLabel-label': {
+                  typography: isSmallScreen ? 'body2' : 'body1',
+                  textAlign: isSmallScreen ? 'left' : 'center',
+                  whiteSpace: 'normal',
+                },
+              }}
+            >
+              {adjustedSteps.map((label) => (
+                <Step key={label}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+          </Box>
 
           <Box sx={{ minHeight: 300, mb: 4 }}>
             {renderStepContent(activeStep)}

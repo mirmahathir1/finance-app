@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { getSetting, setSetting } from '@/utils/indexedDB'
+import { useAuth } from './AuthContext'
 
 interface AppContextType {
   dateFormat: string
@@ -24,13 +25,26 @@ export const VALID_DATE_FORMATS = [
 ] as const
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const { user, isGuestMode, isLoading: authLoading } = useAuth()
   const [dateFormat, setDateFormatState] = useState<string>(DEFAULT_DATE_FORMAT)
   const [isLoading, setIsLoading] = useState(true)
 
+  const authStateKey = user ? `user:${user.id}` : isGuestMode ? 'guest' : 'signed-out'
+
   useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
+    if (authStateKey === 'signed-out') {
+      setDateFormatState(DEFAULT_DATE_FORMAT)
+      setIsLoading(false)
+      return
+    }
+
     loadSettings()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [authStateKey, authLoading])
 
   /**
    * Load settings from IndexedDB

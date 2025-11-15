@@ -55,7 +55,6 @@ export function EditTransactionModal({
     amount?: string
     currency?: string
     description?: string
-    tags?: string
   }>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -106,11 +105,9 @@ export function EditTransactionModal({
     setSelectedTags((prev) => {
       if (prev.includes(tagId)) {
         return prev.filter((id) => id !== tagId)
-      } else {
-        return [...prev, tagId]
       }
+      return [...prev, tagId]
     })
-    setErrors((prev) => ({ ...prev, tags: undefined }))
   }
 
   const validateForm = (): boolean => {
@@ -130,10 +127,6 @@ export function EditTransactionModal({
 
     if (!description.trim()) {
       newErrors.description = 'Description is required'
-    }
-
-    if (selectedTags.length === 0) {
-      newErrors.tags = 'At least one tag is required'
     }
 
     setErrors(newErrors)
@@ -277,11 +270,11 @@ export function EditTransactionModal({
           {/* Tags */}
           <Box sx={{ mb: 3 }}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              Tags {errors.tags && <span style={{ color: 'red' }}>*</span>}
+              Tags <Typography component="span" variant="caption" color="text.secondary">(optional)</Typography>
             </Typography>
             {availableTags.length === 0 ? (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                No {type} tags available. Please create tags first.
+                No {type} tags available yet. You can create tags later from the Tags page.
               </Typography>
             ) : (
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
@@ -296,11 +289,6 @@ export function EditTransactionModal({
                   />
                 ))}
               </Box>
-            )}
-            {errors.tags && (
-              <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
-                {errors.tags}
-              </Typography>
             )}
           </Box>
         </Box>

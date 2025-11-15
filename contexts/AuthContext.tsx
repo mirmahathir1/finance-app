@@ -32,6 +32,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [isGuestMode, setIsGuestMode] = useState(false)
 
+  const clearBrowserStorage = async () => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    try {
+      sessionStorage.clear()
+    } catch (error) {
+      console.warn('Unable to clear sessionStorage during logout:', error)
+    }
+
+    try {
+      localStorage.clear()
+    } catch (error) {
+      console.warn('Unable to clear localStorage during logout:', error)
+    }
+  }
+
   useEffect(() => {
     // Check authentication state on mount
     const checkAuth = async () => {
@@ -157,10 +175,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 2. Reset guest data service (in-memory data)
       guestDataService.reset()
       
-      // 3. Clear sessionStorage (e.g., setup step)
-      if (typeof window !== 'undefined') {
-        sessionStorage.clear()
-      }
+      // 3. Clear browser storage (session + local storage)
+      await clearBrowserStorage()
       
       // 4. Clear local state
       setUser(null)
@@ -173,9 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         await clearAllData()
         guestDataService.reset()
-        if (typeof window !== 'undefined') {
-          sessionStorage.clear()
-        }
+        await clearBrowserStorage()
       } catch (clearError) {
         console.error('Error clearing data during sign out:', clearError)
       }
@@ -224,10 +238,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await clearAllData()
       // 2) In-memory guest data
       guestDataService.reset()
-      // 3) Session storage (e.g., setup progress)
-      if (typeof window !== 'undefined') {
-        sessionStorage.clear()
-      }
+      // 3) Browser storage (session + local)
+      await clearBrowserStorage()
       
       // Reset local auth state
       setIsGuestMode(false)

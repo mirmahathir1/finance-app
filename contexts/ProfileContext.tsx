@@ -11,6 +11,7 @@ import {
 } from '@/utils/indexedDB'
 import { useApi } from '@/utils/useApi'
 import { getFriendlyErrorMessage } from '@/utils/error'
+import { useAuth } from './AuthContext'
 
 interface ProfileContextType {
   profiles: Profile[]
@@ -30,20 +31,36 @@ const ProfileContext = createContext<ProfileContextType | undefined>(undefined)
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const api = useApi()
+  const { user, isGuestMode, isLoading: authLoading } = useAuth()
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [activeProfile, setActiveProfile] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const authStateKey = user ? `user:${user.id}` : isGuestMode ? 'guest' : 'signed-out'
+
   useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
+    if (authStateKey === 'signed-out') {
+      setProfiles([])
+      setActiveProfile(null)
+      setError(null)
+      setIsLoading(false)
+      return
+    }
+
     const initialize = async () => {
       await loadProfiles()
-      // Auto-populate profiles from transactions if empty
-      await autoPopulateProfiles()
+      if (!isGuestMode) {
+        await autoPopulateProfiles()
+      }
     }
     initialize()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [authStateKey, authLoading])
 
   const loadProfiles = async () => {
     try {
@@ -66,6 +83,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
    * Runs silently at startup
    */
   const autoPopulateProfiles = async () => {
+    if (isGuestMode) {
+      return
+    }
+
     try {
       const currentProfiles = await getAllProfiles()
       // Only auto-populate if profiles are empty

@@ -45,6 +45,7 @@ export function TagProvider({ children }: { children: ReactNode }) {
     } else {
       setTags([])
       setIsLoading(false)
+      setError(null)
     }
   }, [activeProfile])
 

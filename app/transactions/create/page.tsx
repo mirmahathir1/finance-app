@@ -64,7 +64,6 @@ export default function CreateTransactionPage() {
     amount?: string
     currency?: string
     description?: string
-    tags?: string
   }>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [snackbar, setSnackbar] = useState<{
@@ -151,17 +150,10 @@ export default function CreateTransactionPage() {
 
   const handleTagToggle = (tagId: string) => {
     setSelectedTags((prev) => {
-      let next: string[]
       if (prev.includes(tagId)) {
-        next = prev.filter((id) => id !== tagId)
-      } else {
-        next = [...prev, tagId]
+        return prev.filter((id) => id !== tagId)
       }
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        tags: next.length === 0 ? 'At least one tag is required' : undefined,
-      }))
-      return next
+      return [...prev, tagId]
     })
   }
 
@@ -216,10 +208,6 @@ export default function CreateTransactionPage() {
       newErrors.description = 'Description is required'
     }
 
-    if (selectedTags.length === 0) {
-      newErrors.tags = 'At least one tag is required'
-    }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -229,7 +217,6 @@ export default function CreateTransactionPage() {
     amount > 0 &&
     !!currency &&
     !!description.trim() &&
-    selectedTags.length > 0 &&
     Object.values(errors).every((error) => !error)
 
   const handleSubmit = async () => {
@@ -289,10 +276,7 @@ export default function CreateTransactionPage() {
           setRecentTransactions(recentResponse.data.transactions || [])
         }
 
-        // Optionally redirect after a short delay
-        setTimeout(() => {
-          router.push('/transactions')
-        }, 1500)
+        // Stay on the page so users can keep adding transactions
       } else {
         setSnackbar({
           open: true,
@@ -438,11 +422,11 @@ export default function CreateTransactionPage() {
               {/* Tags */}
               <Box sx={{ mb: 3 }}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Tags {errors.tags && <span style={{ color: 'red' }}>*</span>}
+                  Tags <Typography component="span" variant="caption" color="text.secondary">(optional)</Typography>
                 </Typography>
                 {availableTags.length === 0 ? (
                   <Alert severity="info" sx={{ mt: 1 }}>
-                    No {type} tags available. Please create tags first.
+                    No {type} tags available yet. You can create tags later from the Tags page.
                   </Alert>
                 ) : (
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
@@ -457,11 +441,6 @@ export default function CreateTransactionPage() {
                       />
                     ))}
                   </Box>
-                )}
-                {errors.tags && (
-                  <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
-                    {errors.tags}
-                  </Typography>
                 )}
               </Box>
 
