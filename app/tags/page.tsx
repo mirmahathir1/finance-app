@@ -150,9 +150,26 @@ export default function TagsPage() {
   return (
     <PageLayout>
       <Container maxWidth="md">
-        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box
+          sx={{
+            mb: 4,
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'flex-start', sm: 'center' },
+            justifyContent: 'space-between',
+            gap: 2,
+          }}
+        >
           <Typography variant="h4">Edit Tags</Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              flexWrap: 'wrap',
+              width: { xs: '100%', sm: 'auto' },
+              justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+            }}
+          >
             <Button variant="outlined" onClick={() => router.push('/')}>
               Back to Dashboard
             </Button>
@@ -253,12 +270,7 @@ export default function TagsPage() {
             <List>
               {expenseTags.map((tag) => (
                 <ListItem key={tag.id} divider>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <TagChip tag={tag} size="medium" />
-                    <Typography variant="body2" color="text.secondary">
-                      {tag.name}
-                    </Typography>
-                  </Stack>
+                  <TagChip tag={tag} size="medium" />
                   <ListItemSecondaryAction>
                     <Stack direction="row" spacing={1}>
                       <Tooltip title="Edit tag (coming next step)">
@@ -315,12 +327,7 @@ export default function TagsPage() {
             <List>
               {incomeTags.map((tag) => (
                 <ListItem key={tag.id} divider>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <TagChip tag={tag} size="medium" />
-                    <Typography variant="body2" color="text.secondary">
-                      {tag.name}
-                    </Typography>
-                  </Stack>
+                  <TagChip tag={tag} size="medium" />
                   <ListItemSecondaryAction>
                     <Stack direction="row" spacing={1}>
                       <Tooltip title="Edit tag (coming next step)">

@@ -137,11 +137,32 @@ export default function BackupRestorePage() {
   return (
     <PageLayout>
       <Container maxWidth="md">
-        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box
+          sx={{
+            mb: 4,
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'flex-start', sm: 'center' },
+            justifyContent: 'space-between',
+            gap: 2,
+          }}
+        >
           <Typography variant="h4">Backup & Restore</Typography>
-          <Button variant="outlined" onClick={() => router.push('/')}>
-            Back to Dashboard
-          </Button>
+          <Box
+            sx={{
+              width: { xs: '100%', sm: 'auto' },
+              display: 'flex',
+              justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+            }}
+          >
+            <Button
+              variant="outlined"
+              onClick={() => router.push('/')}
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
+            >
+              Back to Dashboard
+            </Button>
+          </Box>
         </Box>
 
         <Paper elevation={2} sx={{ p: 3, mb: 3 }}>

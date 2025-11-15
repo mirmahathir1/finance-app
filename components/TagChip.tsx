@@ -14,7 +14,7 @@ export function TagChip({ tag, size = 'small', onDelete, onClick }: TagChipProps
   // Generate a color if not provided
   const getColor = (tagColor?: string): string => {
     if (tagColor) return tagColor
-    
+
     // Generate a consistent color based on tag name
     const colors = [
       '#1976d2', // Blue
