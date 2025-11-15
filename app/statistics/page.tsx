@@ -14,11 +14,12 @@ import {
   Paper,
   Stack,
   Typography,
-  CircularProgress,
   Grid,
   Card,
   CardContent,
   Skeleton,
+  Checkbox,
+  FormControlLabel,
 } from '@mui/material'
 import { PageLayout } from '@/components/PageLayout'
 import { Snackbar } from '@/components/Snackbar'
@@ -33,6 +34,126 @@ import { getFriendlyErrorMessage } from '@/utils/error'
 import { AnimatedSection } from '@/components/AnimatedSection'
 
 const EXPENSE_COLORS = ['#e53935', '#d32f2f', '#ef5350', '#f44336', '#ff7043', '#ff8a65']
+
+type ConversionAggregation = {
+  totalIncome: number
+  totalExpense: number
+  incomeByTag: Record<string, number>
+  expenseByTag: Record<string, number>
+  skippedCurrencies: Set<string>
+}
+
+function aggregateConvertedTransactions(
+  transactions: Transaction[],
+  baseCurrency: string,
+  rates: Record<string, number>
+): ConversionAggregation {
+  return transactions.reduce<ConversionAggregation>(
+    (acc, transaction) => {
+      if (transaction.currency === baseCurrency) {
+        return acc
+      }
+
+      const rate = rates[transaction.currency]
+      if (!rate || rate === 0) {
+        acc.skippedCurrencies.add(transaction.currency)
+        return acc
+      }
+
+      const convertedMinor = Math.round(transaction.amountMinor / rate)
+
+      if (transaction.type === 'expense') {
+        acc.totalExpense += convertedMinor
+        transaction.tags.forEach((tag) => {
+          acc.expenseByTag[tag] = (acc.expenseByTag[tag] || 0) + convertedMinor
+        })
+      } else {
+        acc.totalIncome += convertedMinor
+        transaction.tags.forEach((tag) => {
+          acc.incomeByTag[tag] = (acc.incomeByTag[tag] || 0) + convertedMinor
+        })
+      }
+
+      return acc
+    },
+    {
+      totalIncome: 0,
+      totalExpense: 0,
+      incomeByTag: {},
+      expenseByTag: {},
+      skippedCurrencies: new Set<string>(),
+    }
+  )
+}
+
+function mergeStatsWithConversions(
+  baseStats: StatisticsData,
+  additions: ConversionAggregation,
+  currency: string
+): StatisticsData {
+  if (additions.totalIncome === 0 && additions.totalExpense === 0) {
+    return baseStats
+  }
+
+  const totalIncome = baseStats.summary.totalIncome.amountMinor + additions.totalIncome
+  const totalExpense = baseStats.summary.totalExpense.amountMinor + additions.totalExpense
+  const netBalance = totalIncome - totalExpense
+
+  const expenseMap = new Map<string, number>()
+  baseStats.expenseBreakdown.forEach((item) => {
+    expenseMap.set(item.tag, item.amountMinor)
+  })
+  Object.entries(additions.expenseByTag).forEach(([tag, amount]) => {
+    expenseMap.set(tag, (expenseMap.get(tag) || 0) + amount)
+  })
+  const expenseBreakdown = Array.from(expenseMap.entries())
+    .map(([tag, amountMinor]) => ({
+      tag,
+      amountMinor,
+      currency,
+      percentage: totalExpense > 0 ? Math.round((amountMinor / totalExpense) * 100) : 0,
+    }))
+    .sort((a, b) => b.amountMinor - a.amountMinor)
+
+  const incomeMap = new Map<string, number>()
+  baseStats.incomeBreakdown.forEach((item) => {
+    incomeMap.set(item.tag, item.amountMinor)
+  })
+  Object.entries(additions.incomeByTag).forEach(([tag, amount]) => {
+    incomeMap.set(tag, (incomeMap.get(tag) || 0) + amount)
+  })
+  const incomeBreakdown = Array.from(incomeMap.entries())
+    .map(([tag, amountMinor]) => ({
+      tag,
+      amountMinor,
+      currency,
+      percentage: totalIncome > 0 ? Math.round((amountMinor / totalIncome) * 100) : 0,
+    }))
+    .sort((a, b) => b.amountMinor - a.amountMinor)
+
+  return {
+    summary: {
+      totalIncome: {
+        amountMinor: totalIncome,
+        currency,
+      },
+      totalExpense: {
+        amountMinor: totalExpense,
+        currency,
+      },
+      netBalance: {
+        amountMinor: netBalance,
+        currency,
+      },
+    },
+    expenseBreakdown,
+    incomeBreakdown,
+    period: {
+      ...baseStats.period,
+      currency,
+    },
+  }
+}
 
 const ChartSkeleton = ({ height = 360 }: { height?: number }) => (
   <Paper elevation={2} sx={{ p: 3, height }}>
@@ -90,6 +211,8 @@ export default function StatisticsPage() {
   const [selectedMonth, setSelectedMonth] = useState<number | 'all'>('all')
   const [currencyOptions, setCurrencyOptions] = useState<string[]>([])
   const [currency, setCurrency] = useState<string>('')
+  const [includeConverted, setIncludeConverted] = useState(false)
+  const [conversionRatesCache, setConversionRatesCache] = useState<Record<string, Record<string, number>>>({})
 
   // Data
   const [profileTransactions, setProfileTransactions] = useState<Transaction[]>([])
@@ -201,6 +324,52 @@ export default function StatisticsPage() {
     }
   }, [derivedCurrencyOptions, currency])
 
+  useEffect(() => {
+    if (!currency) {
+      setIncludeConverted(false)
+    }
+  }, [currency])
+
+  const transactionsInRange = useMemo(() => {
+    if (!activeProfile) return []
+    const fromDate = new Date(from)
+    const toDate = new Date(to)
+    return profileTransactions.filter((t) => {
+      const occurred = new Date(t.occurredAt)
+      return (
+        t.profile === activeProfile &&
+        occurred >= fromDate &&
+        occurred <= toDate
+      )
+    })
+  }, [profileTransactions, activeProfile, from, to])
+
+  const ensureConversionRates = useCallback(
+    async (baseCurrency: string) => {
+      const normalized = baseCurrency.toUpperCase()
+      if (conversionRatesCache[normalized]) {
+        return conversionRatesCache[normalized]
+      }
+
+      const response = await fetch(`https://open.er-api.com/v6/latest/${normalized}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch conversion rates.')
+      }
+      const data = await response.json()
+      if (!data || data.result !== 'success' || !data.rates) {
+        throw new Error(data?.error || 'Unable to load conversion rates.')
+      }
+
+      setConversionRatesCache((prev) => ({
+        ...prev,
+        [normalized]: data.rates,
+      }))
+
+      return data.rates as Record<string, number>
+    },
+    [conversionRatesCache]
+  )
+
   const loadStats = useCallback(async () => {
     if (!activeProfile || !currency) {
       setStats(null)
@@ -219,7 +388,47 @@ export default function StatisticsPage() {
       })
 
       if (res.success && res.data) {
-        setStats(res.data)
+        let nextStats: StatisticsData = res.data
+
+        if (includeConverted) {
+          const otherCurrencyTransactions = transactionsInRange.filter(
+            (transaction) => transaction.currency && transaction.currency !== currency
+          )
+
+          if (otherCurrencyTransactions.length > 0) {
+            try {
+              const rates = await ensureConversionRates(currency)
+              const conversionAggregation = aggregateConvertedTransactions(
+                otherCurrencyTransactions,
+                currency,
+                rates
+              )
+              nextStats = mergeStatsWithConversions(res.data, conversionAggregation, currency)
+
+              if (conversionAggregation.skippedCurrencies.size > 0) {
+                setSnackbar({
+                  open: true,
+                  severity: 'warning',
+                  message: `Missing exchange rate for: ${Array.from(
+                    conversionAggregation.skippedCurrencies
+                  ).join(', ')}`,
+                })
+              }
+            } catch (conversionError: any) {
+              const conversionMessage = getFriendlyErrorMessage(
+                conversionError,
+                'Unable to convert other currencies.'
+              )
+              setSnackbar({
+                open: true,
+                message: conversionMessage,
+                severity: 'error',
+              })
+            }
+          }
+        }
+
+        setStats(nextStats)
         setStatsError(null)
       } else {
         setStats(null)
@@ -237,7 +446,16 @@ export default function StatisticsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [activeProfile, from, to, currency, api])
+  }, [
+    activeProfile,
+    from,
+    to,
+    currency,
+    api,
+    includeConverted,
+    transactionsInRange,
+    ensureConversionRates,
+  ])
 
   useEffect(() => {
     loadStats()
@@ -302,7 +520,11 @@ export default function StatisticsPage() {
             <Typography variant="h6" gutterBottom>
               Filters
             </Typography>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              spacing={2}
+              sx={{ flexWrap: 'wrap', alignItems: 'center' }}
+            >
               <FormControl sx={{ minWidth: 140 }}>
                 <InputLabel>Year</InputLabel>
                 <Select
@@ -350,7 +572,21 @@ export default function StatisticsPage() {
                   ))}
                 </Select>
               </FormControl>
+
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={includeConverted}
+                    onChange={(event) => setIncludeConverted(event.target.checked)}
+                    disabled={!currency}
+                  />
+                }
+                label="Include other currencies (convert to selected currency)"
+              />
             </Stack>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              Exchange rates fetched from https://open.er-api.com (base currency: {currency || 'N/A'}).
+            </Typography>
           </Paper>
         </AnimatedSection>
 

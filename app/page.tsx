@@ -11,6 +11,7 @@ import {
   CardContent,
   Alert,
   Skeleton,
+  Avatar,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -20,6 +21,7 @@ import {
   BarChart as BarChartIcon,
   People as PeopleIcon,
   Backup as BackupIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material'
 import { PageLayout } from '@/components/PageLayout'
 import { ProfileSelector } from '@/components/ProfileSelector'
@@ -36,7 +38,7 @@ import { AnimatedSection } from '@/components/AnimatedSection'
 export default function DashboardPage() {
   const router = useRouter()
   const { activeProfile, profiles, isLoading: profilesLoading } = useProfile()
-  const { user, isGuestMode, isLoading: authLoading } = useAuth()
+  const { user, isGuestMode, isLoading: authLoading, signOut } = useAuth()
   const { defaultCurrency, isLoading: currenciesLoading } = useCurrency()
   const api = useApi()
   const [statistics, setStatistics] = useState<StatisticsData | null>(null)
@@ -157,6 +159,11 @@ export default function DashboardPage() {
     [navigateTo]
   )
 
+  const handleSignOut = useCallback(async () => {
+    await signOut()
+    router.push('/')
+  }, [signOut, router])
+
   // Check authentication first - redirect to sign-in if not authenticated
   useEffect(() => {
     // Wait for auth to load first
@@ -203,9 +210,59 @@ export default function DashboardPage() {
     return null
   }
 
+  const getUserInitials = (email: string): string => {
+    return email.charAt(0).toUpperCase()
+  }
+
+  const displayEmail = user?.email || 'Guest'
+
   return (
-    <PageLayout>
+    <PageLayout showHeader={false}>
       <Box>
+        <AnimatedSection>
+          <Paper
+            elevation={3}
+            sx={{
+              mb: 4,
+              px: 3,
+              py: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 2,
+              backgroundImage: 'linear-gradient(135deg, #1e88e5, #3949ab)',
+              color: 'primary.contrastText',
+              borderRadius: 3,
+            }}
+          >
+            <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
+              Finance App
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {isGuestMode && (
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Guest Mode
+                </Typography>
+              )}
+              {user ? (
+                <>
+                  <Avatar sx={{ width: 36, height: 36, bgcolor: 'secondary.main' }}>
+                    {getUserInitials(user.email)}
+                  </Avatar>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {displayEmail}
+                  </Typography>
+                </>
+              ) : (
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  Guest
+                </Typography>
+              )}
+            </Box>
+          </Paper>
+        </AnimatedSection>
+
         {/* Profile Selector */}
         <AnimatedSection>
           <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
@@ -354,6 +411,20 @@ export default function DashboardPage() {
               ))}
             </Box>
           </Paper>
+        </AnimatedSection>
+
+        <AnimatedSection delay={150}>
+          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<LogoutIcon />}
+              onClick={handleSignOut}
+              sx={{ minWidth: 220 }}
+            >
+              Sign Out
+            </Button>
+          </Box>
         </AnimatedSection>
       </Box>
     </PageLayout>

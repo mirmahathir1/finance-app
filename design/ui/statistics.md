@@ -38,7 +38,10 @@
 │  │ │   (only currencies used in selected period)   │ │ │
 │  │ └──────────────────────────────────────────────┘ │ │
 │  │                                                    │ │
-│  │ ℹ️  Showing statistics for USD only              │ │
+│  │ Include other currencies [ ]                      │ │
+│  │ (convert via open.er-api.com rates)               │ │
+│  │ ℹ️  Showing statistics for USD; conversions add   │ │
+│  │     non-USD totals when checkbox is enabled       │ │
 │  └───────────────────────────────────────────────────┘ │
 │                                                          │
 │  Summary Cards                                           │
@@ -125,10 +128,11 @@ Statistics
 ├── FilterControls
 │   ├── YearSelector (dropdown)
 │   ├── MonthSelector (dropdown)
-│   └── CurrencySelector (dropdown - shows only currencies used in transactions for selected period)
+│   ├── CurrencySelector (dropdown - shows only currencies used in transactions for selected period)
+│   └── IncludeConversionToggle (checkbox - converts other currencies into the selected currency using open.er-api.com rates)
 ├── StatsDisplay (when year and month selected)
-│   ├── ExpensePieChart (breakdown by tags, only transactions in selected currency)
-│   ├── IncomeVsExpenseBar (only transactions in selected currency)
+│   ├── ExpensePieChart (breakdown by tags, respects conversion toggle)
+│   ├── IncomeVsExpenseBar (respects conversion toggle)
 │   └── SummaryCards
 │       ├── TotalIncomeCard (in selected currency)
 │       ├── TotalExpenseCard (in selected currency)
@@ -136,7 +140,7 @@ Statistics
 └── EmptyState (when no data for selected period/currency)
 ```
 
-**Note:** Statistics show only transactions in the selected currency, filtering by `type` for expenses and incomes.
+**Note:** Statistics default to transactions in the selected currency, filtering by `type` for expenses and incomes. When the "Include other currencies" toggle is enabled, out-of-currency transactions are converted to the selected currency via https://open.er-api.com before aggregation.
 
 ## View Statistics Flow
 
@@ -149,19 +153,21 @@ Statistics
 7. Populate Currency Filter dropdown
 8. User selects currency to view (default: user's default currency)
 9. Filter transactions by selected currency
-10. Aggregate data by tags for filtered transactions
-11. Render Pie Chart & Summary showing only selected currency
-12. Display Results
+10. (Optional) If conversions are enabled, fetch exchange rates from open.er-api.com and convert other currencies into the selected currency
+11. Aggregate data by tags for filtered and converted transactions
+12. Render Pie Chart & Summary
+13. Display Results
 
 ## Features
 
 - **Year and Month Selection**: Dropdown selectors for filtering by time period
 - **Currency Filter**: Shows only currencies used in transactions for selected period
-- **Expense Breakdown**: Pie chart showing expense breakdown by tags (only selected currency)
-- **Income vs Expense**: Bar chart comparing income and expense totals (only selected currency)
+- **Cross-Currency Inclusion**: Optional checkbox fetches exchange rates from https://open.er-api.com and merges other currencies into the selected currency
+- **Expense Breakdown**: Pie chart showing expense breakdown by tags (respects conversion toggle)
+- **Income vs Expense**: Bar chart comparing income and expense totals (respects conversion toggle)
 - **Summary Cards**: Total income, total expense, and net balance in selected currency
 - **Empty State**: Clear message when no data available for selected period/currency
-- **Currency-Specific**: All statistics filtered by selected currency (no conversion)
+- **Currency-Specific or Converted**: Defaults to selected currency only, with optional conversions for multi-currency inclusion
 
 ## User Flow
 
@@ -171,16 +177,17 @@ Statistics
 4. System determines available currencies
 5. Currency dropdown populates with currencies used in transactions
 6. User selects currency (defaults to user's default currency)
-7. System filters transactions by selected currency
-8. Charts and summaries display for selected currency only
-9. User can change currency to view different currency statistics
+7. Optional: User enables "Include other currencies" toggle to convert additional currencies using open.er-api.com rates
+8. System filters transactions by selected currency and merges converted values (if enabled)
+9. Charts and summaries display updated totals
+10. User can change currency or toggle conversions to explore different views
 
 ## UI/UX Guidelines
 
-- Clearly indicate which currency is selected (e.g., "Showing statistics for USD only")
+- Clearly indicate which currency is selected (e.g., "Showing statistics for USD only") and whether other currencies are being converted
 - Use appropriate currency symbols ($ £ € ¥) when displaying amounts
 - Format numbers according to currency locale
 - Color-coded charts: Red for expenses, green for incomes
 - Responsive charts that adapt to mobile and desktop
 - Smooth animations for chart rendering (200-400ms)
-- Empty state provides helpful guidance to try different filters
+- Empty state provides helpful guidance to try different filters or toggling currency inclusion

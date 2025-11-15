@@ -66,5 +66,5 @@
 ```
 
 **Notes:**
-- Only transactions in the selected currency are included in statistics
+- The API always returns totals for the requested currency; the UI can optionally fetch rates from https://open.er-api.com to convert and merge other currencies client-side before rendering.
 
