@@ -68,7 +68,8 @@ export function DeleteCurrencyModal({
     if (!code) return
     try {
       setIsDeleting(true)
-      await deleteCurrency(code)
+      const canSkipUsageCheck = affectedCount !== null && affectedCount === 0
+      await deleteCurrency(code, { skipUsageCheck: canSkipUsageCheck })
       onDeleted?.()
       onClose()
     } catch (error: any) {

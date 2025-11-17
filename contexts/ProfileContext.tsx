@@ -61,7 +61,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
 
     const initialize = async () => {
-      await loadProfiles()
+      await loadProfiles({ showLoader: false })
       if (!isGuestMode) {
         await autoPopulateProfiles()
       }
@@ -70,9 +70,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authStateKey, authLoading])
 
-  const loadProfiles = async () => {
+  const loadProfiles = async (options: { showLoader?: boolean } = {}) => {
+    const { showLoader = true } = options
     try {
-      setIsLoading(true)
+      if (showLoader) {
+        setIsLoading(true)
+      }
       setError(null)
       const allProfiles = await getAllProfiles()
       const active = await getActiveProfile()
@@ -202,7 +205,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
 
     // Reload profiles
-    await loadProfiles()
+      await loadProfiles({ showLoader: false })
   }
 
   const renameProfile = async (oldName: string, newName: string) => {
@@ -258,7 +261,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
 
     // Reload profiles
-    await loadProfiles()
+    await loadProfiles({ showLoader: false })
   }
 
   const deleteProfile = async (name: string, options?: DeleteProfileOptions) => {
@@ -292,7 +295,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     await deleteProfileDB(name)
 
     // Reload profiles
-    await loadProfiles()
+    await loadProfiles({ showLoader: false })
   }
 
   const switchProfile = async (name: string) => {
@@ -307,7 +310,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }
 
   const refreshProfiles = async () => {
-    await loadProfiles()
+    await loadProfiles({ showLoader: false })
   }
 
   const clearError = () => setError(null)

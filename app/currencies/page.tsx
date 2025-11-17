@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation'
 import {
   Box,
   Button,
+  Collapse,
   Container,
   Divider,
   List,
   ListItem,
-  ListItemSecondaryAction,
   ListItemText,
   Paper,
   Stack,
@@ -17,14 +17,12 @@ import {
   Typography,
   Chip,
   IconButton,
-  Tooltip,
-  Alert,
   Skeleton,
 } from '@mui/material'
+import { TransitionGroup } from 'react-transition-group'
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import { PageLayout } from '@/components/PageLayout'
 import { Snackbar } from '@/components/Snackbar'
-import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useCurrency } from '@/contexts/CurrencyContext'
 import { EditCurrencyModal } from '@/components/EditCurrencyModal'
 import { DeleteCurrencyModal } from '@/components/DeleteCurrencyModal'
@@ -40,7 +38,6 @@ export default function CurrenciesPage() {
     isLoading,
     error,
     addCurrency,
-    deleteCurrency,
     setDefaultCurrency,
     importCurrenciesFromTransactions,
     refreshCurrencies,
@@ -243,69 +240,84 @@ export default function CurrenciesPage() {
             </Box>
           ) : (
             <List>
-              {sortedCurrencies.map((c) => (
-                <ListItem key={c.code} divider>
-                  <ListItemText
-                    primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="subtitle1">{c.code}</Typography>
-                        {c.isDefault && <Chip size="small" label="Default" color="success" />}
-                      </Box>
-                    }
-                    secondary={
-                      <Typography variant="caption" color="text.secondary">
-                        Created {new Date(c.createdAt).toLocaleString()}
-                      </Typography>
-                    }
-                  />
-                  <ListItemSecondaryAction>
-                    <Stack direction="row" spacing={1}>
-                      {!c.isDefault && (
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={async () => {
-                            try {
-                              await setDefaultCurrency(c.code)
-                              setSnackbar({
-                                open: true,
-                                message: `"${c.code}" set as default`,
-                                severity: 'success',
-                              })
-                            } catch (error: any) {
-                              setSnackbar({
-                                open: true,
-                                message: error?.message || 'Failed to set default currency',
-                                severity: 'error',
-                              })
-                            }
-                          }}
-                          disabled={isLoading}
+              <TransitionGroup component={null}>
+                {sortedCurrencies.map((currency) => (
+                  <Collapse key={currency.code}>
+                    <ListItem
+                      divider
+                      sx={{
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        alignItems: { xs: 'flex-start', sm: 'center' },
+                        gap: { xs: 1.5, sm: 0 },
+                      }}
+                    >
+                      <ListItemText
+                        sx={{ flexGrow: 1, width: '100%' }}
+                        primary={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="subtitle1">{currency.code}</Typography>
+                            {currency.isDefault && <Chip size="small" label="Default" color="success" />}
+                          </Box>
+                        }
+                        secondary={
+                          <Typography variant="caption" color="text.secondary">
+                            Created {new Date(currency.createdAt).toLocaleString()}
+                          </Typography>
+                        }
+                      />
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        sx={{
+                          width: { xs: '100%', sm: 'auto' },
+                          justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+                          flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                          mt: { xs: 1, sm: 0 },
+                        }}
+                      >
+                        {!currency.isDefault && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            sx={{ whiteSpace: 'nowrap' }}
+                            onClick={async () => {
+                              try {
+                                await setDefaultCurrency(currency.code)
+                                setSnackbar({
+                                  open: true,
+                                  message: `"${currency.code}" set as default`,
+                                  severity: 'success',
+                                })
+                              } catch (error: any) {
+                                setSnackbar({
+                                  open: true,
+                                  message: error?.message || 'Failed to set default currency',
+                                  severity: 'error',
+                                })
+                              }
+                            }}
+                            disabled={isLoading}
+                          >
+                            Set Default
+                          </Button>
+                        )}
+                        <IconButton edge="end" aria-label="edit" color="primary" onClick={() => openEdit(currency)}>
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton
+                          edge="end"
+                          aria-label="delete"
+                          color="error"
+                          onClick={() => openDelete(currency.code)}
+                          disabled={currency.isDefault}
                         >
-                          Set Default
-                        </Button>
-                      )}
-                      <IconButton
-                        edge="end"
-                        aria-label="edit"
-                        color="primary"
-                        onClick={() => openEdit(c)}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton
-                        edge="end"
-                        aria-label="delete"
-                        color="error"
-                        onClick={() => openDelete(c.code)}
-                        disabled={c.isDefault}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Stack>
-                  </ListItemSecondaryAction>
-                </ListItem>
-              ))}
+                          <DeleteIcon />
+                        </IconButton>
+                      </Stack>
+                    </ListItem>
+                  </Collapse>
+                ))}
+              </TransitionGroup>
               {sortedCurrencies.length === 0 && (
                 <Box sx={{ py: 4, textAlign: 'center' }}>
                   <Typography variant="body2" color="text.secondary">

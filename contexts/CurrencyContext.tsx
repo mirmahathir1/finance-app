@@ -23,7 +23,7 @@ interface CurrencyContextType {
   clearError: () => void
   addCurrency: (code: string, isDefault?: boolean) => Promise<void>
   updateCurrency: (code: string, updates: Partial<Currency>) => Promise<void>
-  deleteCurrency: (code: string) => Promise<void>
+  deleteCurrency: (code: string, options?: { skipUsageCheck?: boolean }) => Promise<void>
   setDefaultCurrency: (code: string) => Promise<void>
   refreshCurrencies: () => Promise<void>
   importCurrenciesFromTransactions: () => Promise<{ added: number; skipped: number }>
@@ -70,9 +70,12 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isGuestMode])
 
-  const loadCurrencies = async () => {
+  const loadCurrencies = async (options: { showLoader?: boolean } = {}) => {
+    const { showLoader = true } = options
     try {
-      setIsLoading(true)
+      if (showLoader) {
+        setIsLoading(true)
+      }
       setError(null)
       const allCurrencies = await getAllCurrencies()
       const defaultCurr = await getDefaultCurrency()
@@ -82,7 +85,9 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       console.error('Error loading currencies:', error)
       setError(getFriendlyErrorMessage(error, 'Failed to load currencies.'))
     } finally {
-      setIsLoading(false)
+      if (showLoader) {
+        setIsLoading(false)
+      }
     }
   }
 
@@ -110,7 +115,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     }
 
     // Reload currencies
-    await loadCurrencies()
+    await loadCurrencies({ showLoader: false })
   }
 
   /**
@@ -169,27 +174,30 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     }
 
     // Reload currencies
-    await loadCurrencies()
+    await loadCurrencies({ showLoader: false })
   }
 
   /**
    * Delete a currency (only if not used in transactions)
    */
-  const deleteCurrency = async (code: string) => {
+  const deleteCurrency = async (code: string, options: { skipUsageCheck?: boolean } = {}) => {
+    const { skipUsageCheck = false } = options
     const normalizedCode = code.trim().toUpperCase()
     const existing = await getCurrency(normalizedCode)
     if (!existing) {
       throw new Error(`Currency "${normalizedCode}" not found`)
     }
 
-    // Check if currency is used in transactions
-    const response = await api.getTransactions({})
-    if (response.success && response.data) {
-      const transactions = response.data.transactions || []
-      const isUsed = transactions.some((t) => t.currency === normalizedCode)
-      
-      if (isUsed) {
-        throw new Error(`Cannot delete currency "${normalizedCode}" because it is used in transactions`)
+    if (!skipUsageCheck) {
+      // Check if currency is used in transactions
+      const response = await api.getTransactions({})
+      if (response.success && response.data) {
+        const transactions = response.data.transactions || []
+        const isUsed = transactions.some((t) => t.currency === normalizedCode)
+
+        if (isUsed) {
+          throw new Error(`Cannot delete currency "${normalizedCode}" because it is used in transactions`)
+        }
       }
     }
 
@@ -197,7 +205,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     await deleteCurrencyDB(normalizedCode)
 
     // Reload currencies
-    await loadCurrencies()
+    await loadCurrencies({ showLoader: false })
   }
 
   /**
@@ -211,7 +219,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     }
 
     await setDefaultCurrencyDB(normalizedCode)
-    await loadCurrencies()
+    await loadCurrencies({ showLoader: false })
   }
 
   /**
@@ -257,7 +265,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     }
 
     // Reload currencies
-    await loadCurrencies()
+    await loadCurrencies({ showLoader: false })
 
     return { added, skipped }
   }
@@ -266,7 +274,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
    * Refresh currencies from IndexedDB
    */
   const refreshCurrencies = async () => {
-    await loadCurrencies()
+    await loadCurrencies({ showLoader: false })
   }
 
   const clearError = () => setError(null)

@@ -20,7 +20,9 @@ import {
   Skeleton,
   Checkbox,
   FormControlLabel,
+  Fade,
 } from '@mui/material'
+import { TransitionGroup } from 'react-transition-group'
 import { PageLayout } from '@/components/PageLayout'
 import { Snackbar } from '@/components/Snackbar'
 import { EmptyState } from '@/components/EmptyState'
@@ -32,6 +34,7 @@ import type { StatisticsData, Transaction } from '@/types'
 import { ErrorState } from '@/components/ErrorState'
 import { getFriendlyErrorMessage } from '@/utils/error'
 import { AnimatedSection } from '@/components/AnimatedSection'
+import { usePrefersReducedMotion, getMotionDuration } from '@/utils/motion'
 
 const EXPENSE_COLORS = ['#e53935', '#d32f2f', '#ef5350', '#f44336', '#ff7043', '#ff8a65']
 
@@ -188,6 +191,8 @@ export default function StatisticsPage() {
   const router = useRouter()
   const { activeProfile } = useProfile()
   const api = useApi()
+  const prefersReducedMotion = usePrefersReducedMotion()
+  const contentTransitionDuration = getMotionDuration(prefersReducedMotion, 320)
 
   // Filters
   const [years, setYears] = useState<number[]>([new Date().getFullYear()])
@@ -219,6 +224,7 @@ export default function StatisticsPage() {
   const [stats, setStats] = useState<StatisticsData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [statsError, setStatsError] = useState<string | null>(null)
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false)
 
   // Snackbar
   const [snackbar, setSnackbar] = useState<{
@@ -236,12 +242,14 @@ export default function StatisticsPage() {
       setSelectedYear(fallbackYear)
       setCurrencyOptions([])
       setCurrency('')
+      setIsLoadingTransactions(false)
       return
     }
 
     let isMounted = true
     const loadProfileTransactions = async () => {
       try {
+        setIsLoadingTransactions(true)
         const txRes = await api.getTransactions({ profile: activeProfile })
         if (isMounted && txRes.success && txRes.data) {
           setProfileTransactions(txRes.data.transactions as Transaction[])
@@ -249,6 +257,10 @@ export default function StatisticsPage() {
       } catch (e) {
         if (isMounted) {
           setProfileTransactions([])
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingTransactions(false)
         }
       }
     }
@@ -481,6 +493,122 @@ export default function StatisticsPage() {
   const incomeMajor = stats ? stats.summary.totalIncome.amountMinor / 100 : 0
   const expenseMajor = stats ? stats.summary.totalExpense.amountMinor / 100 : 0
 
+  const shouldShowSkeleton =
+    isLoadingTransactions || isLoading || (!currency && derivedCurrencyOptions.length > 0)
+  const shouldShowEmptyState = !shouldShowSkeleton && (!currency || !hasData)
+
+  const filtersKey = useMemo(
+    () =>
+      `${selectedYear}-${selectedMonth}-${currency || 'none'}-${
+        includeConverted ? 'with-conversions' : 'base'
+      }-${from}-${to}`,
+    [selectedYear, selectedMonth, currency, includeConverted, from, to]
+  )
+
+  const statsView = useMemo(() => {
+    if (shouldShowSkeleton) {
+      return {
+        key: `loading-${filtersKey}`,
+        node: (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Grid container spacing={2}>
+              {[0, 1, 2].map((item) => (
+                <Grid key={item} size={{ xs: 12, md: 4 }} sx={{ minWidth: 0 }}>
+                  <Card sx={{ p: 2 }}>
+                    <Skeleton variant="text" width="40%" />
+                    <Skeleton variant="text" height={36} />
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+            <Paper elevation={2} sx={{ p: 3 }}>
+              <Skeleton variant="text" width="30%" height={28} />
+              <Skeleton variant="rectangular" height={240} sx={{ mt: 2, borderRadius: 1 }} />
+            </Paper>
+          </Box>
+        ),
+      }
+    }
+
+    if (shouldShowEmptyState) {
+      return {
+        key: `empty-${filtersKey}`,
+        node: (
+          <EmptyState
+            title="No statistics available"
+            message={
+              !currency
+                ? 'No currencies found for the selected period.'
+                : 'No data for the selected filters.'
+            }
+          />
+        ),
+      }
+    }
+
+    return {
+      key: `stats-${filtersKey}-${stats!.summary.totalIncome.amountMinor}-${stats!.summary.totalExpense.amountMinor}-${stats!.summary.netBalance.amountMinor}`,
+      node: (
+        <>
+          <AnimatedSection delay={50}>
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+              <Grid size={{ xs: 12, md: 4 }} sx={{ minWidth: 0 }}>
+                <Card sx={{ borderLeft: '4px solid', borderColor: 'success.main' }}>
+                  <CardContent>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Total Income
+                    </Typography>
+                    <Typography variant="h5" color="success.main">
+                      {formatAmount(stats!.summary.totalIncome.amountMinor, currency)}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }} sx={{ minWidth: 0 }}>
+                <Card sx={{ borderLeft: '4px solid', borderColor: 'error.main' }}>
+                  <CardContent>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Total Expense
+                    </Typography>
+                    <Typography variant="h5" color="error.main">
+                      {formatAmount(stats!.summary.totalExpense.amountMinor, currency)}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }} sx={{ minWidth: 0 }}>
+                <Card sx={{ borderLeft: '4px solid', borderColor: 'primary.main' }}>
+                  <CardContent>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Net Balance
+                    </Typography>
+                    <Typography
+                      variant="h5"
+                      color={stats!.summary.netBalance.amountMinor >= 0 ? 'success.main' : 'error.main'}
+                    >
+                      {formatAmount(stats!.summary.netBalance.amountMinor, currency)}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          </AnimatedSection>
+
+          <AnimatedSection delay={120}>
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12 }} sx={{ minWidth: 0 }}>
+                <ExpenseBreakdownPie items={pieData} height={420} />
+              </Grid>
+              <Grid size={{ xs: 12, md: 5 }} sx={{ minWidth: 0 }}>
+                <IncomeExpenseBar income={incomeMajor} expense={expenseMajor} currency={currency} />
+              </Grid>
+            </Grid>
+          </AnimatedSection>
+        </>
+      ),
+    }
+  }, [currency, expenseMajor, filtersKey, incomeMajor, pieData, shouldShowEmptyState, shouldShowSkeleton, stats])
+
   if (!activeProfile) {
     return (
       <PageLayout>
@@ -612,96 +740,21 @@ export default function StatisticsPage() {
         </AnimatedSection>
 
         {/* Content */}
-        {!statsError && (isLoading ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <Grid container spacing={2}>
-              {[0, 1, 2].map((item) => (
-                <Grid key={item} size={{ xs: 12, md: 4 }} sx={{ minWidth: 0 }}>
-                  <Card sx={{ p: 2 }}>
-                    <Skeleton variant="text" width="40%" />
-                    <Skeleton variant="text" height={36} />
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-            <Paper elevation={2} sx={{ p: 3 }}>
-              <Skeleton variant="text" width="30%" height={28} />
-              <Skeleton variant="rectangular" height={240} sx={{ mt: 2, borderRadius: 1 }} />
-            </Paper>
-          </Box>
-        ) : !currency || !hasData ? (
-          <EmptyState
-            title="No statistics available"
-            message={
-              !currency
-                ? 'No currencies found for the selected period.'
-                : 'No data for the selected filters.'
-            }
-          />
-        ) : (
-          <>
-            <AnimatedSection delay={50}>
-              <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid size={{ xs: 12, md: 4 }} sx={{ minWidth: 0 }}>
-                  <Card sx={{ borderLeft: '4px solid', borderColor: 'success.main' }}>
-                    <CardContent>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Total Income
-                      </Typography>
-                      <Typography variant="h5" color="success.main">
-                        {formatAmount(stats!.summary.totalIncome.amountMinor, currency)}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid size={{ xs: 12, md: 4 }} sx={{ minWidth: 0 }}>
-                  <Card sx={{ borderLeft: '4px solid', borderColor: 'error.main' }}>
-                    <CardContent>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Total Expense
-                      </Typography>
-                      <Typography variant="h5" color="error.main">
-                        {formatAmount(stats!.summary.totalExpense.amountMinor, currency)}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid size={{ xs: 12, md: 4 }} sx={{ minWidth: 0 }}>
-                  <Card sx={{ borderLeft: '4px solid', borderColor: 'primary.main' }}>
-                    <CardContent>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Net Balance
-                      </Typography>
-                      <Typography
-                        variant="h5"
-                        color={
-                          stats!.summary.netBalance.amountMinor >= 0 ? 'success.main' : 'error.main'
-                        }
-                      >
-                        {formatAmount(stats!.summary.netBalance.amountMinor, currency)}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            </AnimatedSection>
-
-            <AnimatedSection delay={120}>
-              <Grid container spacing={3}>
-                <Grid size={{ xs: 12 }} sx={{ minWidth: 0 }}>
-                  <ExpenseBreakdownPie items={pieData} height={420} />
-                </Grid>
-                <Grid size={{ xs: 12, md: 5 }} sx={{ minWidth: 0 }}>
-                  <IncomeExpenseBar
-                    income={incomeMajor}
-                    expense={expenseMajor}
-                    currency={currency}
-                  />
-                </Grid>
-              </Grid>
-            </AnimatedSection>
-          </>
-        ))}
+        {!statsError &&
+          (prefersReducedMotion ? (
+            <Box key={statsView.key}>{statsView.node}</Box>
+          ) : (
+            <TransitionGroup component={null}>
+              <Fade
+                key={statsView.key}
+                timeout={contentTransitionDuration}
+                mountOnEnter
+                unmountOnExit
+              >
+                <Box sx={{ width: '100%' }}>{statsView.node}</Box>
+              </Fade>
+            </TransitionGroup>
+          ))}
 
         <Snackbar
           open={snackbar.open}
