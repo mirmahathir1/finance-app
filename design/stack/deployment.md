@@ -2,25 +2,45 @@
 
 # Deployment & Distribution
 
+## Deployment Summary
+
+**Production Deployment Stack:**
+- **Application**: Next.js 14+ deployed to **Google Cloud Run** (serverless container platform)
+- **Database**: **Neon PostgreSQL** (serverless, external database)
+- **Email Service**: **Brevo** (Sendinblue) for transactional emails
+- **Container**: Docker (multi-stage build with Node.js 20)
+
+**Why This Stack:**
+- **Cloud Run**: Free tier includes 2M requests/month, auto-scaling, pay-per-use
+- **Neon**: Free tier with 0.5 GB storage, automatic scaling, connection pooling
+- **Brevo**: Free tier with 300 emails/day, reliable transactional email delivery
+
+All services operate within their respective free tiers, making this a cost-effective solution for small to medium applications.
+
 ## Deployment Architecture
 
+### Next.js Application on Google Cloud Run
+
+The Next.js application is deployed as a Docker container to **Google Cloud Run**, a serverless platform that automatically scales based on traffic.
+
+**Key Features:**
+- Automatic HTTPS
+- Auto-scaling based on traffic (scales to zero when idle)
+- Pay-per-use pricing (generous free tier)
+- Global CDN
+- Container-based deployment
+
 ### Docker Container
+
+The application uses a multi-stage Docker build (see `Dockerfile` in project root):
+
 ```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
-EXPOSE 3000
-CMD ["npm", "start"]
+# Production Dockerfile uses node:20-alpine
+# Multi-stage build for optimized image size
+# Generates Prisma Client and builds Next.js standalone output
 ```
 
-### Google Cloud Run
-- Automatic HTTPS
-- Auto-scaling based on traffic
-- Pay-per-use pricing
-- Global CDN
+**Note:** The actual Dockerfile uses `node:20-alpine` and includes Prisma Client generation. See `Dockerfile` in the project root for the complete configuration.
 
 ### Environment Variables
 - Inject via Cloud Run service configuration
@@ -76,11 +96,23 @@ CMD ["npm", "start"]
 ## Environment Variables
 
 ### Authentication & Database
+
+**Database: Neon PostgreSQL**
+
+The application uses **Neon** (serverless PostgreSQL) as the primary database. Neon provides:
+- Free tier with 0.5 GB storage
+- Automatic scaling
+- Connection pooling
+- Database branching for development
+
+**Connection String:**
 ```
 DATABASE_URL=postgres://user:password@host:port/dbname?sslmode=require  # Neon connection string
 SESSION_COOKIE_NAME=app_session
 JWT_SECRET=your_jwt_secret_if_applicable
 ```
+
+**Note:** Cloud Run connects to Neon via the public internet using SSL. No Cloud SQL or VPC configuration needed.
 
 ### Signup Email Verification
 ```
@@ -98,11 +130,22 @@ RESET_PASSWORD_ROUTE_PATH=/reset-password
 ```
 
 ### Brevo (Sendinblue) Email Service
+
+**Email Provider: Brevo**
+
+The application uses **Brevo** (formerly Sendinblue) for transactional emails:
+- Email verification during signup
+- Password reset emails
+- Free tier available (300 emails/day)
+
+**Required Environment Variables:**
 ```
 BREVO_API_KEY=your_brevo_api_key
 BREVO_SENDER_EMAIL=no-reply@your.app
 BREVO_SENDER_NAME=Your App
 ```
+
+**Note:** In development, MailHog can be used for local email testing, but production deployments on Cloud Run must use Brevo.
 
 ### Environment Variable Management
 - Inject via Cloud Run service configuration

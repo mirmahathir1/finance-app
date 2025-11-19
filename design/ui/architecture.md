@@ -62,8 +62,10 @@
 - **Data Format**: Normalized relational schema
 
 ### Deployment
-- **Container**: Docker
-- **Platform**: Cloud hosting of choice
+- **Container**: Docker (multi-stage build)
+- **Platform**: Google Cloud Run (serverless container platform)
+- **Database**: Neon PostgreSQL (serverless, external database)
+- **Email**: Brevo (Sendinblue) for transactional emails
 - **PWA**: Progressive Web App with Service Worker
 - **Mobile**: Bubblewrap for Android packaging
 

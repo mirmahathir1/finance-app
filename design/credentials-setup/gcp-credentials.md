@@ -2,7 +2,12 @@
 
 # Google Cloud Platform (GCP) Credentials Setup
 
-Google Cloud Platform is used for deploying the application to Cloud Run or GKE, storing Docker images, and CI/CD pipelines.
+Google Cloud Platform is used for deploying the **Next.js application to Cloud Run**, storing Docker images, and CI/CD pipelines.
+
+**Deployment Architecture:**
+- **Application**: Next.js app deployed to Google Cloud Run (serverless)
+- **Database**: Neon PostgreSQL (external, not on GCP)
+- **Email**: Brevo (external, not on GCP)
 
 ## Prerequisites
 - A Google account
@@ -39,10 +44,10 @@ Enable the APIs needed for your application:
 
 1. Go to **"APIs & Services"** → **"Library"** in the GCP Console
 2. Search for and enable the following APIs:
-   - **Cloud Run API** (for serverless container deployment)
-   - **Container Registry API** or **Artifact Registry API** (for Docker image storage)
+   - **Cloud Run API** (for serverless container deployment) - **Required**
+   - **Container Registry API** or **Artifact Registry API** (for Docker image storage) - **Required**
    - **Cloud Build API** (for CI/CD, optional)
-   - **Cloud SQL Admin API** (if using Cloud SQL, not needed for Neon)
+   - **Cloud SQL Admin API** (not needed - using Neon PostgreSQL instead)
 
 **To enable an API:**
 - Search for the API name
