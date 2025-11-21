@@ -25,17 +25,27 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Use VERCEL_URL for automatic deployment URL, or fallback to NEXT_PUBLIC_APP_URL
-const getAppUrl = () => {
+// This function is called at runtime to get the current deployment URL
+function getAppUrl(): string {
+  // First priority: custom URL set by user
   if (process.env.NEXT_PUBLIC_APP_URL) {
     return process.env.NEXT_PUBLIC_APP_URL
   }
+  
+  // Second priority: Vercel deployment URL (runtime)
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`
   }
+  
+  // Third priority: Check if running on Vercel by checking for Vercel-specific env vars
+  if (process.env.VERCEL === '1' && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  }
+  
+  // Fallback: localhost for development
   return 'http://localhost:3000'
 }
 
-const APP_URL = getAppUrl()
 const FORCE_GUEST_MODE = process.env.NEXT_PUBLIC_FORCE_GUEST_MODE === 'true'
 
 const MAILHOG_HOST = process.env.MAILHOG_HOST || 'localhost'
@@ -127,6 +137,14 @@ export async function sendVerificationEmail(
   to: string,
   token: string
 ): Promise<void> {
+  const APP_URL = getAppUrl() // Get URL at runtime
+  console.log('[Email URL Debug]', {
+    APP_URL,
+    VERCEL_URL: process.env.VERCEL_URL,
+    VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    VERCEL: process.env.VERCEL,
+  })
   const verificationLink = `${APP_URL}/auth/verify?token=${token}`
   await sendEmail({
     to,
@@ -142,6 +160,7 @@ export async function sendPasswordResetEmail(
   to: string,
   token: string
 ): Promise<void> {
+  const APP_URL = getAppUrl() // Get URL at runtime
   const resetLink = `${APP_URL}/auth/reset-password?token=${token}`
   await sendEmail({
     to,
