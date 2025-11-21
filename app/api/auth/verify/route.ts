@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma'
 import { errorResponse, success } from '@/app/api/auth/_lib/responses'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url)

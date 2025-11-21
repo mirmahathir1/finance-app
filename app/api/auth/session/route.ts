@@ -6,6 +6,8 @@ import {
 } from '@/app/api/auth/_lib/helpers'
 import { errorResponse, success } from '@/app/api/auth/_lib/responses'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const token = getSessionToken()
