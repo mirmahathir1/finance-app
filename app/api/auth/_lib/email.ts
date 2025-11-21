@@ -14,6 +14,16 @@ const resolvedProvider =
 
 const EMAIL_PROVIDER = resolvedProvider.toLowerCase()
 
+// Debug logging for email configuration
+if (process.env.NODE_ENV === 'production') {
+  console.log('[Email Config Debug]', {
+    EMAIL_PROVIDER,
+    hasBrevoApiKey: !!BREVO_API_KEY,
+    brevoApiKeyLength: BREVO_API_KEY?.length,
+    rawEmailProvider: process.env.EMAIL_PROVIDER,
+  })
+}
+
 // Use VERCEL_URL for automatic deployment URL, or fallback to NEXT_PUBLIC_APP_URL
 const getAppUrl = () => {
   if (process.env.NEXT_PUBLIC_APP_URL) {
