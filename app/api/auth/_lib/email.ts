@@ -13,7 +13,19 @@ const resolvedProvider =
   'mock'
 
 const EMAIL_PROVIDER = resolvedProvider.toLowerCase()
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+// Use VERCEL_URL for automatic deployment URL, or fallback to NEXT_PUBLIC_APP_URL
+const getAppUrl = () => {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`
+  }
+  return 'http://localhost:3000'
+}
+
+const APP_URL = getAppUrl()
 const FORCE_GUEST_MODE = process.env.NEXT_PUBLIC_FORCE_GUEST_MODE === 'true'
 
 const MAILHOG_HOST = process.env.MAILHOG_HOST || 'localhost'
