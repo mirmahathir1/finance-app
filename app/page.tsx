@@ -11,7 +11,6 @@ import {
   CardContent,
   Alert,
   Skeleton,
-  Avatar,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -21,8 +20,7 @@ import {
   BarChart as BarChartIcon,
   People as PeopleIcon,
   Backup as BackupIcon,
-  Logout as LogoutIcon,
-  DeleteForever as DeleteForeverIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material'
 import { PageLayout } from '@/components/PageLayout'
 import { ProfileSelector } from '@/components/ProfileSelector'
@@ -35,22 +33,16 @@ import { getFriendlyErrorMessage } from '@/utils/error'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import type { StatisticsData } from '@/types'
 import { AnimatedSection } from '@/components/AnimatedSection'
-import { LoadingButton } from '@/components/LoadingButton'
-import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 export default function DashboardPage() {
   const router = useRouter()
   const { activeProfile, profiles, isLoading: profilesLoading } = useProfile()
-  const { user, isGuestMode, isLoading: authLoading, signOut } = useAuth()
+  const { user, isGuestMode, isLoading: authLoading } = useAuth()
   const { defaultCurrency, isLoading: currenciesLoading } = useCurrency()
   const api = useApi()
   const [statistics, setStatistics] = useState<StatisticsData | null>(null)
   const [isLoadingStats, setIsLoadingStats] = useState(false)
   const [statsError, setStatsError] = useState<string | null>(null)
-  const [isSigningOut, setIsSigningOut] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
-  const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null)
 
   // Allow guest mode to render (API is intercepted)
 
@@ -159,53 +151,15 @@ export default function DashboardPage() {
         color: 'warning' as const,
         onClick: navigateTo('/backup-restore'),
       },
+      {
+        title: 'Settings',
+        icon: <SettingsIcon />,
+        color: 'info' as const,
+        onClick: navigateTo('/settings'),
+      },
     ],
     [navigateTo]
   )
-
-  const handleSignOut = useCallback(async () => {
-    setIsSigningOut(true)
-    try {
-      await signOut()
-    } catch (error) {
-      console.error('Error signing out:', error)
-    } finally {
-      setIsSigningOut(false)
-    }
-  }, [signOut])
-
-  const handleOpenDeleteDialog = useCallback(() => {
-    setDeleteAccountError(null)
-    setIsDeleteDialogOpen(true)
-  }, [])
-
-  const handleCloseDeleteDialog = useCallback(() => {
-    if (isDeletingAccount) return
-    setIsDeleteDialogOpen(false)
-  }, [isDeletingAccount])
-
-  const handleConfirmDeleteAccount = useCallback(async () => {
-    if (isDeletingAccount) return
-
-    setIsDeletingAccount(true)
-    setDeleteAccountError(null)
-
-    try {
-      const response = await api.deleteAccount()
-      if (!response.success) {
-        throw new Error(response.error.message || 'Failed to delete account.')
-      }
-
-      setIsDeleteDialogOpen(false)
-      await signOut()
-    } catch (error) {
-      setDeleteAccountError(
-        getFriendlyErrorMessage(error, 'Failed to delete account.')
-      )
-    } finally {
-      setIsDeletingAccount(false)
-    }
-  }, [api, signOut, isDeletingAccount])
 
   // Check authentication first - redirect to sign-in if not authenticated
   useEffect(() => {
@@ -253,59 +207,9 @@ export default function DashboardPage() {
     return null
   }
 
-  const getUserInitials = (email: string): string => {
-    return email.charAt(0).toUpperCase()
-  }
-
-  const displayEmail = user?.email || 'Guest'
-
   return (
-    <PageLayout showHeader={false}>
+    <PageLayout pageName="Home Page">
       <Box>
-        <AnimatedSection>
-          <Paper
-            elevation={3}
-            sx={{
-              mb: 4,
-              px: 3,
-              py: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 2,
-              backgroundImage: 'linear-gradient(135deg, #1e88e5, #3949ab)',
-              color: 'primary.contrastText',
-              borderRadius: 3,
-            }}
-          >
-            <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
-              Finance App
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {isGuestMode && (
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Guest Mode
-                </Typography>
-              )}
-              {user ? (
-                <>
-                  <Avatar sx={{ width: 36, height: 36, bgcolor: 'secondary.main' }}>
-                    {getUserInitials(user.email)}
-                  </Avatar>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {displayEmail}
-                  </Typography>
-                </>
-              ) : (
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  Guest
-                </Typography>
-              )}
-            </Box>
-          </Paper>
-        </AnimatedSection>
-
         {/* Profile Selector */}
         <AnimatedSection>
           <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
@@ -456,56 +360,7 @@ export default function DashboardPage() {
           </Paper>
         </AnimatedSection>
 
-        <AnimatedSection delay={150}>
-          <Box
-            sx={{
-              mt: 4,
-              display: 'flex',
-              flexDirection: { xs: 'column', sm: 'row' },
-              justifyContent: 'center',
-              gap: 2,
-            }}
-          >
-            {!isGuestMode && (
-              <LoadingButton
-                variant="outlined"
-                color="warning"
-                startIcon={<DeleteForeverIcon />}
-                onClick={handleOpenDeleteDialog}
-                disabled={isDeletingAccount}
-                sx={{ minWidth: 220 }}
-              >
-                Delete Account
-              </LoadingButton>
-            )}
-            <LoadingButton
-              variant="contained"
-              color="error"
-              startIcon={<LogoutIcon />}
-              onClick={handleSignOut}
-              loading={isSigningOut}
-              sx={{ minWidth: 220 }}
-            >
-              Sign Out
-            </LoadingButton>
-          </Box>
-          {deleteAccountError && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {deleteAccountError}
-            </Alert>
-          )}
-        </AnimatedSection>
       </Box>
-
-      <ConfirmDialog
-        open={isDeleteDialogOpen}
-        title="Delete your account?"
-        message="This will permanently remove your account and all transactions. This action cannot be undone."
-        confirmText="Delete account"
-        confirmColor="error"
-        onConfirm={handleConfirmDeleteAccount}
-        onCancel={handleCloseDeleteDialog}
-      />
     </PageLayout>
   )
 }

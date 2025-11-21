@@ -408,9 +408,27 @@ export default function StatisticsPage() {
     }
   }, [currency, expenseMajor, filtersKey, incomeMajor, pieData, shouldShowEmptyState, shouldShowSkeleton, stats])
 
+  const bannerActions = (
+    <Button
+      variant="outlined"
+      color="inherit"
+      onClick={() => router.push('/')}
+      sx={{
+        borderColor: 'rgba(255,255,255,0.8)',
+        color: 'inherit',
+        '&:hover': {
+          borderColor: 'primary.contrastText',
+          backgroundColor: 'rgba(255,255,255,0.15)',
+        },
+      }}
+    >
+      Back to Dashboard
+    </Button>
+  )
+
   if (!activeProfile) {
     return (
-      <PageLayout>
+      <PageLayout pageName="Statistics" bannerActions={bannerActions}>
         <Container maxWidth="lg">
           <Box sx={{ mt: 4 }}>
             <EmptyState
@@ -424,36 +442,8 @@ export default function StatisticsPage() {
   }
 
   return (
-    <PageLayout>
+    <PageLayout pageName="Statistics" bannerActions={bannerActions}>
       <Container maxWidth="lg">
-        <Box
-          sx={{
-            mb: 4,
-            display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
-            alignItems: { xs: 'flex-start', sm: 'center' },
-            justifyContent: 'space-between',
-            gap: 2,
-          }}
-        >
-          <Typography variant="h4">Statistics</Typography>
-          <Box
-            sx={{
-              width: { xs: '100%', sm: 'auto' },
-              display: 'flex',
-              justifyContent: { xs: 'flex-start', sm: 'flex-end' },
-            }}
-          >
-            <Button
-              variant="outlined"
-              onClick={() => router.push('/')}
-              sx={{ width: { xs: '100%', sm: 'auto' } }}
-            >
-              Back to Dashboard
-            </Button>
-          </Box>
-        </Box>
-
         {statsError && (
           <ErrorState
             title="Unable to load statistics"

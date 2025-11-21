@@ -338,9 +338,27 @@ export default function TransactionsPage() {
     })
   }
 
+  const bannerActions = (
+    <Button
+      variant="outlined"
+      color="inherit"
+      onClick={() => router.push('/')}
+      sx={{
+        borderColor: 'rgba(255,255,255,0.8)',
+        color: 'inherit',
+        '&:hover': {
+          borderColor: 'primary.contrastText',
+          backgroundColor: 'rgba(255,255,255,0.15)',
+        },
+      }}
+    >
+      Back to Dashboard
+    </Button>
+  )
+
   if (!activeProfile) {
     return (
-      <PageLayout>
+      <PageLayout pageName="Transactions" bannerActions={bannerActions}>
         <Container maxWidth="lg">
           <Alert severity="warning" sx={{ mt: 4 }}>
             Please select a profile first to view transactions.
@@ -351,43 +369,26 @@ export default function TransactionsPage() {
   }
 
   return (
-    <PageLayout>
+    <PageLayout pageName="Transactions" bannerActions={bannerActions}>
       <Container maxWidth="lg">
         <Box sx={{ mb: 4 }}>
           <Box
             sx={{
               display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: { xs: 'flex-start', sm: 'center' },
-              flexDirection: { xs: 'column', sm: 'row' },
-              gap: 2,
+              justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 1,
               mb: 2,
             }}
           >
-            <Typography variant="h4">Transactions</Typography>
-            <Box
-              sx={{
-                display: 'flex',
-                gap: 1,
-                flexWrap: 'wrap',
-                width: { xs: '100%', sm: 'auto' },
-                justifyContent: { xs: 'flex-start', sm: 'flex-end' },
-              }}
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => router.push('/transactions/create')}
             >
-              <Button
-                variant="outlined"
-                onClick={() => router.push('/')}
-              >
-                Back to Dashboard
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => router.push('/transactions/create')}
-              >
-                Create Transaction
-              </Button>
-            </Box>
+              Create Transaction
+            </Button>
           </Box>
         </Box>
 

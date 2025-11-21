@@ -14,6 +14,7 @@ import {
   login as apiLogin,
   logout as apiLogout,
   deleteAccount as apiDeleteAccount,
+  changePassword as apiChangePassword,
   signupRequest as apiSignupRequest,
   verifyEmail as apiVerifyEmail,
   setPassword as apiSetPassword,
@@ -105,6 +106,12 @@ export function useApi() {
 
       deleteAccount: async () => {
         return callWithLoading(() => apiDeleteAccount())
+      },
+
+      changePassword: async (currentPassword: string, newPassword: string) => {
+        return callWithLoading(() =>
+          apiChangePassword(currentPassword, newPassword)
+        )
       },
 
       signupRequest: async (email: string) => {

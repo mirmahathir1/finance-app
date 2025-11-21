@@ -300,7 +300,16 @@ export default function SetupPage() {
       sessionStorage.setItem('setup-active-step', nextStep.toString())
     }
     autoAdvanceAppliedRef.current = true
-  }, [hasExistingProfile, profilesLoading, currenciesLoading, defaultCurrency, activeStep, hasTransactions, isCheckingTransactions])
+  }, [
+    hasExistingProfile,
+    profilesLoading,
+    currenciesLoading,
+    defaultCurrency,
+    activeStep,
+    hasTransactions,
+    isCheckingTransactions,
+    shouldShowCurrencyStep,
+  ])
   
   // Decide ONCE whether to include the currency step in the stepper (don't collapse it later)
   // Only include if user has no transactions
@@ -1013,13 +1022,9 @@ export default function SetupPage() {
     : activeStep
 
   return (
-    <PageLayout>
+    <PageLayout pageName="Setup">
       <Container maxWidth="md">
         <Paper elevation={3} sx={{ p: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom align="center">
-            Setup
-          </Typography>
-
           <Box sx={{ mt: 4, mb: 4, overflowX: 'auto' }}>
             <Stepper
               activeStep={currentStep}

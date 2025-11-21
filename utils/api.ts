@@ -332,6 +332,13 @@ async function handleGuestModeRequest(
     }
   }
 
+  if (path === '/api/account/password' && method === 'PATCH') {
+    return {
+      success: true,
+      message: 'Password updated successfully',
+    }
+  }
+
   // ============================================================================
   // Default: Return empty success response
   // ============================================================================
@@ -531,6 +538,16 @@ export async function deleteAccount(): Promise<
 > {
   return apiCall<{ message: string }>('/api/account', {
     method: 'DELETE',
+  })
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<ApiResponse<{ message: string }>> {
+  return apiCall<{ message: string }>('/api/account/password', {
+    method: 'PATCH',
+    body: JSON.stringify({ currentPassword, newPassword }),
   })
 }
 

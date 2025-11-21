@@ -308,9 +308,28 @@ export default function CreateTransactionPage() {
     }
   }
 
+  const bannerActions = (
+    <Button
+      variant="outlined"
+      color="inherit"
+      startIcon={<ArrowBackIcon />}
+      onClick={() => router.push('/')}
+      sx={{
+        borderColor: 'rgba(255,255,255,0.8)',
+        color: 'inherit',
+        '&:hover': {
+          borderColor: 'primary.contrastText',
+          backgroundColor: 'rgba(255,255,255,0.15)',
+        },
+      }}
+    >
+      Back to Dashboard
+    </Button>
+  )
+
   if (!activeProfile) {
     return (
-      <PageLayout>
+      <PageLayout pageName="Create Transaction" bannerActions={bannerActions}>
         <Container maxWidth="md">
           <Alert severity="warning" sx={{ mt: 4 }}>
             Please select a profile first to create transactions.
@@ -330,7 +349,7 @@ export default function CreateTransactionPage() {
   }
 
   return (
-    <PageLayout>
+    <PageLayout pageName="Create Transaction" bannerActions={bannerActions}>
       <Container maxWidth="md">
         <Box sx={{ mb: 4 }}>
           <Button
@@ -341,9 +360,6 @@ export default function CreateTransactionPage() {
           >
             Back to Transactions
           </Button>
-          <Typography variant="h4" gutterBottom>
-            Create Transaction
-          </Typography>
           <Typography variant="body2" color="text.secondary">
             Add a new expense or income transaction
           </Typography>

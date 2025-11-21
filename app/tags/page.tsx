@@ -175,9 +175,27 @@ export default function TagsPage() {
     </List>
   )
 
+  const bannerActions = (
+    <Button
+      variant="outlined"
+      color="inherit"
+      onClick={() => router.push('/')}
+      sx={{
+        borderColor: 'rgba(255,255,255,0.8)',
+        color: 'inherit',
+        '&:hover': {
+          borderColor: 'primary.contrastText',
+          backgroundColor: 'rgba(255,255,255,0.15)',
+        },
+      }}
+    >
+      Back to Dashboard
+    </Button>
+  )
+
   if (!activeProfile) {
     return (
-      <PageLayout>
+      <PageLayout pageName="Tags" bannerActions={bannerActions}>
         <Container maxWidth="lg">
           <Alert severity="warning" sx={{ mt: 4 }}>
             Please select a profile first to manage tags.
@@ -188,40 +206,24 @@ export default function TagsPage() {
   }
 
   return (
-    <PageLayout>
+    <PageLayout pageName="Tags" bannerActions={bannerActions}>
       <Container maxWidth="md">
         <Box
           sx={{
             mb: 4,
             display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
-            alignItems: { xs: 'flex-start', sm: 'center' },
-            justifyContent: 'space-between',
-            gap: 2,
+            justifyContent: 'flex-end',
+            alignItems: 'center',
           }}
         >
-          <Typography variant="h4">Edit Tags</Typography>
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 1,
-              flexWrap: 'wrap',
-              width: { xs: '100%', sm: 'auto' },
-              justifyContent: { xs: 'flex-start', sm: 'flex-end' },
-            }}
+          <LoadingButton
+            variant="outlined"
+            onClick={handleImport}
+            loading={isImporting}
+            disabled={isLoading}
           >
-            <Button variant="outlined" onClick={() => router.push('/')}>
-              Back to Dashboard
-            </Button>
-            <LoadingButton
-              variant="outlined"
-              onClick={handleImport}
-              loading={isImporting}
-              disabled={isLoading}
-            >
-              Import from Database
-            </LoadingButton>
-          </Box>
+            Import from Database
+          </LoadingButton>
         </Box>
 
         {error && (
