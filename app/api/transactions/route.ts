@@ -207,9 +207,36 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     )
-  } catch (error) {
+  } catch (error: any) {
     console.error('create transaction error', error)
-    return errorResponse('Unable to create transaction. Please try again.', 500)
+    
+    // Provide more detailed error information for debugging
+    const errorMessage = error?.message || 'Unknown error'
+    const errorCode = error?.code || 'UNKNOWN_ERROR'
+    
+    // Check for common database errors
+    if (errorCode === 'P2002') {
+      return errorResponse('A transaction with this information already exists.', 400)
+    }
+    if (errorCode === 'P2003') {
+      return errorResponse('Invalid user reference. Please try logging in again.', 400)
+    }
+    if (errorMessage.includes('Foreign key constraint')) {
+      return errorResponse('Invalid user reference. Please try logging in again.', 400)
+    }
+    
+    // Log full error details for debugging
+    console.error('Full error details:', {
+      message: errorMessage,
+      code: errorCode,
+      meta: error?.meta,
+      stack: error?.stack,
+    })
+    
+    return errorResponse(
+      `Unable to create transaction: ${errorMessage}. Please try again.`,
+      500
+    )
   }
 }
 

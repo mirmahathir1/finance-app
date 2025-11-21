@@ -26,7 +26,7 @@
 
 ### Prerequisites
 1. Node.js 18+ installed
-2. PostgreSQL (Neon) database URL configured (see `design/authentication.md`)
+2. PostgreSQL (Supabase) database URL configured (see `design/authentication.md`)
 3. Docker installed (if deploying containers)
 
 ### Local Development Setup
@@ -54,7 +54,7 @@ npm run prisma:seed
 # Set up environment variables
 cp .env.example .env.local
 # Edit .env.local with:
-#   DATABASE_URL (Neon or Docker Postgres connection string)
+#   DATABASE_URL (Supabase or Docker Postgres connection string)
 #   SESSION_SECRET (32+ char string)
 #   NEXT_PUBLIC_FORCE_GUEST_MODE (true only for demo builds)
 

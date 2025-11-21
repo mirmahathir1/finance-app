@@ -182,7 +182,7 @@ EditTags
 
 **Note:** Tag operations (add, edit color) are performed client-side using IndexedDB. However, when renaming or deleting a tag, the system first calls a preview API to check how many transactions will be affected. For deletion, if any transactions use the tag, deletion is blocked. For renaming, after user confirmation, the system calls the actual operation API to update all transactions in the database.
 
-**Storage:** Tags are stored locally in IndexedDB. Tag names are also stored in transaction records in PostgreSQL (Neon). When a tag is renamed, both IndexedDB and all related transactions in the database are updated.
+**Storage:** Tags are stored locally in IndexedDB. Tag names are also stored in transaction records in PostgreSQL (Supabase). When a tag is renamed, both IndexedDB and all related transactions in the database are updated.
 
 ## Security Notes
 

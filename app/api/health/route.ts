@@ -9,6 +9,7 @@ export async function GET() {
     return NextResponse.json({
       ok: true,
       database: 'connected',
+      nodeEnv: process.env.NODE_ENV,
       timestamp: new Date().toISOString(),
       catalogValidation: getCatalogValidationStats(),
     })
@@ -19,6 +20,7 @@ export async function GET() {
         ok: false,
         database: 'unreachable',
         error: 'Unable to reach Postgres via Prisma',
+        nodeEnv: process.env.NODE_ENV,
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

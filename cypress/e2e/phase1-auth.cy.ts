@@ -28,7 +28,7 @@ function waitForEmail(
       })
 
       if (match) {
-        return match
+        return cy.wrap(match)
       }
 
       if (attempt >= MAIL_POLL_ATTEMPTS) {
@@ -242,3 +242,5 @@ describe('Phase 1 - Auth Routes', () => {
   })
 })
 
+
+export {}

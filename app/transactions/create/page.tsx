@@ -109,7 +109,11 @@ export default function CreateTransactionPage() {
         setRecentTransactions(response.data.transactions || [])
       } else {
         setRecentTransactions([])
-        setRecentError(response.error?.message || 'Failed to load recent transactions.')
+        setRecentError(
+          !response.success
+            ? response.error.message
+            : 'Failed to load recent transactions.'
+        )
       }
     } catch (error) {
       const message = getFriendlyErrorMessage(error, 'Failed to load recent transactions.')
@@ -286,7 +290,9 @@ export default function CreateTransactionPage() {
       } else {
         setSnackbar({
           open: true,
-          message: response.error?.message || 'Failed to create transaction',
+          message: !response.success
+            ? response.error.message
+            : 'Failed to create transaction',
           severity: 'error',
         })
       }

@@ -70,7 +70,7 @@ export default function BackupRestorePage() {
           })
         } else {
           const message =
-            ('error' in response && response.error?.message) ||
+            ('error' in response && response.error.message) ||
             'Failed to generate backup'
           setSnackbar({
             open: true,

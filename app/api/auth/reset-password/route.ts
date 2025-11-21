@@ -22,6 +22,10 @@ export async function POST(request: Request) {
       return errorResponse('Password must be at least 8 characters long.', 400)
     }
 
+    if (!password) {
+      return errorResponse('Password is required.', 400)
+    }
+
     const user = await prisma.user.findFirst({
       where: {
         resetPasswordToken: token,

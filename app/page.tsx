@@ -82,7 +82,9 @@ export default function DashboardPage() {
         setStatsError(null)
       } else {
         setStatistics(null)
-        setStatsError(response.error?.message || 'Failed to load statistics.')
+        setStatsError(
+          !response.success ? response.error.message : 'Failed to load statistics.'
+        )
       }
     } catch (error) {
       setStatistics(null)
@@ -191,7 +193,7 @@ export default function DashboardPage() {
     try {
       const response = await api.deleteAccount()
       if (!response.success) {
-        throw new Error(response.error?.message || 'Failed to delete account.')
+        throw new Error(response.error.message || 'Failed to delete account.')
       }
 
       setIsDeleteDialogOpen(false)

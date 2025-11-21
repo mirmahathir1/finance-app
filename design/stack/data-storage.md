@@ -5,15 +5,15 @@
 ## Storage Overview
 
 Application data is persisted using a hybrid storage approach:
-- **PostgreSQL (Neon)**: Source of truth for authenticated users — stores only two tables (`users` and `transactions`). User rows contain authentication data; every profile/currency/tag reference lives directly on each transaction row (no additional tables or metadata blobs).
+- **PostgreSQL (Supabase)**: Source of truth for authenticated users — stores only two tables (`users` and `transactions`). User rows contain authentication data; every profile/currency/tag reference lives directly on each transaction row (no additional tables or metadata blobs).
 - **IndexedDB**: Mirrors profile/tag/currency data only when Guest Mode is active (demo experience) and caches lightweight client preferences.
 
 Prisma is the standard ORM for all PostgreSQL data access. The two-table schema plus JSON fields are documented in `design/ui/data-models.md`. Guest-mode IndexedDB schemas live in `design/currency-system.md`.
 
-## PostgreSQL (Neon) with Prisma
+## PostgreSQL (Supabase) with Prisma
 
-- Use Neon for managed Postgres with autoscaling and branching.
-- Connect via `DATABASE_URL` (SSL required). Use Neon pooling or Prisma Accelerate for best performance.
+- Use Supabase for managed Postgres with autoscaling and built-in features.
+- Connect via `DATABASE_URL` (SSL required). Use Supabase connection pooler (port 6543) or Prisma Accelerate for best performance.
 - Use transactions for multi-step writes to maintain consistency.
 - Prefer bigint minor units for currency amounts to avoid floating-point issues.
 
@@ -27,7 +27,7 @@ npx prisma init
 ```
 
 ### Configure datasource
-Set `DATABASE_URL` in your `.env.local` (Neon connection string, with `sslmode=require`).
+Set `DATABASE_URL` in your `.env.local` (Supabase connection string, with `sslmode=require`).
 
 ### Define schema
 See `design/data-models.md` for the SQL schema and equivalent Prisma models (`prisma/schema.prisma`).

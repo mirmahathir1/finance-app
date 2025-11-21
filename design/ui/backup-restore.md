@@ -72,7 +72,7 @@
 
 **Note:** In Guest Mode, API calls are intercepted client-side and return mock data generated in the browser using Faker.js. No server requests are made in Guest Mode.
 
-**Storage:** Backed by PostgreSQL (Neon). All endpoints operate on database tables with server-side authorization checks.
+**Storage:** Backed by PostgreSQL (Supabase). All endpoints operate on database tables with server-side authorization checks.
 
 ## Features
 

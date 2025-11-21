@@ -6,13 +6,13 @@
 
 **Production Deployment Stack:**
 - **Application**: Next.js 14+ deployed to **Google Cloud Run** (serverless container platform)
-- **Database**: **Neon PostgreSQL** (serverless, external database)
+- **Database**: **Supabase PostgreSQL** (serverless, external database)
 - **Email Service**: **Brevo** (Sendinblue) for transactional emails
 - **Container**: Docker (multi-stage build with Node.js 20)
 
 **Why This Stack:**
 - **Cloud Run**: Free tier includes 2M requests/month, auto-scaling, pay-per-use
-- **Neon**: Free tier with 0.5 GB storage, automatic scaling, connection pooling
+- **Supabase**: Free tier with 500 MB database storage, automatic scaling, connection pooling, built-in authentication options
 - **Brevo**: Free tier with 300 emails/day, reliable transactional email delivery
 
 All services operate within their respective free tiers, making this a cost-effective solution for small to medium applications.
@@ -97,22 +97,23 @@ The application uses a multi-stage Docker build (see `Dockerfile` in project roo
 
 ### Authentication & Database
 
-**Database: Neon PostgreSQL**
+**Database: Supabase PostgreSQL**
 
-The application uses **Neon** (serverless PostgreSQL) as the primary database. Neon provides:
-- Free tier with 0.5 GB storage
+The application uses **Supabase** (serverless PostgreSQL) as the primary database. Supabase provides:
+- Free tier with 500 MB database storage
 - Automatic scaling
-- Connection pooling
-- Database branching for development
+- Connection pooling (via Supabase connection pooler)
+- Built-in authentication and real-time capabilities
+- PostgreSQL extensions and full SQL access
 
 **Connection String:**
 ```
-DATABASE_URL=postgres://user:password@host:port/dbname?sslmode=require  # Neon connection string
+DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@[PROJECT-REF].supabase.co:5432/postgres?sslmode=require  # Supabase connection string
 SESSION_COOKIE_NAME=app_session
 JWT_SECRET=your_jwt_secret_if_applicable
 ```
 
-**Note:** Cloud Run connects to Neon via the public internet using SSL. No Cloud SQL or VPC configuration needed.
+**Note:** Cloud Run connects to Supabase via the public internet using SSL. No Cloud SQL or VPC configuration needed. For connection pooling, use the Supabase pooler connection string (port 6543) instead of the direct connection (port 5432) for better performance with serverless functions.
 
 ### Signup Email Verification
 ```

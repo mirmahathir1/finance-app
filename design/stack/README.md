@@ -7,7 +7,7 @@ This folder contains the technology stack documentation for the application. It 
 ## Documentation Structure
 
 1. **[Core Technologies](./core-technologies.md)** - Frontend framework, TypeScript, and UI libraries
-2. **[Authentication](./authentication.md)** - Database-backed authentication (PostgreSQL/Neon)
+2. **[Authentication](./authentication.md)** - Database-backed authentication (PostgreSQL/Supabase)
 3. **[Data Storage](./data-storage.md)** - PostgreSQL usage, data management, and backups
 4. **[Data Visualization](./data-visualization.md)** - Charts and statistics libraries
 5. **[Deployment](./deployment.md)** - Docker, Cloud Run, and CI/CD configuration

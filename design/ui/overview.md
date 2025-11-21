@@ -7,7 +7,7 @@ This document provides an overview of the finance-app personal finance tracking 
 ## Key Features
 
 ### Core Functionality
-1. **Hybrid Storage Architecture**: PostgreSQL (Neon) for transaction data, IndexedDB for profiles, tags, and currencies
+1. **Hybrid Storage Architecture**: PostgreSQL (Supabase) for transaction data, IndexedDB for profiles, tags, and currencies
 2. **Profile Management**: Create and manage multiple profiles (e.g., Personal, Business) stored in IndexedDB
 3. **Simplified Data Model**: Only transactions table in PostgreSQL with embedded profile names and tag arrays
 4. **Multi-Currency Support**: Track expenses and incomes in different currencies

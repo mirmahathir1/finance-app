@@ -176,7 +176,7 @@ enum TransactionType {
 
 ## Data Persistence Overview
 
-All authenticated data is stored in PostgreSQL (managed on Neon) using just two tables. The `users` table owns every per-user concern (authentication credentials plus JSON fields for profiles/currencies/tags/settings/audit info), while the `transactions` table stores immutable ledger entries that reference the user and the profile name they belong to. No profile photo storage.
+All authenticated data is stored in PostgreSQL (managed on Supabase) using just two tables. The `users` table owns every per-user concern (authentication credentials plus JSON fields for profiles/currencies/tags/settings/audit info), while the `transactions` table stores immutable ledger entries that reference the user and the profile name they belong to. No profile photo storage.
 
 **Note:** Profiles, Tags, and Currencies are persisted inside the `users` table as JSON for authenticated users (via Prisma) and mirrored in IndexedDB only when Guest Mode is active.
 

@@ -144,7 +144,11 @@ export default function TransactionsPage() {
         }
       } else {
         setTransactions([])
-        setLoadError(response.error?.message || 'Failed to load transactions.')
+        setLoadError(
+          !response.success
+            ? response.error.message
+            : 'Failed to load transactions.'
+        )
       }
     } catch (error) {
       const message = getFriendlyErrorMessage(error, 'Failed to load transactions.')
@@ -305,7 +309,9 @@ export default function TransactionsPage() {
       } else {
         setSnackbar({
           open: true,
-          message: response.error?.message || 'Failed to delete transaction',
+          message: !response.success
+            ? response.error.message
+            : 'Failed to delete transaction',
           severity: 'error',
         })
       }

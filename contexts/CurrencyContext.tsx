@@ -72,7 +72,9 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     })
     if (!response.success || !response.data) {
       throw new Error(
-        response.error?.message || 'Failed to count transactions.'
+        !response.success
+          ? response.error.message
+          : 'Failed to count transactions.'
       )
     }
     return (
@@ -97,7 +99,9 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       })
       if (!response.success || !response.data) {
         throw new Error(
-          response.error?.message || 'Failed to load transactions.'
+          !response.success
+            ? response.error.message
+            : 'Failed to load transactions.'
         )
       }
       results.push(...(response.data.transactions ?? []))

@@ -94,7 +94,7 @@
 
 **Note:** Profile management operations (create, switch, delete) are performed client-side using IndexedDB. Renaming a profile still requires an API call to update transactions in the database, but deletion now relies solely on the preview API—if the preview shows zero affected transactions, the profile is removed locally with no further backend calls. The transactions API is also used for the "Import from Database" feature to extract profile names from existing transactions.
 
-**Storage:** Profiles are stored locally in IndexedDB. Transactions are stored in PostgreSQL (Neon) with profile names embedded in each transaction record. When a profile is renamed, both IndexedDB and all related transactions in the database are updated.
+**Storage:** Profiles are stored locally in IndexedDB. Transactions are stored in PostgreSQL (Supabase) with profile names embedded in each transaction record. When a profile is renamed, both IndexedDB and all related transactions in the database are updated.
 
 ## Features
 

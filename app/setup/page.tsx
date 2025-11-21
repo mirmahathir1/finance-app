@@ -573,7 +573,9 @@ export default function SetupPage() {
       const response = await api.getSetupCatalog()
       if (!response.success || !response.data?.catalog) {
         throw new Error(
-          response.error?.message || 'Unable to analyze transactions.'
+          !response.success
+            ? response.error.message
+            : 'Unable to analyze transactions.'
         )
       }
       setCatalogSummary(response.data.catalog)

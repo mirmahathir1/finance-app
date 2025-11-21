@@ -166,7 +166,9 @@ export function EditTransactionModal({
       } else {
         setErrors({
           ...errors,
-          description: response.error?.message || 'Failed to update transaction',
+          description: !response.success
+            ? response.error.message
+            : 'Failed to update transaction',
         })
       }
     } catch (error: any) {

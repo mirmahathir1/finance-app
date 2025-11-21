@@ -250,7 +250,9 @@ export default function StatisticsPage() {
         }
       } else {
         setStats(null)
-        setStatsError(res.error?.message || 'Failed to load statistics.')
+        setStatsError(
+          !res.success ? res.error.message : 'Failed to load statistics.'
+        )
       }
     } catch (error: any) {
       const message = getFriendlyErrorMessage(error, 'Failed to load statistics.')

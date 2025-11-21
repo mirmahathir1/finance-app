@@ -39,7 +39,7 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                      Data & Infrastructure                  │
 │  ┌────────────────────────┐  ┌──────────────────────────┐  │
-│  │   Auth & Sessions      │  │  PostgreSQL (Neon)       │  │
+│  │   Auth & Sessions      │  │  PostgreSQL (Supabase)    │  │
 │  │ (Credentials + Cookies)│  │  (Primary Data Store)    │  │
 │  └────────────────────────┘  └──────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
@@ -58,13 +58,13 @@
 ### Backend
 - **Runtime**: Node.js
 - **API**: Next.js API Routes
-- **Storage**: PostgreSQL (Neon)
+- **Storage**: PostgreSQL (Supabase)
 - **Data Format**: Normalized relational schema
 
 ### Deployment
 - **Container**: Docker (multi-stage build)
 - **Platform**: Google Cloud Run (serverless container platform)
-- **Database**: Neon PostgreSQL (serverless, external database)
+- **Database**: Supabase PostgreSQL (serverless, external database)
 - **Email**: Brevo (Sendinblue) for transactional emails
 - **PWA**: Progressive Web App with Service Worker
 - **Mobile**: Bubblewrap for Android packaging
@@ -72,7 +72,7 @@
 ## Key Architectural Decisions
 
 1. **Hybrid Storage Architecture**: 
-   - Core transaction data (transactions only) in PostgreSQL (Neon)
+   - Core transaction data (transactions only) in PostgreSQL (Supabase)
    - Profile, tag, and currency data stored client-side in IndexedDB for offline availability
    - Transactions include profile name and tag names as text fields
 2. **Session-based Auth**: First-party credentials with HTTP-only cookies; no third-party OAuth.
@@ -147,7 +147,7 @@ The application uses React Context API for global state management:
 ## Security Considerations
 
 ### Data Privacy
-- User account, profile, and application data are stored in PostgreSQL (Neon)
+- User account, profile, and application data are stored in PostgreSQL (Supabase)
 - Only minimal user PII is stored (e.g., email). No profile photo storage
 - Users can only access rows they own; enforce row-level authorization in service layer
 

@@ -22,15 +22,9 @@ Technology stack documentation covering:
 - Deployment and security
 - Performance optimization
 
-### 🔐 [Credentials Setup](./credentials-setup/README.md)
-Step-by-step guides for setting up third-party services:
-- [Brevo Credentials](./credentials-setup/brevo-credentials.md) - Email service for user verification (production)
-- [Neon Credentials](./credentials-setup/neon-credentials.md) - PostgreSQL database hosting (production)
-- [GCP Credentials](./credentials-setup/gcp-credentials.md) - Google Cloud Run deployment for Next.js app
-
 **Production Deployment:**
 - Next.js app → Google Cloud Run
-- Database → Neon PostgreSQL
+- Database → Supabase PostgreSQL
 - Email → Brevo (Sendinblue)
 
 ## Key Features

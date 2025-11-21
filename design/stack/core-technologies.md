@@ -29,7 +29,7 @@
 ## Backend Data Access
 
 ### Prisma ORM
-- Type-safe database access for PostgreSQL (Neon)
+- Type-safe database access for PostgreSQL (Supabase)
 - Schema-driven with migrations (`prisma migrate`)
 - Generated client with rich TypeScript types
 - See `design/data-models.md` for schema and `stack/data-storage.md` for setup

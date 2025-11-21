@@ -4,8 +4,8 @@
 
 ## Overview
 
-### Database-backed Authentication (PostgreSQL on Neon)
-- Use a first-party credentials flow (email + password) backed by PostgreSQL (Neon).
+### Database-backed Authentication (PostgreSQL on Supabase)
+- Use a first-party credentials flow (email + password) backed by PostgreSQL (Supabase).
 - Store users in a `users` table with a strong password hash (Argon2id preferred; bcrypt as fallback).
 - Manage sessions via an HTTP-only cookie:
   - Option A: Server-side sessions table (`sessions`) with opaque, random tokens (store only token hashes).

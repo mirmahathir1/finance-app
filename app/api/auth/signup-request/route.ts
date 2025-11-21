@@ -21,6 +21,10 @@ export async function POST(request: Request) {
       return errorResponse('Please provide a valid email address.', 400)
     }
 
+    if (!email) {
+      return errorResponse('Email is required.', 400)
+    }
+
     const verificationToken = generateToken()
     const expiresAt = new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS)
 

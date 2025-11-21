@@ -22,3 +22,5 @@ describe('Phase 3 - Tags', () => {
 })
 
 
+
+export {}
