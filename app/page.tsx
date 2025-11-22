@@ -53,7 +53,10 @@ export default function DashboardPage() {
       return
     }
 
-    const currencyCode = defaultCurrency?.code || 'USD'
+    const currencyCode = defaultCurrency?.code
+    if (!currencyCode) {
+      return
+    }
     setIsLoadingStats(true)
     setStatsError(null)
 
@@ -94,11 +97,11 @@ export default function DashboardPage() {
     loadStatistics()
   }
 
-  const formatAmount = (amountMinor: number, currency: string = 'USD'): string => {
+  const formatAmount = (amountMinor: number, currency: string): string => {
     const amount = amountMinor / 100
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: currency || 'USD',
+      currency: currency,
     }).format(amount)
   }
 

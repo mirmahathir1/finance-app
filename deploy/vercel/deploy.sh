@@ -105,7 +105,26 @@ git push origin "$CURRENT_BRANCH"
 echo -e "${GREEN}✓ Pushed to $CURRENT_BRANCH${NC}"
 echo ""
 
-echo -e "${BLUE}☁️  Step 8: Deploying to Vercel Production...${NC}"
+echo -e "${BLUE}🔐 Step 8: Verifying Vercel environment variables...${NC}"
+echo -e "${YELLOW}Note: Environment variables must be set in Vercel before deployment${NC}"
+echo ""
+echo "Current Vercel production environment variables:"
+VERCEL_ENV_OUTPUT=$(npx vercel env ls production 2>/dev/null)
+if [ $? -eq 0 ] && [ -n "$VERCEL_ENV_OUTPUT" ]; then
+    echo "$VERCEL_ENV_OUTPUT" | head -15
+    echo -e "${GREEN}✓ Environment variables found in Vercel${NC}"
+else
+    echo -e "${RED}⚠️  No environment variables found or unable to list${NC}"
+    echo "Please set them before deploying:"
+    echo "  - Vercel Dashboard: Settings → Environment Variables"
+    echo "  - Vercel CLI: vercel env add <KEY> production"
+fi
+echo ""
+echo -e "${YELLOW}Note: The script does NOT automatically sync .env.production to Vercel${NC}"
+echo "Environment variables should be set in Vercel separately for security."
+echo ""
+
+echo -e "${BLUE}☁️  Step 9: Deploying to Vercel Production...${NC}"
 npx vercel --prod --yes --local-config deploy/vercel/vercel.json
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ Vercel deployment failed${NC}"
@@ -114,13 +133,13 @@ fi
 echo -e "${GREEN}✓ Deployed to Vercel${NC}"
 echo ""
 
-echo -e "${BLUE}🔍 Step 9: Getting deployment URL...${NC}"
+echo -e "${BLUE}🔍 Step 10: Getting deployment URL...${NC}"
 DEPLOYMENT_URL=$(npx vercel ls --prod 2>/dev/null | grep "finance" | head -1 | awk '{print $2}')
 if [ -n "$DEPLOYMENT_URL" ]; then
     echo -e "${GREEN}✓ Production URL: https://$DEPLOYMENT_URL${NC}"
     echo ""
     
-    echo -e "${BLUE}📊 Step 10: Verifying production deployment...${NC}"
+    echo -e "${BLUE}📊 Step 11: Verifying production deployment...${NC}"
     echo "Waiting for deployment to be ready..."
     sleep 10
     

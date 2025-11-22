@@ -15,10 +15,6 @@ import {
   Alert,
   CircularProgress,
   LinearProgress,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
   useTheme,
   useMediaQuery,
 } from '@mui/material'
@@ -45,22 +41,9 @@ import {
   setActiveProfile as setActiveProfileDB,
   setDefaultCurrency as setDefaultCurrencyDB,
 } from '@/utils/indexedDB'
+import { getCurrencyFromGeolocation } from '@/utils/geolocation'
 
 const steps = ['Welcome', 'Create Profile', 'Choose Currency', 'Initialize']
-
-// Popular currencies
-const POPULAR_CURRENCIES = [
-  { code: 'USD', name: 'US Dollar', symbol: '$' },
-  { code: 'EUR', name: 'Euro', symbol: '€' },
-  { code: 'GBP', name: 'British Pound', symbol: '£' },
-  { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
-  { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
-  { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' },
-  { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF' },
-  { code: 'CNY', name: 'Chinese Yuan', symbol: '¥' },
-  { code: 'INR', name: 'Indian Rupee', symbol: '₹' },
-  { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$' },
-]
 
 const UUID = () =>
   typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -217,7 +200,8 @@ export default function SetupPage() {
     }
   }, [hasTransactions])
   const [profileName, setProfileName] = useState('Personal')
-  const [selectedCurrency, setSelectedCurrency] = useState('USD')
+  const [detectedCurrency, setDetectedCurrency] = useState<string | null>(null)
+  const [isDetectingCurrency, setIsDetectingCurrency] = useState(false)
   const [customCurrency, setCustomCurrency] = useState('')
   const [useCustomCurrency, setUseCustomCurrency] = useState(false)
   const [errors, setErrors] = useState<{
@@ -239,6 +223,31 @@ export default function SetupPage() {
   // Lock whether the currency step should appear in the stepper for this session
   const [includeCurrencyStep, setIncludeCurrencyStep] = useState(true)
   const includeCurrencyStepDecidedRef = useRef(false)
+  
+  // Detect currency when currency step is shown (only once)
+  const currencyDetectionAttemptedRef = useRef(false)
+  useEffect(() => {
+    if (activeStep === 2 && showCurrencyStep && !currencyDetectionAttemptedRef.current && !isDetectingCurrency && !detectedCurrency) {
+      currencyDetectionAttemptedRef.current = true
+      setIsDetectingCurrency(true)
+      getCurrencyFromGeolocation()
+        .then((currency) => {
+          if (currency) {
+            setDetectedCurrency(currency)
+            setCustomCurrency(currency)
+          } else {
+            setUseCustomCurrency(true)
+          }
+        })
+        .catch((error) => {
+          console.error('Error detecting currency:', error)
+          setUseCustomCurrency(true)
+        })
+        .finally(() => {
+          setIsDetectingCurrency(false)
+        })
+    }
+  }, [activeStep, showCurrencyStep, isDetectingCurrency, detectedCurrency])
   
   // Determine if profile and currency steps should be shown
   // Only show if user has no transactions
@@ -360,9 +369,9 @@ export default function SetupPage() {
     // Only validate currency step if it should be shown
     if (activeStep === 2 && showCurrencyStep && shouldShowCurrencyStep) {
       // Validate currency
-      const currencyCode = useCustomCurrency ? customCurrency.trim().toUpperCase() : selectedCurrency
+      const currencyCode = customCurrency.trim().toUpperCase()
       if (!currencyCode) {
-        setErrors({ currency: 'Please select or enter a currency' })
+        setErrors({ currency: 'Please enter a currency code' })
         return
       }
       if (!/^[A-Z]{3}$/.test(currencyCode)) {
@@ -469,9 +478,9 @@ export default function SetupPage() {
   }
 
   const handleSelectCurrency = async () => {
-    const currencyCode = useCustomCurrency ? customCurrency.trim().toUpperCase() : selectedCurrency
+    const currencyCode = customCurrency.trim().toUpperCase()
     if (!currencyCode) {
-      setErrors({ currency: 'Please select or enter a currency' })
+      setErrors({ currency: 'Please enter a currency code' })
       return
     }
     if (!/^[A-Z]{3}$/.test(currencyCode)) {
@@ -530,7 +539,7 @@ export default function SetupPage() {
       if (!hasTransactions) {
         // Check if currency needs to be added
         if (!defaultCurrency) {
-          const currencyCode = useCustomCurrency ? customCurrency.trim().toUpperCase() : selectedCurrency
+          const currencyCode = customCurrency.trim().toUpperCase()
           if (currencyCode) {
             try {
               await addCurrency(currencyCode, true) // Set as default
@@ -900,42 +909,31 @@ export default function SetupPage() {
               Choose First Currency
             </Typography>
             <Typography variant="body1" paragraph>
-              Select your primary currency:
+              {isDetectingCurrency
+                ? 'Detecting your currency based on your location...'
+                : detectedCurrency
+                ? `We detected ${detectedCurrency} based on your location. You can change it if needed:`
+                : 'Enter your primary currency code:'}
             </Typography>
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Currency</InputLabel>
-              <Select
-                value={useCustomCurrency ? 'custom' : selectedCurrency}
-                onChange={(e) => {
-                  if (e.target.value === 'custom') {
-                    setUseCustomCurrency(true)
-                  } else {
-                    setUseCustomCurrency(false)
-                    setSelectedCurrency(e.target.value)
-                  }
-                }}
-                label="Currency"
-                disabled={currenciesLoading}
-              >
-                {POPULAR_CURRENCIES.map((curr) => (
-                  <MenuItem key={curr.code} value={curr.code}>
-                    {curr.code} - {curr.name} ({curr.symbol})
-                  </MenuItem>
-                ))}
-                <MenuItem value="custom">+ Enter Custom Currency Code</MenuItem>
-              </Select>
-            </FormControl>
-            {useCustomCurrency && (
+            {isDetectingCurrency ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
               <TextField
                 fullWidth
-                label="Custom Currency Code"
+                label="Currency Code"
                 value={customCurrency}
-                onChange={(e) => setCustomCurrency(e.target.value.toUpperCase())}
+                onChange={(e) => {
+                  setCustomCurrency(e.target.value.toUpperCase())
+                  setErrors((prev) => ({ ...prev, currency: undefined }))
+                }}
                 error={!!errors.currency}
-                helperText={errors.currency || 'Enter 3-letter ISO 4217 code (e.g., GBP)'}
+                helperText={errors.currency || 'Enter 3-letter ISO 4217 code (e.g., USD, EUR, GBP)'}
                 margin="normal"
                 inputProps={{ maxLength: 3 }}
                 disabled={currenciesLoading}
+                placeholder="e.g., USD"
               />
             )}
             <Alert severity="info" sx={{ mt: 2 }}>

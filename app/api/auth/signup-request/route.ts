@@ -7,6 +7,7 @@ import {
 } from '@/app/api/auth/_lib/helpers'
 import { sendVerificationEmail } from '@/app/api/auth/_lib/email'
 import { errorResponse, successMessage } from '@/app/api/auth/_lib/responses'
+import { checkRateLimit } from '@/app/api/auth/_lib/rateLimiter'
 
 interface SignupRequestBody {
   email?: string
@@ -23,6 +24,16 @@ export async function POST(request: Request) {
 
     if (!email) {
       return errorResponse('Email is required.', 400)
+    }
+
+    // Check rate limit (3 requests per minute)
+    const rateLimit = checkRateLimit(email, 3, 60 * 1000)
+    if (!rateLimit.allowed) {
+      const retryAfter = rateLimit.retryAfter || 60
+      return errorResponse(
+        `Too many signup requests. Please try again in ${retryAfter} second${retryAfter !== 1 ? 's' : ''}.`,
+        429
+      )
     }
 
     const verificationToken = generateToken()

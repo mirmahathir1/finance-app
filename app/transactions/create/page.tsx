@@ -56,7 +56,7 @@ export default function CreateTransactionPage() {
   const [type, setType] = useState<TransactionType>('expense')
   const [date, setDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
   const [amount, setAmount] = useState<number>(0)
-  const [currency, setCurrency] = useState<string>(defaultCurrency?.code || 'USD')
+  const [currency, setCurrency] = useState<string>(defaultCurrency?.code || '')
   const [description, setDescription] = useState<string>('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [errors, setErrors] = useState<{
@@ -272,7 +272,7 @@ export default function CreateTransactionPage() {
         setType('expense')
         setDate(format(new Date(), 'yyyy-MM-dd'))
         setAmount(0)
-        setCurrency(defaultCurrency?.code || 'USD')
+        setCurrency(defaultCurrency?.code || '')
         setDescription('')
         setSelectedTags([])
         setErrors({})

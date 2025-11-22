@@ -48,7 +48,7 @@ export function EditTransactionModal({
   const [type, setType] = useState<TransactionType>('expense')
   const [date, setDate] = useState<string>('')
   const [amount, setAmount] = useState<number>(0)
-  const [currency, setCurrency] = useState<string>('USD')
+  const [currency, setCurrency] = useState<string>('')
   const [description, setDescription] = useState<string>('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [errors, setErrors] = useState<{
