@@ -34,7 +34,7 @@ function sanitizeTags(input: unknown): string[] | undefined {
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { user, response } = await requireAuthenticatedUser()
   if (!user) {
@@ -42,9 +42,10 @@ export async function GET(
   }
 
   try {
+    const { id } = await params
     const transaction = await prisma.transaction.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: user.id,
       },
     })
@@ -62,7 +63,7 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { user, response } = await requireAuthenticatedUser()
   if (!user) {
@@ -70,6 +71,7 @@ export async function PUT(
   }
 
   try {
+    const { id } = await params
     const body = (await request.json()) as Record<string, unknown>
     const data: Record<string, unknown> = {}
 
@@ -128,7 +130,7 @@ export async function PUT(
     }
 
     const existing = await prisma.transaction.findFirst({
-      where: { id: params.id, userId: user.id },
+      where: { id, userId: user.id },
     })
 
     if (!existing) {
@@ -136,7 +138,7 @@ export async function PUT(
     }
 
     const transaction = await prisma.transaction.update({
-      where: { id: params.id },
+      where: { id },
       data,
     })
 
@@ -149,7 +151,7 @@ export async function PUT(
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { user, response } = await requireAuthenticatedUser()
   if (!user) {
@@ -157,8 +159,9 @@ export async function DELETE(
   }
 
   try {
+    const { id } = await params
     const existing = await prisma.transaction.findFirst({
-      where: { id: params.id, userId: user.id },
+      where: { id, userId: user.id },
     })
 
     if (!existing) {
@@ -166,7 +169,7 @@ export async function DELETE(
     }
 
     await prisma.transaction.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     return success({ message: 'Transaction deleted successfully.' })

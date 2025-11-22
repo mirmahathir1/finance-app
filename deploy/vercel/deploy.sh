@@ -35,8 +35,18 @@ npx dotenv -e "$ENV_FILE" -- npx prisma generate
 echo -e "${GREEN}✓ Prisma Client generated${NC}"
 echo ""
 
-echo -e "${BLUE}🏗️  Step 3: Building Next.js application...${NC}"
-npx dotenv -e "$ENV_FILE" -- npm run build
+echo -e "${BLUE}🗄️  Step 3: Running database migrations...${NC}"
+npx dotenv -e "$ENV_FILE" -- npx prisma migrate deploy
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ Migration failed${NC}"
+    echo "Please check your database connection and migration files"
+    exit 1
+fi
+echo -e "${GREEN}✓ Database migrations completed${NC}"
+echo ""
+
+echo -e "${BLUE}🏗️  Step 4: Building Next.js application...${NC}"
+npx dotenv -e "$ENV_FILE" -- npm run build:prod
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ Build failed${NC}"
     exit 1
@@ -44,9 +54,9 @@ fi
 echo -e "${GREEN}✓ Build completed successfully${NC}"
 echo ""
 
-echo -e "${BLUE}🧪 Step 4: Testing production build locally...${NC}"
+echo -e "${BLUE}🧪 Step 5: Testing production build locally...${NC}"
 echo "Starting local server on port 3000..."
-npx dotenv -e "$ENV_FILE" -- npm run start &
+npx dotenv -e "$ENV_FILE" -- npm run start:prod &
 SERVER_PID=$!
 
 # Wait for server to start
@@ -69,7 +79,7 @@ fi
 echo -e "${GREEN}✓ Local health check passed${NC}"
 echo ""
 
-echo -e "${BLUE}📋 Step 5: Checking git status...${NC}"
+echo -e "${BLUE}📋 Step 6: Checking git status...${NC}"
 if [ -n "$(git status --porcelain)" ]; then
     echo -e "${YELLOW}⚠️  You have uncommitted changes:${NC}"
     git status --short
@@ -89,13 +99,13 @@ else
 fi
 echo ""
 
-echo -e "${BLUE}🔄 Step 6: Pushing to remote repository...${NC}"
+echo -e "${BLUE}🔄 Step 7: Pushing to remote repository...${NC}"
 CURRENT_BRANCH=$(git branch --show-current)
 git push origin "$CURRENT_BRANCH"
 echo -e "${GREEN}✓ Pushed to $CURRENT_BRANCH${NC}"
 echo ""
 
-echo -e "${BLUE}☁️  Step 7: Deploying to Vercel Production...${NC}"
+echo -e "${BLUE}☁️  Step 8: Deploying to Vercel Production...${NC}"
 npx vercel --prod --yes --local-config deploy/vercel/vercel.json
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ Vercel deployment failed${NC}"
@@ -104,13 +114,13 @@ fi
 echo -e "${GREEN}✓ Deployed to Vercel${NC}"
 echo ""
 
-echo -e "${BLUE}🔍 Step 8: Getting deployment URL...${NC}"
+echo -e "${BLUE}🔍 Step 9: Getting deployment URL...${NC}"
 DEPLOYMENT_URL=$(npx vercel ls --prod 2>/dev/null | grep "finance" | head -1 | awk '{print $2}')
 if [ -n "$DEPLOYMENT_URL" ]; then
     echo -e "${GREEN}✓ Production URL: https://$DEPLOYMENT_URL${NC}"
     echo ""
     
-    echo -e "${BLUE}📊 Step 9: Verifying production deployment...${NC}"
+    echo -e "${BLUE}📊 Step 10: Verifying production deployment...${NC}"
     echo "Waiting for deployment to be ready..."
     sleep 10
     
