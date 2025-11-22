@@ -12,7 +12,6 @@ export async function resetDb(): Promise<void> {
     stdio: 'inherit',
     env: process.env,
   })
-  execSync('npm run prisma:seed', { stdio: 'inherit', env: process.env })
 }
 
 export async function countTransactions(): Promise<number> {
@@ -28,7 +27,7 @@ if (require.main === module) {
   const run = async () => {
     if (action === 'reset') {
       await resetDb()
-      console.log('Database reset & seeded successfully.')
+      console.log('Database reset successfully.')
       return
     }
     throw new Error(`Unknown action "${action}". Expected "reset".`)

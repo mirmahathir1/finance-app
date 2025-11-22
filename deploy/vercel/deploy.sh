@@ -96,7 +96,7 @@ echo -e "${GREEN}✓ Pushed to $CURRENT_BRANCH${NC}"
 echo ""
 
 echo -e "${BLUE}☁️  Step 7: Deploying to Vercel Production...${NC}"
-npx vercel --prod --yes
+npx vercel --prod --yes --local-config deploy/vercel/vercel.json
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ Vercel deployment failed${NC}"
     exit 1

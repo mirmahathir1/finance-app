@@ -34,8 +34,8 @@ services:
 
   app:
     build:
-      context: .
-      dockerfile: Dockerfile.dev
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.dev
     container_name: finance_app_nextjs
     restart: unless-stopped
     ports:
@@ -48,9 +48,10 @@ services:
       - EMAIL_PROVIDER=mailhog
       - MAILHOG_HOST=mailhog
       - MAILHOG_PORT=1025
+    command: npx next dev
     volumes:
       # Mount source code for hot reload
-      - .:/app
+      - ../..:/app
       - /app/node_modules
       - /app/.next
     depends_on:
@@ -61,8 +62,8 @@ services:
 
   app-prod:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
     container_name: finance_app_nextjs_prod
     restart: unless-stopped
     ports:

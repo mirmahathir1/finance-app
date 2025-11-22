@@ -40,12 +40,6 @@ npx prisma generate
 npx prisma studio
 ```
 
-### Seed baseline data
-```bash
-npm run prisma:seed
-```
-Seeds demo users (with embedded profiles/currencies/tags JSON) plus sample transactions referenced throughout the UI/playbooks.
-
 ## IndexedDB (Browser Storage)
 
 ### Overview

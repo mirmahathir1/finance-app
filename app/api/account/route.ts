@@ -10,7 +10,7 @@ import {
 
 export async function DELETE() {
   try {
-    const token = getSessionToken()
+    const token = await getSessionToken()
 
     if (!token) {
       return errorResponse('Not authenticated.', 401)
@@ -21,7 +21,7 @@ export async function DELETE() {
     })
 
     if (!user) {
-      clearSessionCookie()
+      await clearSessionCookie()
       return errorResponse('Session expired.', 401)
     }
 
@@ -29,7 +29,7 @@ export async function DELETE() {
       where: { id: user.id },
     })
 
-    clearSessionCookie()
+    await clearSessionCookie()
 
     return successMessage('Account deleted successfully.')
   } catch (error) {

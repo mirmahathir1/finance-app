@@ -424,7 +424,6 @@ npm install @faker-js/faker
 
 **Usage:**
 - Generate realistic transactions with proper structure
-- Use consistent seeds for deterministic data (optional)
 - Generate appropriate amounts, dates, currencies, and tags
 - Ensure generated data matches TypeScript interfaces
 

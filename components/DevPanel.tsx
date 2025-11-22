@@ -16,12 +16,18 @@ import {
   KeyboardArrowDown as ArrowDownIcon,
   Close as CloseIcon,
   Person as PersonIcon,
+  Email as EmailIcon,
+  OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material'
 import { useAuth } from '@/contexts/AuthContext'
 import { LoadingButton } from './LoadingButton'
 import { Snackbar } from './Snackbar'
 import { clearAllData } from '@/utils/indexedDB'
 import { guestDataService } from '@/services/guestDataService'
+
+const MAILHOG_HTTP_URL =
+  process.env.NEXT_PUBLIC_MAILHOG_HTTP_URL || 'http://localhost:8025'
+const IS_DEVELOPMENT = process.env.NODE_ENV === 'development'
 
 export function DevPanel() {
   const router = useRouter()
@@ -219,6 +225,22 @@ export function DevPanel() {
             >
               Hard Reset
             </LoadingButton>
+
+            {/* MailHog Button (Development only) */}
+            {IS_DEVELOPMENT && (
+              <Button
+                variant="outlined"
+                color="info"
+                size="medium"
+                href={MAILHOG_HTTP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                startIcon={<EmailIcon />}
+                endIcon={<OpenInNewIcon />}
+              >
+                MailHog
+              </Button>
+            )}
           </Box>
         </Paper>
       </Slide>

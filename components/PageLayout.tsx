@@ -28,7 +28,7 @@ export function PageLayout({
   bannerTitle,
   bannerSubtitle,
   bannerActions,
-  showSettingsShortcut = true,
+  showSettingsShortcut = false,
 }: PageLayoutProps) {
   const pathname = usePathname()
   const { user } = useAuth()

@@ -39,8 +39,9 @@ export function sanitizeUser(user: User) {
   return safe
 }
 
-export function setSessionCookie(token: string) {
-  cookies().set({
+export async function setSessionCookie(token: string) {
+  const cookieStore = await cookies()
+  cookieStore.set({
     name: SESSION_COOKIE_NAME,
     value: token,
     httpOnly: true,
@@ -51,8 +52,9 @@ export function setSessionCookie(token: string) {
   })
 }
 
-export function clearSessionCookie() {
-  cookies().set({
+export async function clearSessionCookie() {
+  const cookieStore = await cookies()
+  cookieStore.set({
     name: SESSION_COOKIE_NAME,
     value: '',
     maxAge: 0,
@@ -60,8 +62,9 @@ export function clearSessionCookie() {
   })
 }
 
-export function getSessionToken(): string | undefined {
-  return cookies().get(SESSION_COOKIE_NAME)?.value
+export async function getSessionToken(): Promise<string | undefined> {
+  const cookieStore = await cookies()
+  return cookieStore.get(SESSION_COOKIE_NAME)?.value
 }
 
 export function isValidEmail(email?: string | null): boolean {

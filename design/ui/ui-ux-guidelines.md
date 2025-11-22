@@ -215,7 +215,6 @@ async function fetchTransactions(params: { profileId: string; from?: string; to?
 ### Data Generation
 - Use a JavaScript library (e.g., Faker.js, @faker-js/faker) for generating realistic fake data
 - Generate data that matches the structure of real data (transactions, statistics, settings)
-- Use consistent seed values for deterministic generation based on query parameters
 - Generate realistic amounts, dates, descriptions, and tag names
 - Ensure generated data covers various scenarios (multiple profiles, currencies, transaction types)
 

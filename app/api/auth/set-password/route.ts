@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       },
     })
 
-    setSessionCookie(sessionToken)
+    await setSessionCookie(sessionToken)
 
     return success({
       user: sanitizeUser(updatedUser),

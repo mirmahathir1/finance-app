@@ -17,7 +17,7 @@ export function AuthBanner({
   title = 'Finance App',
   subtitle,
   actions,
-  showSettingsButton = true,
+  showSettingsButton = false,
 }: AuthBannerProps) {
   const router = useRouter()
   const { user, isGuestMode } = useAuth()

@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const token = getSessionToken()
+    const token = await getSessionToken()
     if (!token) {
       return errorResponse('Not authenticated.', 401)
     }
@@ -20,7 +20,7 @@ export async function GET() {
     })
 
     if (!user) {
-      clearSessionCookie()
+      await clearSessionCookie()
       return errorResponse('Session expired.', 401)
     }
 

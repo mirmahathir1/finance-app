@@ -18,10 +18,6 @@ import { Snackbar } from '@/components/Snackbar'
 import { LoadingButton } from '@/components/LoadingButton'
 import { validateEmail } from '@/utils/validation'
 
-const MAILHOG_HTTP_URL =
-  process.env.NEXT_PUBLIC_MAILHOG_HTTP_URL || 'http://localhost:8025'
-const IS_DEVELOPMENT = process.env.NODE_ENV === 'development'
-
 export default function SignUpPage() {
   const router = useRouter()
   const { isGuestMode } = useAuth()
@@ -172,20 +168,6 @@ export default function SignUpPage() {
                 </ul>
               </Typography>
             </Alert>
-
-            {IS_DEVELOPMENT && (
-              <Box sx={{ textAlign: 'center', mb: 2 }}>
-                <Link
-                  href={MAILHOG_HTTP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  variant="body2"
-                  sx={{ textDecoration: 'none' }}
-                >
-                  Open MailHog Inbox
-                </Link>
-              </Box>
-            )}
 
             {isGuestMode && (
               <Box sx={{ textAlign: 'center' }}>

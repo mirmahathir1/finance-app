@@ -48,9 +48,6 @@ docker compose up -d postgres
 npx prisma migrate dev -n init
 npx prisma generate
 
-# Seed baseline data (creates demo user/profiles/tags)
-npm run prisma:seed
-
 # Set up environment variables
 cp .env.example .env.local
 # Edit .env.local with:
@@ -73,6 +70,5 @@ npx prisma studio
 # Database helpers
 npm run prisma:generate
 npm run prisma:migrate
-npm run prisma:seed
 ```
 

@@ -72,30 +72,8 @@ function extractTokenFromMessage(message: MailhogMessage): string {
 }
 
 describe('Phase 1 - Auth Routes', () => {
-  const verifiedEmail = 'demo+verified@finance-app.dev'
-  const verifiedPassword = 'Password123!'
-
   beforeEach(() => {
     cy.task('mailhog:clear')
-  })
-
-  it('signs in with the seeded verified account and logs out', () => {
-    cy.visit('/auth/signin')
-    cy.get('input[name="email"], input[type="email"]').type(verifiedEmail)
-    cy.get('input[name="password"], input[type="password"]').type(verifiedPassword)
-    cy.contains('button', /sign in/i).click()
-    cy.url({ timeout: 10000 }).should('not.include', '/auth/signin')
-
-    cy.request('/api/auth/session')
-      .its('status')
-      .should('eq', 200)
-
-    cy.request('POST', '/api/auth/logout')
-      .its('status')
-      .should('eq', 200)
-
-    cy.visit('/auth/signin')
-    cy.url({ timeout: 10000 }).should('include', '/auth/signin')
   })
 
   it('covers signup, verification, login, forgot password, and reset flows via APIs', () => {

@@ -7,7 +7,7 @@ import { successMessage } from '@/app/api/auth/_lib/responses'
 
 export async function POST() {
   try {
-    const token = getSessionToken()
+    const token = await getSessionToken()
     if (token) {
       await prisma.user.updateMany({
         where: { sessionToken: token },
@@ -15,12 +15,12 @@ export async function POST() {
       })
     }
 
-    clearSessionCookie()
+    await clearSessionCookie()
 
     return successMessage('Logged out successfully.')
   } catch (error) {
     console.error('logout error', error)
-    clearSessionCookie()
+    await clearSessionCookie()
     return successMessage('Logged out successfully.')
   }
 }

@@ -16,7 +16,7 @@ interface AuthResult {
  * Returns { user } when authenticated or { user: null, response } when not.
  */
 export async function requireAuthenticatedUser(): Promise<AuthResult> {
-  const token = getSessionToken()
+  const token = await getSessionToken()
 
   if (!token) {
     return {
@@ -30,7 +30,7 @@ export async function requireAuthenticatedUser(): Promise<AuthResult> {
   })
 
   if (!user) {
-    clearSessionCookie()
+    await clearSessionCookie()
     return {
       user: null,
       response: errorResponse('Session expired.', 401),

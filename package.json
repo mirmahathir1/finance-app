@@ -3,29 +3,25 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
     "dev:local": "dotenv -e .env.local -- next dev",
     "dev:prod": "dotenv -e .env.production -- next dev",
-    "build": "next build",
+    "build:local": "dotenv -e .env.local -- next build",
     "build:prod": "dotenv -e .env.production -- next build",
-    "start": "next start",
     "start:local": "dotenv -e .env.local -- next start",
     "start:prod": "dotenv -e .env.production -- next start",
     "lint": "next lint",
-    "prisma:generate": "dotenv -e .env.local -- prisma generate",
     "prisma:generate:local": "dotenv -e .env.local -- prisma generate",
     "prisma:generate:prod": "dotenv -e .env.production -- prisma generate",
-    "prisma:migrate": "dotenv -e .env.local -- prisma migrate dev",
     "prisma:migrate:local": "dotenv -e .env.local -- prisma migrate dev",
     "prisma:migrate:prod": "dotenv -e .env.production -- prisma migrate deploy",
-    "prisma:migrate:deploy": "dotenv -e .env.local -- prisma migrate deploy",
-    "prisma:studio": "dotenv -e .env.local -- prisma studio",
+    "prisma:migrate:deploy:local": "dotenv -e .env.local -- prisma migrate deploy",
+    "prisma:migrate:deploy:prod": "dotenv -e .env.production -- prisma migrate deploy",
     "prisma:studio:local": "dotenv -e .env.local -- prisma studio",
     "prisma:studio:prod": "dotenv -e .env.production -- prisma studio",
     "db:reset": "cross-env NODE_ENV=test tsx tests/db-utils.ts reset",
     "test:e2e": "cypress run",
     "test:open": "cypress open",
-    "test:ui": "start-server-and-test \"cross-env PORT=3000 npm run dev\" http-get://localhost:3000/api/health \"npm run test:e2e -- --spec $npm_config_spec\""
+    "test:ui": "start-server-and-test \"cross-env PORT=3000 npm run dev:local\" http-get://localhost:3000/api/health \"npm run test:e2e -- --spec $npm_config_spec\""
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -38,7 +34,7 @@
     "bcryptjs": "^2.4.3",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
-    "next": "^14.2.5",
+    "next": "^16.0.3",
     "nodemailer": "^7.0.10",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -64,8 +60,5 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
     "typescript": "^5.5.3"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
   }
 }

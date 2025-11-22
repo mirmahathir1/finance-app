@@ -19,7 +19,7 @@ interface ChangePasswordBody {
 
 export async function PATCH(request: Request) {
   try {
-    const sessionToken = getSessionToken()
+    const sessionToken = await getSessionToken()
 
     if (!sessionToken) {
       return errorResponse('Not authenticated.', 401)
@@ -72,7 +72,7 @@ export async function PATCH(request: Request) {
       },
     })
 
-    setSessionCookie(newSessionToken)
+    await setSessionCookie(newSessionToken)
 
     return successMessage('Password updated successfully.')
   } catch (error: any) {
