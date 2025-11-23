@@ -6,7 +6,7 @@ import { recordCatalogValidationFailure } from '@/lib/telemetry'
 import type { Prisma, TransactionType } from '@prisma/client'
 
 const DEFAULT_LIMIT = 50
-const MAX_LIMIT = 200
+const MAX_LIMIT = 10000
 
 function parseDate(input?: string | null): Date | undefined {
   if (!input) return undefined
@@ -63,12 +63,16 @@ export async function GET(request: NextRequest) {
       return errorResponse('Invalid to date.', 400)
     }
 
-    const limitParam = Number.parseInt(searchParams.get('limit') ?? '', 10)
+    const limitParam = searchParams.get('limit')
     const offsetParam = Number.parseInt(searchParams.get('offset') ?? '', 10)
 
-    const limit = Number.isFinite(limitParam)
-      ? Math.max(1, Math.min(MAX_LIMIT, limitParam))
-      : DEFAULT_LIMIT
+    // If limit is explicitly set, use it (with max cap for safety)
+    // If limit is not set, fetch all transactions (no limit)
+    const limit = limitParam !== null && limitParam !== ''
+      ? (Number.isFinite(Number.parseInt(limitParam, 10))
+          ? Math.max(1, Math.min(MAX_LIMIT, Number.parseInt(limitParam, 10)))
+          : undefined)
+      : undefined
     const offset = Number.isFinite(offsetParam) ? Math.max(0, offsetParam) : 0
 
     const where: Prisma.TransactionWhereInput = {
@@ -111,7 +115,7 @@ export async function GET(request: NextRequest) {
           { occurredAt: 'desc' },
           { createdAt: 'desc' },
         ],
-        take: limit,
+        ...(limit !== undefined && { take: limit }),
         skip: offset,
       }),
     ])
@@ -120,9 +124,9 @@ export async function GET(request: NextRequest) {
       transactions: rows.map(toTransactionPayload),
       pagination: {
         total,
-        limit,
+        limit: limit ?? total,
         offset,
-        hasMore: offset + limit < total,
+        hasMore: limit !== undefined ? offset + limit < total : false,
       },
     })
   } catch (error) {

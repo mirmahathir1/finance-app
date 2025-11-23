@@ -40,12 +40,11 @@ export function EditTagModal({
   onError,
 }: EditTagModalProps) {
   const api = useApi()
-  const { tags, updateTag, renameTag } = useTag()
+  const { tags, updateTag, renameTag, changeTagType } = useTag()
   const { activeProfile } = useProfile()
 
   const [name, setName] = useState(tag?.name ?? '')
   const [type, setType] = useState<TransactionType>(tag?.type ?? 'expense')
-  const [color, setColor] = useState<string>(tag?.color ?? '#1976d2')
 
   const [affectedCount, setAffectedCount] = useState<number | null>(null)
   const [isLoadingPreview, setIsLoadingPreview] = useState(false)
@@ -55,29 +54,27 @@ export function EditTagModal({
 
   const originalName = tag?.name ?? ''
   const originalType = tag?.type ?? 'expense'
-  const originalColor = tag?.color ?? '#1976d2'
 
   const hasNameChanged = useMemo(
     () => name.trim() !== '' && name.trim() !== originalName,
     [name, originalName]
   )
   const hasTypeChanged = useMemo(() => type !== originalType, [type, originalType])
-  const hasColorChanged = useMemo(
-    () => (color || '') !== (originalColor || ''),
-    [color, originalColor]
-  )
 
   useEffect(() => {
     if (open && tag) {
       setName(tag.name)
       setType(tag.type)
-      setColor(tag.color || '#1976d2')
       setInputError(null)
+    } else {
+      setAffectedCount(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, tag?.id])
+
+  useEffect(() => {
+    if (open && tag && activeProfile) {
       const loadPreview = async () => {
-        if (!activeProfile) {
-          setAffectedCount(0)
-          return
-        }
         try {
           setIsLoadingPreview(true)
           const response = await api.getTransactions({
@@ -102,11 +99,9 @@ export function EditTagModal({
         }
       }
       loadPreview()
-    } else {
-      setAffectedCount(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, tag?.id])
+  }, [open, tag?.id, tag?.name, activeProfile])
 
   const validate = (): boolean => {
     const trimmed = name.trim()
@@ -139,12 +134,8 @@ export function EditTagModal({
         await renameTag(tag.id, trimmed)
       }
 
-      const updates: Partial<Tag> = {}
-      if (hasTypeChanged) updates.type = type
-      if (hasColorChanged) updates.color = color
-
-      if (Object.keys(updates).length > 0) {
-        await updateTag(tag.id, updates)
+      if (hasTypeChanged) {
+        await changeTagType(tag.id, type)
       }
 
       onSaved?.()
@@ -161,7 +152,8 @@ export function EditTagModal({
 
   const handleSave = () => {
     if (!validate()) return
-    if (hasNameChanged && (affectedCount ?? 0) > 0) {
+    const needsConfirmation = (hasNameChanged || hasTypeChanged) && (affectedCount ?? 0) > 0
+    if (needsConfirmation) {
       setConfirmOpen(true)
     } else {
       performSave()
@@ -171,7 +163,7 @@ export function EditTagModal({
   return (
     <>
       <Dialog
-        open={open}
+        open={open && !confirmOpen}
         onClose={() => !isSaving && onClose()}
         PaperProps={{ sx: standardDialogPaperSx }}
       >
@@ -205,20 +197,6 @@ export function EditTagModal({
                 <MenuItem value="income">Income</MenuItem>
               </Select>
             </FormControl>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <TextField
-                label="Color"
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                sx={{ width: 100 }}
-                disabled={isSaving}
-                InputLabelProps={{ shrink: true }}
-              />
-              <Typography variant="caption" color="text.secondary">
-                Choose a color to display for this tag
-              </Typography>
-            </Box>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {isLoadingPreview ? (
@@ -230,11 +208,21 @@ export function EditTagModal({
                 </>
               ) : (
                 <Typography variant="caption" color="text.secondary">
-                  {hasNameChanged
+                  {hasNameChanged && hasTypeChanged
+                    ? (affectedCount ?? 0) > 0
+                      ? `${affectedCount} transaction(s) will be updated if you rename and change the type of this tag`
+                      : 'No transactions will be affected'
+                    : hasNameChanged
                     ? (affectedCount ?? 0) > 0
                       ? `${affectedCount} transaction(s) will be updated if you rename this tag`
                       : 'No transactions will be affected by renaming'
-                    : 'No rename pending'}
+                    : hasTypeChanged
+                    ? (affectedCount ?? 0) > 0
+                      ? `${affectedCount} transaction(s) will be updated if you change the type of this tag`
+                      : 'No transactions will be affected by changing the type'
+                    : (affectedCount ?? 0) > 0
+                    ? `${affectedCount} transaction(s) use this tag`
+                    : 'No transactions use this tag'}
                 </Typography>
               )}
             </Box>
@@ -252,11 +240,18 @@ export function EditTagModal({
 
       <ConfirmDialog
         open={confirmOpen}
-        title="Confirm Tag Rename"
-        message={`Renaming "${originalName}" to "${name.trim()}" will update ${affectedCount} transaction(s). Proceed?`}
-        confirmText="Rename"
+        title={hasNameChanged && hasTypeChanged ? "Confirm Tag Changes" : hasNameChanged ? "Confirm Tag Rename" : "Confirm Tag Type Change"}
+        message={
+          hasNameChanged && hasTypeChanged
+            ? `Renaming "${originalName}" to "${name.trim()}" and changing type from ${originalType} to ${type} will update ${affectedCount} transaction(s). Proceed?`
+            : hasNameChanged
+            ? `Renaming "${originalName}" to "${name.trim()}" will update ${affectedCount} transaction(s). Proceed?`
+            : `Changing tag type from ${originalType} to ${type} will update ${affectedCount} transaction(s). Proceed?`
+        }
+        confirmText={hasNameChanged && hasTypeChanged ? "Save Changes" : hasNameChanged ? "Rename" : "Change Type"}
         cancelText="Cancel"
         confirmColor="primary"
+        loading={isSaving}
         onConfirm={performSave}
         onCancel={() => setConfirmOpen(false)}
       />

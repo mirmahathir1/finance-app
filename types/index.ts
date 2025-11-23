@@ -57,7 +57,6 @@ export interface Tag {
   name: string // Tag name
   profile: string // Profile name
   type: TransactionType
-  color?: string // Optional color for UI display
   createdAt: string
   updatedAt: string
 }

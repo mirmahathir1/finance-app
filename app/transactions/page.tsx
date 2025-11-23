@@ -41,6 +41,7 @@ import {
 import { PageLayout } from '@/components/PageLayout'
 import { EmptyState } from '@/components/EmptyState'
 import { Snackbar } from '@/components/Snackbar'
+import { TagChip } from '@/components/TagChip'
 import { useProfile } from '@/contexts/ProfileContext'
 import { useTag } from '@/contexts/TagContext'
 import { useApi } from '@/utils/useApi'
@@ -125,6 +126,7 @@ export default function TransactionsPage() {
 
       const params: any = {
         profile: activeProfile,
+        // No limit - fetch all transactions
       }
 
       if (dateFrom) params.from = dateFrom
@@ -573,23 +575,25 @@ export default function TransactionsPage() {
                               </TableCell>
                               <TableCell>
                                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                  {transaction.tags.map((tag) => (
-                                    <Chip
-                                      key={tag}
-                                      label={tag}
-                                      size="small"
-                                      sx={{
-                                        backgroundColor:
-                                          transaction.type === 'expense'
-                                            ? 'error.light'
-                                            : 'success.light',
-                                        color:
-                                          transaction.type === 'expense'
-                                            ? 'error.contrastText'
-                                            : 'success.contrastText',
-                                      }}
-                                    />
-                                  ))}
+                                  {transaction.tags.map((tagName) => {
+                                    // Find the tag object by name to get the type
+                                    const tag = tags.find((t) => t.name === tagName)
+                                    if (tag) {
+                                      return <TagChip key={tag.id} tag={tag} size="small" />
+                                    }
+                                    // Fallback if tag not found (shouldn't happen, but handle gracefully)
+                                    return (
+                                      <Chip
+                                        key={tagName}
+                                        label={tagName}
+                                        size="small"
+                                        sx={{
+                                          border: `4px solid ${transaction.type === 'expense' ? '#f44336' : '#4caf50'}`,
+                                          borderColor: transaction.type === 'expense' ? '#f44336' : '#4caf50',
+                                        }}
+                                      />
+                                    )
+                                  })}
                                 </Box>
                               </TableCell>
                               <TableCell

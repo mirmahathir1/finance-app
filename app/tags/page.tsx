@@ -46,7 +46,6 @@ export default function TagsPage() {
   // Create tag form state
   const [newTagName, setNewTagName] = useState('')
   const [newTagType, setNewTagType] = useState<TransactionType>('expense')
-  const [newTagColor, setNewTagColor] = useState<string>('#1976d2')
   const [isCreating, setIsCreating] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
 
@@ -100,7 +99,7 @@ export default function TagsPage() {
     }
     try {
       setIsCreating(true)
-      await addTag(newTagName.trim(), newTagType, newTagColor)
+      await addTag(newTagName.trim(), newTagType)
       setNewTagName('')
       setSnackbar({
         open: true,
@@ -266,18 +265,6 @@ export default function TagsPage() {
                 }
               }}
             />
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <TextField
-                label="Color"
-                type="color"
-                value={newTagColor}
-                onChange={(e) => setNewTagColor(e.target.value)}
-                sx={{ width: 80 }}
-                disabled={isLoading || isCreating}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Box>
 
             <LoadingButton
               variant="contained"

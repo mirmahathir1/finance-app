@@ -33,6 +33,7 @@ import { PageLayout } from '@/components/PageLayout'
 import { DatePicker } from '@/components/DatePicker'
 import { AmountInput } from '@/components/AmountInput'
 import { CurrencySelector } from '@/components/CurrencySelector'
+import { TagChip } from '@/components/TagChip'
 import { Snackbar } from '@/components/Snackbar'
 import { useProfile } from '@/contexts/ProfileContext'
 import { useCurrency } from '@/contexts/CurrencyContext'
@@ -571,23 +572,25 @@ export default function CreateTransactionPage() {
                         </Typography>
                         {transaction.tags.length > 0 && (
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
-                            {transaction.tags.slice(0, 3).map((tagName) => (
-                              <Chip
-                                key={tagName}
-                                label={tagName}
-                                size="small"
-                                sx={{
-                                  backgroundColor:
-                                    transaction.type === 'expense'
-                                      ? 'error.light'
-                                      : 'success.light',
-                                  color:
-                                    transaction.type === 'expense'
-                                      ? 'error.contrastText'
-                                      : 'success.contrastText',
-                                }}
-                              />
-                            ))}
+                            {transaction.tags.slice(0, 3).map((tagName) => {
+                              // Find the tag object by name to get the type
+                              const tag = tags.find((t) => t.name === tagName)
+                              if (tag) {
+                                return <TagChip key={tag.id} tag={tag} size="small" />
+                              }
+                              // Fallback if tag not found
+                              return (
+                                <Chip
+                                  key={tagName}
+                                  label={tagName}
+                                  size="small"
+                                  sx={{
+                                    border: `4px solid ${transaction.type === 'expense' ? '#f44336' : '#4caf50'}`,
+                                    borderColor: transaction.type === 'expense' ? '#f44336' : '#4caf50',
+                                  }}
+                                />
+                              )
+                            })}
                             {transaction.tags.length > 3 && (
                               <Typography variant="caption" color="text.secondary">
                                 +{transaction.tags.length - 3}

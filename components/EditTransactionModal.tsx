@@ -27,6 +27,7 @@ import { useTag } from '@/contexts/TagContext'
 import { useApi } from '@/utils/useApi'
 import type { Transaction, TransactionType } from '@/types'
 import { standardDialogPaperSx } from './dialogSizing'
+import { format, parseISO } from 'date-fns'
 
 interface EditTransactionModalProps {
   open: boolean
@@ -46,7 +47,7 @@ export function EditTransactionModal({
 
   // Form state
   const [type, setType] = useState<TransactionType>('expense')
-  const [date, setDate] = useState<string>('')
+  const [date, setDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
   const [amount, setAmount] = useState<number>(0)
   const [currency, setCurrency] = useState<string>('')
   const [description, setDescription] = useState<string>('')
@@ -72,7 +73,23 @@ export function EditTransactionModal({
   useEffect(() => {
     if (transaction && open) {
       setType(transaction.type)
-      setDate(transaction.occurredAt)
+      // Convert ISO string to YYYY-MM-DD format
+      let dateStr = format(new Date(), 'yyyy-MM-dd')
+      if (transaction.occurredAt) {
+        try {
+          // Handle both ISO strings and YYYY-MM-DD format
+          const date = transaction.occurredAt.includes('T') 
+            ? parseISO(transaction.occurredAt)
+            : new Date(transaction.occurredAt)
+          if (!isNaN(date.getTime())) {
+            dateStr = format(date, 'yyyy-MM-dd')
+          }
+        } catch (e) {
+          // If parsing fails, use today's date
+          console.warn('Failed to parse transaction date:', transaction.occurredAt)
+        }
+      }
+      setDate(dateStr)
       setAmount(transaction.amountMinor)
       setCurrency(transaction.currency)
       setDescription(transaction.note || '')
@@ -83,6 +100,9 @@ export function EditTransactionModal({
       setSelectedTags(tagIds)
 
       setErrors({})
+    } else if (open && !transaction) {
+      // Reset to defaults when opening without a transaction
+      setDate(format(new Date(), 'yyyy-MM-dd'))
     }
   }, [transaction, open, getTagsForType])
 

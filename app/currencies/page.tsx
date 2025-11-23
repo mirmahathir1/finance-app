@@ -20,11 +20,10 @@ import {
   Skeleton,
 } from '@mui/material'
 import { TransitionGroup } from 'react-transition-group'
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material'
+import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import { PageLayout } from '@/components/PageLayout'
 import { Snackbar } from '@/components/Snackbar'
 import { useCurrency } from '@/contexts/CurrencyContext'
-import { EditCurrencyModal } from '@/components/EditCurrencyModal'
 import { DeleteCurrencyModal } from '@/components/DeleteCurrencyModal'
 import type { Currency } from '@/types'
 import { ErrorState } from '@/components/ErrorState'
@@ -52,10 +51,6 @@ export default function CurrenciesPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [codeToDelete, setCodeToDelete] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
-
-  // Edit state
-  const [editOpen, setEditOpen] = useState(false)
-  const [currencyToEdit, setCurrencyToEdit] = useState<Currency | null>(null)
 
   // Snackbar
   const [snackbar, setSnackbar] = useState<{
@@ -123,11 +118,6 @@ export default function CurrenciesPage() {
   const openDelete = (code: string) => {
     setCodeToDelete(code)
     setDeleteOpen(true)
-  }
-
-  const openEdit = (currency: Currency) => {
-    setCurrencyToEdit(currency)
-    setEditOpen(true)
   }
 
   const handleDeleteConfirm = async () => {
@@ -305,15 +295,6 @@ export default function CurrenciesPage() {
                         )}
                         <IconButton
                           edge="end"
-                          aria-label="edit"
-                          color="primary"
-                          onMouseDown={(event) => event.preventDefault()}
-                          onClick={() => openEdit(currency)}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton
-                          edge="end"
                           aria-label="delete"
                           color="error"
                           onMouseDown={(event) => event.preventDefault()}
@@ -351,27 +332,6 @@ export default function CurrenciesPage() {
               severity: 'success',
             })
             setCodeToDelete(null)
-          }}
-          onError={(message) =>
-            setSnackbar({
-              open: true,
-              message,
-              severity: 'error',
-            })
-          }
-        />
-
-        <EditCurrencyModal
-          open={editOpen}
-          currency={currencyToEdit}
-          onClose={() => setEditOpen(false)}
-          onSaved={(newCode) => {
-            setSnackbar({
-              open: true,
-              message: `Currency updated to "${newCode}"`,
-              severity: 'success',
-            })
-            setCurrencyToEdit(null)
           }}
           onError={(message) =>
             setSnackbar({

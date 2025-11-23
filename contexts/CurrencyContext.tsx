@@ -40,13 +40,29 @@ const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined
 /**
  * Validate currency code format (ISO 4217: 3 uppercase letters)
  */
-function validateCurrencyCode(code: string): void {
+function validateCurrencyCodeFormat(code: string): void {
   if (!code || code.trim().length === 0) {
     throw new Error('Currency code cannot be empty')
   }
   const normalized = code.trim().toUpperCase()
   if (!/^[A-Z]{3}$/.test(normalized)) {
     throw new Error('Currency code must be exactly 3 uppercase letters (ISO 4217 format)')
+  }
+}
+
+/**
+ * Validate currency code using exchange rate API
+ */
+async function validateCurrencyCodeWithAPI(currencyCode: string): Promise<boolean> {
+  try {
+    const response = await fetch(`https://open.er-api.com/v6/latest/${currencyCode}`)
+    if (!response.ok) {
+      return false
+    }
+    const data = await response.json()
+    return data.result === 'success' && data.rates !== undefined
+  } catch {
+    return false
   }
 }
 
@@ -164,9 +180,15 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
    * Add a new currency
    */
   const addCurrency = async (code: string, isDefault = false) => {
-    // Validate currency code
-    validateCurrencyCode(code)
+    // Validate currency code format
+    validateCurrencyCodeFormat(code)
     const normalizedCode = code.trim().toUpperCase()
+    
+    // Validate currency code with exchange rate API
+    const isValid = await validateCurrencyCodeWithAPI(normalizedCode)
+    if (!isValid) {
+      throw new Error(`Currency code "${normalizedCode}" is not valid or not supported by the exchange rate API`)
+    }
 
     // Check for duplicates
     const existing = await getCurrency(normalizedCode)
@@ -200,46 +222,17 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       throw new Error(`Currency "${normalizedCode}" not found`)
     }
 
-    // If updating the code, we need to delete old and create new
-    // (because code is the primary key in IndexedDB)
-    if (updates.code) {
-      validateCurrencyCode(updates.code)
-      const newCode = updates.code.trim().toUpperCase()
-      
-      // Check if new code already exists (and it's different from current)
-      if (newCode !== normalizedCode) {
-        const duplicate = await getCurrency(newCode)
-        if (duplicate) {
-          throw new Error(`Currency "${newCode}" already exists`)
-        }
-
-        // Delete old currency and create new one with updated code
-        const updatedCurrency: Currency = {
-          ...existing,
-          ...updates,
-          code: newCode,
-          updatedAt: new Date().toISOString(),
-        }
-
-        await deleteCurrencyDB(normalizedCode)
-        await addCurrencyDB(newCode, updatedCurrency.isDefault)
-        
-        // If it was default, set the new one as default
-        if (existing.isDefault) {
-          await setDefaultCurrencyDB(newCode)
-        }
-      } else {
-        // Code unchanged, just update other properties
-        await updateCurrencyDB(normalizedCode, updates)
-      }
+    // Currency code cannot be changed - only other properties like isDefault
+    if (updates.code && updates.code.trim().toUpperCase() !== normalizedCode) {
+      throw new Error('Currency code cannot be changed. Please delete and create a new currency instead.')
+    }
+    
+    // Update other properties
+    // If setting as default, unset other defaults first
+    if (updates.isDefault === true) {
+      await setDefaultCurrencyDB(normalizedCode)
     } else {
-      // Not updating code, just update other properties
-      // If setting as default, unset other defaults first
-      if (updates.isDefault === true) {
-        await setDefaultCurrencyDB(normalizedCode)
-      } else {
-        await updateCurrencyDB(normalizedCode, updates)
-      }
+      await updateCurrencyDB(normalizedCode, updates)
     }
 
     // Reload currencies

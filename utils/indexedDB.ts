@@ -267,8 +267,7 @@ export async function getTag(id: string): Promise<Tag | null> {
 export async function addTag(
   profile: string,
   name: string,
-  type: 'expense' | 'income',
-  color?: string
+  type: 'expense' | 'income'
 ): Promise<Tag> {
   const db = await initDB()
   return new Promise((resolve, reject) => {
@@ -280,7 +279,6 @@ export async function addTag(
       name,
       profile,
       type,
-      color,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }

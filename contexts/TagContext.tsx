@@ -25,11 +25,11 @@ interface TagContextType {
   getTagsByType: (type: TransactionType) => Tag[]
   addTag: (
     name: string,
-    type: TransactionType,
-    color?: string
+    type: TransactionType
   ) => Promise<void>
   updateTag: (id: string, updates: Partial<Tag>) => Promise<void>
   renameTag: (id: string, newName: string) => Promise<void>
+  changeTagType: (id: string, newType: TransactionType) => Promise<void>
   deleteTag: (id: string, options?: DeleteTagOptions) => Promise<void>
   refreshTags: () => Promise<void>
   importTagsFromTransactions: () => Promise<{ added: number; skipped: number }>
@@ -136,8 +136,7 @@ export function TagProvider({ children }: { children: ReactNode }) {
 
   const addTag = async (
     name: string,
-    type: TransactionType,
-    color?: string
+    type: TransactionType
   ) => {
     if (!activeProfile) {
       throw new Error('No active profile selected')
@@ -159,7 +158,7 @@ export function TagProvider({ children }: { children: ReactNode }) {
     }
 
     // Add to IndexedDB
-    await addTagDB(activeProfile, trimmedName, type, color)
+    await addTagDB(activeProfile, trimmedName, type)
 
     // Reload tags
     await loadTags({ silent: true })
@@ -248,6 +247,47 @@ export function TagProvider({ children }: { children: ReactNode }) {
     }
 
     await updateTagDB(id, { name: trimmedNewName })
+    await loadTags({ silent: true })
+  }
+
+  const changeTagType = async (id: string, newType: TransactionType) => {
+    if (!activeProfile) {
+      throw new Error('No active profile selected')
+    }
+
+    const tag = tags.find((t) => t.id === id)
+    if (!tag) {
+      throw new Error('Tag not found')
+    }
+    if (newType === tag.type) {
+      throw new Error('New type must be different from current type')
+    }
+
+    // Check for duplicates with the new type
+    const existingTags = await getTagsForProfile(activeProfile, newType)
+    if (
+      existingTags.some(
+        (t) => t.id !== id && t.name.toLowerCase() === tag.name.toLowerCase()
+      )
+    ) {
+      throw new Error(
+        `A tag with this name already exists for ${newType} transactions`
+      )
+    }
+
+    // Fetch all transactions using this tag
+    const affectedTransactions = await fetchTransactions({
+      profile: activeProfile,
+      tag: tag.name,
+    })
+
+    // Update all affected transactions to change their type
+    for (const transaction of affectedTransactions) {
+      await api.updateTransaction(transaction.id, { type: newType })
+    }
+
+    // Update the tag type in IndexedDB
+    await updateTagDB(id, { type: newType })
     await loadTags({ silent: true })
   }
 
@@ -365,6 +405,7 @@ export function TagProvider({ children }: { children: ReactNode }) {
         addTag,
         updateTag,
         renameTag,
+        changeTagType,
         deleteTag,
         refreshTags,
         importTagsFromTransactions,
