@@ -10,13 +10,11 @@
 export async function getCurrencyCode(lat: number, lon: number): Promise<string> {
   // 1) Reverse geocode to get country code (ISO 3166-1 alpha-2)
   const nominatimUrl = new URL("https://nominatim.openstreetmap.org/reverse");
-  nominatimUrl.search = new URLSearchParams({
-    format: "json",
-    lat: String(lat),
-    lon: String(lon),
-    zoom: "3",
-    addressdetails: "1"
-  });
+  nominatimUrl.searchParams.set("format", "json");
+  nominatimUrl.searchParams.set("lat", String(lat));
+  nominatimUrl.searchParams.set("lon", String(lon));
+  nominatimUrl.searchParams.set("zoom", "3");
+  nominatimUrl.searchParams.set("addressdetails", "1");
 
   const nominatimRes = await fetch(nominatimUrl.toString(), {
     headers: {
