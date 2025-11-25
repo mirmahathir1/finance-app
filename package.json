@@ -10,6 +10,7 @@
     "start:local": "dotenv -e .env.local -- next start",
     "start:prod": "dotenv -e .env.production -- next start",
     "lint": "next lint",
+    "type-check": "tsc --noEmit",
     "prisma:generate:local": "dotenv -e .env.local -- prisma generate",
     "prisma:generate:prod": "dotenv -e .env.production -- prisma generate",
     "prisma:migrate:local": "dotenv -e .env.local -- prisma migrate dev",
