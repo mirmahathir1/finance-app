@@ -203,7 +203,7 @@ export function DevPanel() {
           >
             {/* Guest Mode Toggle */}
             <Button
-              variant={isGuestMode ? 'contained' : 'outlined'}
+              variant="contained"
               color={isGuestMode ? 'secondary' : 'primary'}
               size="medium"
               onClick={handleGuestModeToggle}
@@ -217,7 +217,7 @@ export function DevPanel() {
 
             {/* Hard Reset Button */}
             <LoadingButton
-              variant="outlined"
+              variant="contained"
               color="error"
               size="medium"
               onClick={handleHardReset}
@@ -229,7 +229,7 @@ export function DevPanel() {
             {/* MailHog Button (Development only) */}
             {IS_DEVELOPMENT && (
               <Button
-                variant="outlined"
+                variant="contained"
                 color="info"
                 size="medium"
                 href={MAILHOG_HTTP_URL}

@@ -192,6 +192,7 @@ function MockEmailPageContent() {
         {/* Header */}
         <Box sx={{ mb: 3 }}>
           <Button
+            variant="contained"
             startIcon={<ArrowBackIcon />}
             onClick={() => router.back()}
             sx={{ mb: 2 }}
@@ -256,13 +257,13 @@ function MockEmailPageContent() {
         <Paper elevation={1} sx={{ p: 2 }}>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             <Button
-              variant={emailType === 'verification' ? 'contained' : 'outlined'}
+              variant="contained"
               onClick={() => router.push('/auth/mock-email?type=verification')}
             >
               Verification Email
             </Button>
             <Button
-              variant={emailType === 'reset' ? 'contained' : 'outlined'}
+              variant="contained"
               onClick={() => router.push('/auth/mock-email?type=reset')}
             >
               Reset Password Email

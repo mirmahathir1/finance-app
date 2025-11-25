@@ -110,7 +110,20 @@ export default function ProfilesPage() {
         primary={
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography variant="subtitle1">{p.name}</Typography>
-            {p.name === activeProfile && <Chip size="small" label="Active" color="success" />}
+            {p.name === activeProfile && (
+              <Chip 
+                size="small" 
+                label="Active" 
+                color="success"
+                sx={{ 
+                  bgcolor: '#1b5e20',
+                  color: 'white',
+                  '&:hover': {
+                    bgcolor: '#1b5e20',
+                  },
+                }}
+              />
+            )}
           </Box>
         }
         secondary={
@@ -132,7 +145,7 @@ export default function ProfilesPage() {
         {p.name !== activeProfile && (
           <Button
             size="small"
-            variant="outlined"
+            variant="contained"
             sx={{ whiteSpace: 'nowrap' }}
             onClick={async () => {
               try {
@@ -246,17 +259,9 @@ export default function ProfilesPage() {
 
   const bannerActions = (
     <Button
-      variant="outlined"
-      color="inherit"
+      variant="contained"
+      color="primary"
       onClick={() => router.push('/')}
-      sx={{
-        borderColor: 'rgba(255,255,255,0.8)',
-        color: 'inherit',
-        '&:hover': {
-          borderColor: 'primary.contrastText',
-          backgroundColor: 'rgba(255,255,255,0.15)',
-        },
-      }}
     >
       Back to Dashboard
     </Button>
@@ -274,7 +279,7 @@ export default function ProfilesPage() {
           }}
         >
           <LoadingButton
-            variant="outlined"
+            variant="contained"
             onClick={handleImport}
             loading={isImporting}
             disabled={isLoading}

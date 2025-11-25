@@ -40,7 +40,7 @@ export function AuthBanner({
         justifyContent: 'flex-start',
         flexWrap: 'wrap',
         gap: 2,
-        backgroundImage: 'linear-gradient(135deg, #1e88e5, #3949ab)',
+        backgroundImage: 'linear-gradient(135deg, #1565c0, #283593)',
         color: 'primary.contrastText',
         borderRadius: '30px',
       }}
@@ -76,7 +76,7 @@ export function AuthBanner({
             <Avatar sx={{ width: 36, height: 36, bgcolor: 'secondary.main' }}>
               {getUserInitials(displayEmail)}
             </Avatar>
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            <Typography variant="body2" sx={{ fontWeight: 500, color: 'white' }}>
               {displayEmail}
             </Typography>
           </>

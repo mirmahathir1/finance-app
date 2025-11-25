@@ -91,7 +91,7 @@ export default function StatisticsPage() {
     ]
   )
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
-  const [selectedMonth, setSelectedMonth] = useState<number | 'all'>('all')
+  const [selectedMonth, setSelectedMonth] = useState<number | 'all'>(new Date().getMonth())
   const [currencyOptions, setCurrencyOptions] = useState<string[]>([])
   const [currency, setCurrency] = useState<string>('')
   const [includeConverted, setIncludeConverted] = useState(false)
@@ -292,6 +292,14 @@ export default function StatisticsPage() {
   const incomeMajor = stats ? stats.summary.totalIncome.amountMinor / 100 : 0
   const expenseMajor = stats ? stats.summary.totalExpense.amountMinor / 100 : 0
 
+  // Calculate expense percentage relative to income
+  const expensePercentage = useMemo(() => {
+    if (!stats || stats.summary.totalIncome.amountMinor === 0) {
+      return null
+    }
+    return (stats.summary.totalExpense.amountMinor / stats.summary.totalIncome.amountMinor) * 100
+  }, [stats])
+
   const shouldShowSkeleton =
     isLoadingTransactions || isLoading || (!currency && derivedCurrencyOptions.length > 0)
   const shouldShowEmptyState = !shouldShowSkeleton && (!currency || !hasData)
@@ -311,8 +319,8 @@ export default function StatisticsPage() {
         node: (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <Grid container spacing={2}>
-              {[0, 1, 2].map((item) => (
-                <Grid key={item} size={{ xs: 12, md: 4 }} sx={{ minWidth: 0 }}>
+              {[0, 1, 2, 3].map((item) => (
+                <Grid key={item} size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
                   <Card sx={{ p: 2 }}>
                     <Skeleton variant="text" width="40%" />
                     <Skeleton variant="text" height={36} />
@@ -351,7 +359,7 @@ export default function StatisticsPage() {
         <>
           <AnimatedSection delay={50}>
             <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid size={{ xs: 12, md: 4 }} sx={{ minWidth: 0 }}>
+              <Grid size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
                 <Card sx={{ borderLeft: '4px solid', borderColor: 'success.main' }}>
                   <CardContent>
                     <Typography variant="subtitle2" color="text.secondary">
@@ -363,7 +371,7 @@ export default function StatisticsPage() {
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid size={{ xs: 12, md: 4 }} sx={{ minWidth: 0 }}>
+              <Grid size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
                 <Card sx={{ borderLeft: '4px solid', borderColor: 'error.main' }}>
                   <CardContent>
                     <Typography variant="subtitle2" color="text.secondary">
@@ -375,7 +383,7 @@ export default function StatisticsPage() {
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid size={{ xs: 12, md: 4 }} sx={{ minWidth: 0 }}>
+              <Grid size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
                 <Card sx={{ borderLeft: '4px solid', borderColor: 'primary.main' }}>
                   <CardContent>
                     <Typography variant="subtitle2" color="text.secondary">
@@ -386,6 +394,21 @@ export default function StatisticsPage() {
                       color={stats!.summary.netBalance.amountMinor >= 0 ? 'success.main' : 'error.main'}
                     >
                       {formatAmount(stats!.summary.netBalance.amountMinor, currency)}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
+                <Card sx={{ borderLeft: '4px solid', borderColor: expensePercentage !== null && expensePercentage > 100 ? 'error.main' : expensePercentage !== null && expensePercentage > 80 ? 'warning.main' : 'info.main' }}>
+                  <CardContent>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Expense / Income
+                    </Typography>
+                    <Typography
+                      variant="h5"
+                      color={expensePercentage !== null && expensePercentage > 100 ? 'error.main' : expensePercentage !== null && expensePercentage > 80 ? 'warning.main' : 'info.main'}
+                    >
+                      {expensePercentage !== null ? `${expensePercentage.toFixed(1)}%` : 'N/A'}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -406,21 +429,13 @@ export default function StatisticsPage() {
         </>
       ),
     }
-  }, [currency, expenseMajor, filtersKey, incomeMajor, pieData, shouldShowEmptyState, shouldShowSkeleton, stats])
+  }, [currency, expenseMajor, expensePercentage, filtersKey, incomeMajor, pieData, shouldShowEmptyState, shouldShowSkeleton, stats])
 
   const bannerActions = (
     <Button
-      variant="outlined"
-      color="inherit"
+      variant="contained"
+      color="primary"
       onClick={() => router.push('/')}
-      sx={{
-        borderColor: 'rgba(255,255,255,0.8)',
-        color: 'inherit',
-        '&:hover': {
-          borderColor: 'primary.contrastText',
-          backgroundColor: 'rgba(255,255,255,0.15)',
-        },
-      }}
     >
       Back to Dashboard
     </Button>

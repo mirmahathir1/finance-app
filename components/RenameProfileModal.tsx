@@ -167,8 +167,28 @@ export function RenameProfileModal({
           <Button onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>
-          <Button onClick={handleSave} variant="contained" disabled={isSaving}>
-            Save
+          <Button
+            onClick={handleSave}
+            variant="contained"
+            disabled={isSaving}
+            sx={{ position: 'relative', minWidth: 100 }}
+          >
+            {isSaving && (
+              <CircularProgress
+                size={20}
+                color="inherit"
+                sx={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  marginTop: '-10px',
+                  marginLeft: '-10px',
+                }}
+              />
+            )}
+            <Box component="span" sx={{ opacity: isSaving ? 0 : 1 }}>
+              Save
+            </Box>
           </Button>
         </DialogActions>
       </Dialog>
@@ -180,6 +200,7 @@ export function RenameProfileModal({
         confirmText="Rename"
         cancelText="Cancel"
         confirmColor="primary"
+        loading={isSaving}
         onConfirm={performRename}
         onCancel={() => setConfirmOpen(false)}
       />

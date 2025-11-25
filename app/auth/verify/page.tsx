@@ -145,7 +145,7 @@ function VerifyPageContent() {
               </Button>
               <Button
                 fullWidth
-                variant="outlined"
+                variant="contained"
                 onClick={() => router.push('/auth/signin')}
               >
                 Sign In

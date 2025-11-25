@@ -311,18 +311,10 @@ export default function CreateTransactionPage() {
 
   const bannerActions = (
     <Button
-      variant="outlined"
-      color="inherit"
+      variant="contained"
+      color="primary"
       startIcon={<ArrowBackIcon />}
       onClick={() => router.push('/')}
-      sx={{
-        borderColor: 'rgba(255,255,255,0.8)',
-        color: 'inherit',
-        '&:hover': {
-          borderColor: 'primary.contrastText',
-          backgroundColor: 'rgba(255,255,255,0.15)',
-        },
-      }}
     >
       Back to Dashboard
     </Button>
@@ -337,7 +329,8 @@ export default function CreateTransactionPage() {
           </Alert>
           <Box sx={{ mt: 2 }}>
             <Button
-              variant="outlined"
+              variant="contained"
+              color="primary"
               startIcon={<ArrowBackIcon />}
               onClick={() => router.push('/')}
             >
@@ -354,7 +347,7 @@ export default function CreateTransactionPage() {
       <Container maxWidth="md">
         <Box sx={{ mb: 4 }}>
           <Button
-            variant="outlined"
+            variant="contained"
             startIcon={<ArrowBackIcon />}
             onClick={() => router.push('/transactions')}
             sx={{ mb: 2 }}
@@ -498,7 +491,7 @@ export default function CreateTransactionPage() {
               {/* Submit Button */}
               <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   onClick={() => router.push('/transactions')}
                   disabled={isSubmitting}
                 >
@@ -585,8 +578,8 @@ export default function CreateTransactionPage() {
                                   label={tagName}
                                   size="small"
                                   sx={{
-                                    border: `4px solid ${transaction.type === 'expense' ? '#f44336' : '#4caf50'}`,
-                                    borderColor: transaction.type === 'expense' ? '#f44336' : '#4caf50',
+                                    border: `4px solid ${transaction.type === 'expense' ? '#c62828' : '#2e7d32'}`,
+                                    borderColor: transaction.type === 'expense' ? '#c62828' : '#2e7d32',
                                   }}
                                 />
                               )

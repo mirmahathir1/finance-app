@@ -250,6 +250,70 @@ class GuestDataService {
   }
 
   /**
+   * Bulk update transactions profile name
+   */
+  async bulkUpdateTransactionsProfile(
+    oldName: string,
+    newName: string
+  ): Promise<{ updatedCount: number }> {
+    await this.delay(150)
+
+    let updatedCount = 0
+    for (const transaction of this.transactions.values()) {
+      if (transaction.profile === oldName) {
+        await this.updateTransaction(transaction.id, {
+          profile: newName,
+        })
+        updatedCount++
+      }
+    }
+
+    return { updatedCount }
+  }
+
+  /**
+   * Bulk update transactions for tag rename or type change
+   */
+  async bulkUpdateTransactionsTag(
+    profile: string,
+    oldTagName: string,
+    options?: {
+      newTagName?: string
+      newTransactionType?: TransactionType
+    }
+  ): Promise<{ updatedCount: number }> {
+    await this.delay(150)
+
+    let updatedCount = 0
+    for (const transaction of this.transactions.values()) {
+      if (transaction.profile !== profile) continue
+      if (!transaction.tags.includes(oldTagName)) continue
+
+      const updateData: UpdateTransactionRequest = {}
+
+      // Handle tag rename
+      if (options?.newTagName && options.newTagName !== oldTagName) {
+        updateData.tags = transaction.tags.map((tag) =>
+          tag === oldTagName ? options.newTagName! : tag
+        )
+      }
+
+      // Handle type change
+      if (options?.newTransactionType && options.newTransactionType !== transaction.type) {
+        updateData.type = options.newTransactionType
+      }
+
+      // Only update if there are changes
+      if (Object.keys(updateData).length > 0) {
+        await this.updateTransaction(transaction.id, updateData)
+        updatedCount++
+      }
+    }
+
+    return { updatedCount }
+  }
+
+  /**
    * Get statistics for a period
    */
   async getStatistics(

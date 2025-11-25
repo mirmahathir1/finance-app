@@ -283,13 +283,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       throw new Error('A profile with this name already exists')
     }
 
-    const transactions = await fetchTransactions({ profile: oldName })
-    if (transactions.length > 0) {
-      for (const transaction of transactions) {
-        await api.updateTransaction(transaction.id, {
-          profile: trimmedNewName,
-        })
-      }
+    // Update all transactions with the old profile name in a single database query
+    const response = await api.bulkUpdateTransactionsProfile(oldName, trimmedNewName)
+    if (!response.success) {
+      throw new Error(
+        response.error?.message || 'Failed to update transactions'
+      )
     }
 
     const profile = existingProfiles.find((p) => p.name === oldName)

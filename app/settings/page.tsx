@@ -219,18 +219,10 @@ export default function SettingsPage() {
 
   const bannerActions = (
     <Button
-      variant="outlined"
-      color="inherit"
+      variant="contained"
+      color="primary"
       startIcon={<ArrowBackIcon />}
       onClick={() => router.push('/')}
-      sx={{
-        borderColor: 'rgba(255,255,255,0.8)',
-        color: 'inherit',
-        '&:hover': {
-          borderColor: 'primary.contrastText',
-          backgroundColor: 'rgba(255,255,255,0.15)',
-        },
-      }}
     >
       Back to Dashboard
     </Button>
@@ -443,7 +435,7 @@ export default function SettingsPage() {
               </Box>
             </Box>
             <Button
-              variant={mode === 'dark' ? 'contained' : 'outlined'}
+              variant="contained"
               onClick={toggleColorMode}
               startIcon={mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
               sx={{ minWidth: 150 }}
@@ -472,7 +464,7 @@ export default function SettingsPage() {
           >
             {!isGuestMode && (
               <LoadingButton
-                variant="outlined"
+                variant="contained"
                 color="warning"
                 startIcon={<DeleteForeverIcon />}
                 onClick={handleOpenDeleteDialog}

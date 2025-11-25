@@ -90,20 +90,23 @@ export const lightTheme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1976d2', // Material Blue
+      main: '#053d70', // Darker Blue
     },
     secondary: {
-      main: '#dc004e', // Pink
+      main: '#880e4f', // Darker Pink
     },
     success: {
-      main: '#4caf50', // Green
+      main: '#2e7d32', // Darker Green
     },
     error: {
-      main: '#f44336', // Red
+      main: '#8b0000', // Darker Red
+    },
+    warning: {
+      main: '#bf360c', // Darker Orange
     },
     background: {
-      default: '#fafafa', // Light Gray
-      paper: '#ffffff',
+      default: '#e0e0e0', // Darker Gray
+      paper: '#f5f5f5',
     },
   },
 })
@@ -114,20 +117,23 @@ export const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#90caf9', // Light Blue for dark mode
+      main: '#2d4f6f', // Darker Blue for dark mode
     },
     secondary: {
-      main: '#f48fb1', // Light Pink for dark mode
+      main: '#c06a8a', // Darker Pink for dark mode
     },
     success: {
-      main: '#81c784', // Light Green for dark mode
+      main: '#5a9d5e', // Darker Green for dark mode
     },
     error: {
-      main: '#e57373', // Light Red for dark mode
+      main: '#8b0000', // Darker Red for dark mode
+    },
+    warning: {
+      main: '#a0280a', // Darker Orange for dark mode
     },
     background: {
-      default: '#121212', // Dark background
-      paper: '#1e1e1e', // Dark paper
+      default: '#0a0a0a', // Darker background
+      paper: '#141414', // Darker paper
     },
   },
 })

@@ -46,13 +46,13 @@ export function TagChip({ tag, size = 'small', onDelete, onClick }: TagChipProps
   const intensity = getRandomIntensity(tag.id)
   
   // Define color ranges for gradients
-  const greenLight = '#a5d6a7' // Lightest green
-  const greenDark = '#2e7d32' // Darkest green
-  const greenMid = '#66bb6a' // Medium green
+  const greenLight = '#2e7d32' // Lightest green
+  const greenDark = '#064e1a' // Darkest green
+  const greenMid = '#1b5e20' // Medium green
   
-  const redLight = '#ffcdd2' // Lightest red
-  const redDark = '#b71c1c' // Darkest red
-  const redMid = '#ef5350' // Medium red
+  const redLight = '#b71c1c' // Lightest red
+  const redDark = '#4a0000' // Darkest red
+  const redMid = '#8b0000' // Medium red
   
   let gradient: string
   if (tag.type === 'income') {

@@ -321,6 +321,67 @@ async function handleGuestModeRequest(
   }
 
   // ============================================================================
+  // Profile Endpoints
+  // ============================================================================
+
+  // POST /api/profiles/rename
+  if (path === '/api/profiles/rename' && method === 'POST') {
+    const { oldName, newName } = body
+    if (!oldName || !newName) {
+      return {
+        success: false,
+        error: {
+          message: 'Old name and new name are required',
+          code: '400',
+        },
+      }
+    }
+
+    // Update all transactions with the old profile name
+    const result = await guestDataService.bulkUpdateTransactionsProfile(oldName, newName)
+
+    return {
+      success: true,
+      data: result,
+    }
+  }
+
+  // POST /api/tags/update-transactions
+  if (path === '/api/tags/update-transactions' && method === 'POST') {
+    const { profile, oldTagName, newTagName, newTransactionType } = body
+    if (!profile || !oldTagName) {
+      return {
+        success: false,
+        error: {
+          message: 'Profile and old tag name are required',
+          code: '400',
+        },
+      }
+    }
+
+    if (!newTagName && !newTransactionType) {
+      return {
+        success: false,
+        error: {
+          message: 'Either new tag name or new transaction type must be provided',
+          code: '400',
+        },
+      }
+    }
+
+    // Update all transactions with the old tag name
+    const result = await guestDataService.bulkUpdateTransactionsTag(profile, oldTagName, {
+      newTagName,
+      newTransactionType,
+    })
+
+    return {
+      success: true,
+      data: result,
+    }
+  }
+
+  // ============================================================================
   // Account Endpoints
   // ============================================================================
 
@@ -618,5 +679,38 @@ export async function getSetupCatalog(): Promise<
   ApiResponse<{ catalog: SetupCatalogData }>
 > {
   return apiCall<{ catalog: SetupCatalogData }>('/api/setup/catalog')
+}
+
+// ============================================================================
+// Profile API Calls
+// ============================================================================
+
+export async function bulkUpdateTransactionsProfile(
+  oldName: string,
+  newName: string
+): Promise<ApiResponse<{ updatedCount: number }>> {
+  return apiCall<{ updatedCount: number }>('/api/profiles/rename', {
+    method: 'POST',
+    body: JSON.stringify({ oldName, newName }),
+  })
+}
+
+export async function bulkUpdateTransactionsTag(
+  profile: string,
+  oldTagName: string,
+  options?: {
+    newTagName?: string
+    newTransactionType?: TransactionType
+  }
+): Promise<ApiResponse<{ updatedCount: number }>> {
+  return apiCall<{ updatedCount: number }>('/api/tags/update-transactions', {
+    method: 'POST',
+    body: JSON.stringify({
+      profile,
+      oldTagName,
+      newTagName: options?.newTagName,
+      newTransactionType: options?.newTransactionType,
+    }),
+  })
 }
 

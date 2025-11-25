@@ -61,7 +61,7 @@ export function ProfileSelector({
         ))}
       </Select>
       {helperText && (
-        <div style={{ marginTop: '4px', fontSize: '0.75rem', color: error ? '#d32f2f' : 'rgba(0, 0, 0, 0.6)' }}>
+        <div style={{ marginTop: '4px', fontSize: '0.75rem', color: error ? '#b71c1c' : 'rgba(0, 0, 0, 0.6)' }}>
           {helperText}
         </div>
       )}

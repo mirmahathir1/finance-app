@@ -198,17 +198,9 @@ export default function BackupRestorePage() {
 
   const bannerActions = (
     <Button
-      variant="outlined"
-      color="inherit"
+      variant="contained"
+      color="primary"
       onClick={() => router.push('/')}
-      sx={{
-        borderColor: 'rgba(255,255,255,0.8)',
-        color: 'inherit',
-        '&:hover': {
-          borderColor: 'primary.contrastText',
-          backgroundColor: 'rgba(255,255,255,0.15)',
-        },
-      }}
     >
       Back to Dashboard
     </Button>
@@ -241,7 +233,7 @@ export default function BackupRestorePage() {
                 Download Backup
               </LoadingButton>
               <LoadingButton
-                variant="outlined"
+                variant="contained"
                 color="error"
                 onClick={handleRestoreClick}
                 loading={isRestoring}

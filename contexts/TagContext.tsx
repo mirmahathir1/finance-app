@@ -233,17 +233,15 @@ export function TagProvider({ children }: { children: ReactNode }) {
       )
     }
 
-    const affectedTransactions = await fetchTransactions({
-      profile: activeProfile,
-      tag: tag.name,
+    // Update all transactions with the old tag name in a single database query
+    const response = await api.bulkUpdateTransactionsTag(activeProfile, tag.name, {
+      newTagName: trimmedNewName,
     })
 
-    for (const transaction of affectedTransactions) {
-      const updatedTags =
-        transaction.tags?.map((value) =>
-          value === tag.name ? trimmedNewName : value
-        ) ?? []
-      await api.updateTransaction(transaction.id, { tags: updatedTags })
+    if (!response.success) {
+      throw new Error(
+        response.error?.message || 'Failed to update transactions'
+      )
     }
 
     await updateTagDB(id, { name: trimmedNewName })
@@ -275,15 +273,15 @@ export function TagProvider({ children }: { children: ReactNode }) {
       )
     }
 
-    // Fetch all transactions using this tag
-    const affectedTransactions = await fetchTransactions({
-      profile: activeProfile,
-      tag: tag.name,
+    // Update all transactions with this tag in a single database query
+    const response = await api.bulkUpdateTransactionsTag(activeProfile, tag.name, {
+      newTransactionType: newType,
     })
 
-    // Update all affected transactions to change their type
-    for (const transaction of affectedTransactions) {
-      await api.updateTransaction(transaction.id, { type: newType })
+    if (!response.success) {
+      throw new Error(
+        response.error?.message || 'Failed to update transactions'
+      )
     }
 
     // Update the tag type in IndexedDB

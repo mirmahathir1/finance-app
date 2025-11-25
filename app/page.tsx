@@ -44,6 +44,43 @@ export default function DashboardPage() {
   const [isLoadingStats, setIsLoadingStats] = useState(false)
   const [statsError, setStatsError] = useState<string | null>(null)
 
+  // Generate random dark colors for action buttons (generated once on mount)
+  const [buttonColors] = useState(() => {
+    const generateRandomDarkColor = () => {
+      // Generate random RGB values between 0-150 (dark range)
+      const r = Math.floor(Math.random() * 100) + 0 // 0-100
+      const g = Math.floor(Math.random() * 100) + 0 // 0-100
+      const b = Math.floor(Math.random() * 100) + 0 // 0-100
+      return `rgb(${r}, ${g}, ${b})`
+    }
+
+    const generateRandomDarkHex = () => {
+      // Generate hex values between 00-99 (dark range)
+      const r = Math.floor(Math.random() * 100).toString(16).padStart(2, '0')
+      const g = Math.floor(Math.random() * 100).toString(16).padStart(2, '0')
+      const b = Math.floor(Math.random() * 100).toString(16).padStart(2, '0')
+      return `#${r}${g}${b}`
+    }
+
+    // Generate 3 slightly different shades for gradient
+    const generateGradient = () => {
+      const baseR = Math.floor(Math.random() * 80) + 0 // 0-80
+      const baseG = Math.floor(Math.random() * 80) + 0 // 0-80
+      const baseB = Math.floor(Math.random() * 80) + 0 // 0-80
+      
+      const toHex = (n: number) => n.toString(16).padStart(2, '0')
+      
+      const color1 = `#${toHex(baseR)}${toHex(baseG)}${toHex(baseB)}`
+      const color2 = `#${toHex(Math.min(baseR + 20, 100))}${toHex(Math.min(baseG + 20, 100))}${toHex(Math.min(baseB + 20, 100))}`
+      const color3 = `#${toHex(Math.min(baseR + 40, 120))}${toHex(Math.min(baseG + 40, 120))}${toHex(Math.min(baseB + 40, 120))}`
+      
+      return `linear-gradient(135deg, ${color1} 0%, ${color2} 50%, ${color3} 100%)`
+    }
+
+    // Generate 8 random gradients (one for each button)
+    return Array.from({ length: 8 }, () => generateGradient())
+  })
+
   // Allow guest mode to render (API is intercepted)
 
   const loadStatistics = useCallback(async () => {
@@ -234,7 +271,7 @@ export default function DashboardPage() {
             </Box>
             <Box sx={{ mt: 2 }}>
               <Button
-                variant="outlined"
+                variant="contained"
                 size="small"
                 onClick={() => router.push('/profiles')}
               >
@@ -278,7 +315,7 @@ export default function DashboardPage() {
               <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 3, justifyContent: 'center' }}>
                 <Card sx={{ 
                   flex: 1, 
-                  background: 'linear-gradient(135deg, #4caf50 0%, #66bb6a 50%, #81c784 100%)',
+                  background: 'linear-gradient(135deg, #0d4f1a 0%, #1b5e20 50%, #2e7d32 100%)',
                   color: 'success.contrastText',
                   boxShadow: 3,
                   transition: 'transform 0.2s, box-shadow 0.2s',
@@ -298,7 +335,7 @@ export default function DashboardPage() {
                 </Card>
                 <Card sx={{ 
                   flex: 1, 
-                  background: 'linear-gradient(135deg, #f44336 0%, #ef5350 50%, #e57373 100%)',
+                  background: 'linear-gradient(135deg, #8b0000 0%, #b71c1c 50%, #c62828 100%)',
                   color: 'error.contrastText',
                   boxShadow: 3,
                   transition: 'transform 0.2s, box-shadow 0.2s',
@@ -318,8 +355,8 @@ export default function DashboardPage() {
                 </Card>
                 <Card sx={{ 
                   flex: 1, 
-                  background: 'linear-gradient(135deg, #2196f3 0%, #42a5f5 50%, #64b5f6 100%)',
-                  color: 'info.contrastText',
+                  background: 'linear-gradient(135deg, #0a3d91 0%, #0d47a1 50%, #1565c0 100%)',
+                  color: 'white',
                   boxShadow: 3,
                   transition: 'transform 0.2s, box-shadow 0.2s',
                   '&:hover': {
@@ -328,10 +365,10 @@ export default function DashboardPage() {
                   },
                 }}>
                   <CardContent sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                    <Typography variant="subtitle2" gutterBottom>
+                    <Typography variant="subtitle2" gutterBottom sx={{ color: 'white' }}>
                       Balance
                     </Typography>
-                    <Typography variant="h5">
+                    <Typography variant="h5" sx={{ color: 'white' }}>
                       {formatAmount(statistics.summary.netBalance.amountMinor, statistics.period.currency)}
                     </Typography>
                   </CardContent>
@@ -367,28 +404,14 @@ export default function DashboardPage() {
               }}
             >
               {actionButtons.map((button, index) => {
-                // Define gradients based on button color (very subtle gradients)
-                const getGradient = (color: string) => {
-                  switch (color) {
-                    case 'primary':
-                      return 'linear-gradient(135deg, #1976d2 0%, #1e88e5 50%, #2196f3 100%)'
-                    case 'secondary':
-                      return 'linear-gradient(135deg, #9c27b0 0%, #8e24aa 50%, #9c27b0 100%)'
-                    case 'info':
-                      return 'linear-gradient(135deg, #0288d1 0%, #039be5 50%, #03a9f4 100%)'
-                    case 'warning':
-                      return 'linear-gradient(135deg, #f57c00 0%, #f57c00 50%, #fb8c00 100%)'
-                    default:
-                      return 'linear-gradient(135deg, #1976d2 0%, #1e88e5 50%, #2196f3 100%)'
-                  }
-                }
+                // Use random dark gradient for each button
+                const randomGradient = buttonColors[index] || buttonColors[0]
 
                 return (
                   <Button
                     key={button.title}
                     fullWidth
                     variant="contained"
-                    color={button.color}
                     startIcon={button.icon}
                     onClick={button.onClick}
                     className="interactive-card"
@@ -399,17 +422,18 @@ export default function DashboardPage() {
                       flexDirection: 'column',
                       gap: 1,
                       transitionDelay: `${index * 30}ms`,
-                      background: getGradient(button.color),
+                      background: randomGradient,
+                      color: 'white',
                       boxShadow: 3,
                       transition: 'transform 0.2s, box-shadow 0.2s',
                       '&:hover': {
                         transform: 'translateY(-4px)',
                         boxShadow: 6,
-                        background: getGradient(button.color),
+                        background: randomGradient,
                       },
                     }}
                   >
-                    <Typography variant="body1" fontWeight="bold">
+                    <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>
                       {button.title}
                     </Typography>
                   </Button>

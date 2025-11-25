@@ -706,7 +706,7 @@ export default function SetupPage() {
           }}
         >
           <LoadingButton
-            variant="outlined"
+            variant="contained"
             onClick={handleScanCatalog}
             loading={isScanningCatalog}
             disabled={isApplyingCatalog}

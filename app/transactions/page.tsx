@@ -91,8 +91,14 @@ export default function TransactionsPage() {
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all')
   const [tagFilter, setTagFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
-  const [dateFrom, setDateFrom] = useState<string>('')
-  const [dateTo, setDateTo] = useState<string>('')
+  const [dateFrom, setDateFrom] = useState<string>(() => {
+    const now = new Date()
+    return startOfMonth(now).toISOString().slice(0, 10)
+  })
+  const [dateTo, setDateTo] = useState<string>(() => {
+    const now = new Date()
+    return endOfMonth(now).toISOString().slice(0, 10)
+  })
 
   // Data state
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -342,17 +348,9 @@ export default function TransactionsPage() {
 
   const bannerActions = (
     <Button
-      variant="outlined"
-      color="inherit"
+      variant="contained"
+      color="primary"
       onClick={() => router.push('/')}
-      sx={{
-        borderColor: 'rgba(255,255,255,0.8)',
-        color: 'inherit',
-        '&:hover': {
-          borderColor: 'primary.contrastText',
-          backgroundColor: 'rgba(255,255,255,0.15)',
-        },
-      }}
     >
       Back to Dashboard
     </Button>
@@ -445,32 +443,34 @@ export default function TransactionsPage() {
               />
 
               {/* Date Range (Optional) */}
-              <Box sx={{ display: 'flex', gap: 1, minWidth: { xs: '100%', md: 300 } }}>
-                <TextField
-                  label="From"
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ flex: 1 }}
-                />
-                <TextField
-                  label="To"
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ flex: 1 }}
-                />
+              <Box sx={{ minWidth: { xs: '100%', md: 300 } }}>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    label="From"
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ flex: 1 }}
+                  />
+                  <TextField
+                    label="To"
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ flex: 1 }}
+                  />
+                </Box>
                 {(dateFrom || dateTo) && (
                   <Button
-                    variant="outlined"
+                    variant="contained"
                     size="small"
                     onClick={() => {
                       setDateFrom('')
                       setDateTo('')
                     }}
-                    sx={{ alignSelf: 'flex-end' }}
+                    sx={{ mt: 1 }}
                   >
                     Clear
                   </Button>
@@ -523,7 +523,7 @@ export default function TransactionsPage() {
                   Create Transaction
                 </Button>
               ) : (
-                <Button variant="outlined" onClick={() => {
+                <Button variant="contained" onClick={() => {
                   setTypeFilter('all')
                   setTagFilter('all')
                   setSearchQuery('')
@@ -601,8 +601,8 @@ export default function TransactionsPage() {
                                         label={tagName}
                                         size="small"
                                         sx={{
-                                          border: `4px solid ${transaction.type === 'expense' ? '#f44336' : '#4caf50'}`,
-                                          borderColor: transaction.type === 'expense' ? '#f44336' : '#4caf50',
+                                          border: `4px solid ${transaction.type === 'expense' ? '#c62828' : '#2e7d32'}`,
+                                          borderColor: transaction.type === 'expense' ? '#c62828' : '#2e7d32',
                                         }}
                                       />
                                     )

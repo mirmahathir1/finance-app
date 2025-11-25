@@ -62,14 +62,18 @@ export function IncomeExpenseBar({
       </Typography>
       <Box sx={{ flexGrow: 1, minWidth: 0, width: '100%', minHeight: chartHeight }}>
         <ResponsiveContainer width="100%" height={chartHeight}>
-          <BarChart data={data}>
+          <BarChart data={data} margin={{ left: 20, right: 20, top: 5, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
-            <YAxis tickFormatter={formatCurrency} />
+            <YAxis 
+              tickFormatter={formatCurrency}
+              width={80}
+              tick={{ fontSize: 12 }}
+            />
             <ReTooltip formatter={(value: any) => formatCurrency(value as number)} />
             <Legend />
-            <Bar dataKey="Income" fill="#43a047" isAnimationActive animationDuration={400} />
-            <Bar dataKey="Expense" fill="#e53935" isAnimationActive animationDuration={400} />
+            <Bar dataKey="Income" fill="#2e7d32" isAnimationActive animationDuration={400} />
+            <Bar dataKey="Expense" fill="#c62828" isAnimationActive animationDuration={400} />
           </BarChart>
         </ResponsiveContainer>
       </Box>

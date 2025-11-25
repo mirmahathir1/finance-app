@@ -22,6 +22,8 @@ import {
   verifyResetPasswordToken as apiVerifyResetPasswordToken,
   resetPassword as apiResetPassword,
   getSetupCatalog as apiGetSetupCatalog,
+  bulkUpdateTransactionsProfile as apiBulkUpdateTransactionsProfile,
+  bulkUpdateTransactionsTag as apiBulkUpdateTransactionsTag,
 } from './api'
 import type { TransactionType } from '@/types'
 import type {
@@ -136,6 +138,23 @@ export function useApi() {
 
       resetPassword: async (token: string, password: string) => {
         return callWithLoading(() => apiResetPassword(token, password))
+      },
+
+      // Profile API calls
+      bulkUpdateTransactionsProfile: async (oldName: string, newName: string) => {
+        return callWithLoading(() => apiBulkUpdateTransactionsProfile(oldName, newName))
+      },
+
+      // Tag API calls
+      bulkUpdateTransactionsTag: async (
+        profile: string,
+        oldTagName: string,
+        options?: {
+          newTagName?: string
+          newTransactionType?: TransactionType
+        }
+      ) => {
+        return callWithLoading(() => apiBulkUpdateTransactionsTag(profile, oldTagName, options))
       },
 
     }

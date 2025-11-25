@@ -131,17 +131,9 @@ export default function CurrenciesPage() {
 
   const bannerActions = (
     <Button
-      variant="outlined"
-      color="inherit"
+      variant="contained"
+      color="primary"
       onClick={() => router.push('/')}
-      sx={{
-        borderColor: 'rgba(255,255,255,0.8)',
-        color: 'inherit',
-        '&:hover': {
-          borderColor: 'primary.contrastText',
-          backgroundColor: 'rgba(255,255,255,0.15)',
-        },
-      }}
     >
       Back to Dashboard
     </Button>
@@ -159,7 +151,7 @@ export default function CurrenciesPage() {
           }}
         >
           <LoadingButton
-            variant="outlined"
+            variant="contained"
             onClick={handleImport}
             loading={isImporting}
             disabled={isLoading}
@@ -270,7 +262,7 @@ export default function CurrenciesPage() {
                         {!currency.isDefault && (
                           <Button
                             size="small"
-                            variant="outlined"
+                            variant="contained"
                             sx={{ whiteSpace: 'nowrap' }}
                             onClick={async () => {
                               try {
