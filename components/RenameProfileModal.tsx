@@ -124,9 +124,9 @@ export function RenameProfileModal({
         keepMounted
         PaperProps={{ sx: standardDialogPaperSx }}
       >
-        <DialogTitle>Rename Profile</DialogTitle>
+        <DialogTitle sx={{ textAlign: 'center' }}>Rename Profile</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1, textAlign: 'center' }}>
             Current name: <strong>{profileName}</strong>
           </Typography>
           <TextField
@@ -146,16 +146,16 @@ export function RenameProfileModal({
               }
             }}
           />
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, justifyContent: 'center', width: '100%' }}>
             {isLoadingPreview ? (
               <>
                 <CircularProgress size={16} />
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
                   Loading affected transactions...
                 </Typography>
               </>
             ) : (
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
                 {(affectedCount ?? 0) > 0
                   ? `${affectedCount} transaction(s) will be updated`
                   : 'No transactions will be affected'}
@@ -163,7 +163,7 @@ export function RenameProfileModal({
             )}
           </Box>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ justifyContent: 'center' }}>
           <Button onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>

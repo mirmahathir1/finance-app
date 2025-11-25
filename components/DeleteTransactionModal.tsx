@@ -39,19 +39,19 @@ export function DeleteTransactionModal({
       onClose={onCancel}
       PaperProps={{ sx: standardDialogPaperSx }}
     >
-      <DialogTitle>Delete Transaction</DialogTitle>
+      <DialogTitle sx={{ textAlign: 'center' }}>Delete Transaction</DialogTitle>
       <DialogContent>
-        <Typography variant="body1" paragraph>
+        <Typography variant="body1" paragraph sx={{ textAlign: 'center' }}>
           Are you sure you want to delete this transaction? This action cannot be undone.
         </Typography>
 
         <Divider sx={{ my: 2 }} />
 
-        <Box>
-          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ textAlign: 'center' }}>
             Transaction Details
           </Typography>
-          <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+          <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1, width: '100%' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="body2" color="text.secondary">
                 Date:
@@ -98,19 +98,19 @@ export function DeleteTransactionModal({
 
             {transaction.note && (
               <Box sx={{ mb: 1 }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
+                <Typography variant="body2" color="text.secondary" gutterBottom sx={{ textAlign: 'center' }}>
                   Description:
                 </Typography>
-                <Typography variant="body2">{transaction.note}</Typography>
+                <Typography variant="body2" sx={{ textAlign: 'center' }}>{transaction.note}</Typography>
               </Box>
             )}
 
             {transaction.tags.length > 0 && (
               <Box>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
+                <Typography variant="body2" color="text.secondary" gutterBottom sx={{ textAlign: 'center' }}>
                   Tags:
                 </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5, justifyContent: 'center' }}>
                   {transaction.tags.map((tag) => (
                     <Chip
                       key={tag}
@@ -134,7 +134,7 @@ export function DeleteTransactionModal({
           </Box>
         </Box>
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ justifyContent: 'center' }}>
         <Button onClick={onCancel} disabled={isDeleting}>
           Cancel
         </Button>

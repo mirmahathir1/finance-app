@@ -46,13 +46,13 @@ export function ConfirmDialog({
       keepMounted
       PaperProps={{ sx: standardDialogPaperSx }}
     >
-      <DialogTitle id="confirm-dialog-title">{title}</DialogTitle>
+      <DialogTitle id="confirm-dialog-title" sx={{ textAlign: 'center' }}>{title}</DialogTitle>
       <DialogContent>
-        <DialogContentText id="confirm-dialog-description">
+        <DialogContentText id="confirm-dialog-description" sx={{ textAlign: 'center' }}>
           {message}
         </DialogContentText>
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ justifyContent: 'center' }}>
         <Button onClick={onCancel} color="inherit" disabled={loading}>
           {cancelText}
         </Button>

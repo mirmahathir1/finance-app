@@ -1,27 +1,8 @@
 'use client'
 
-import { createTheme } from '@mui/material/styles'
+import { createTheme, ThemeOptions } from '@mui/material/styles'
 
-// Create a theme instance
-export const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2', // Material Blue
-    },
-    secondary: {
-      main: '#dc004e', // Pink
-    },
-    success: {
-      main: '#4caf50', // Green
-    },
-    error: {
-      main: '#f44336', // Red
-    },
-    background: {
-      default: '#fafafa', // Light Gray
-      paper: '#ffffff',
-    },
-  },
+const commonThemeOptions: ThemeOptions = {
   breakpoints: {
     values: {
       xs: 0,
@@ -44,7 +25,7 @@ export const theme = createTheme({
   },
   spacing: 8, // 8px base unit
   shape: {
-    borderRadius: 4,
+    borderRadius: 30, // Border radius for all components
   },
   transitions: {
     duration: {
@@ -68,9 +49,89 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           textTransform: 'none', // Disable uppercase transformation
+          borderRadius: 30, // Border radius for buttons
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 30, // Border radius for icon buttons
+        },
+      },
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 30, // Border radius for toggle buttons
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 30, // Border radius for cards
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: 30, // Border radius for paper components
         },
       },
     },
   },
+}
+
+// Light theme
+export const lightTheme = createTheme({
+  ...commonThemeOptions,
+  palette: {
+    mode: 'light',
+    primary: {
+      main: '#1976d2', // Material Blue
+    },
+    secondary: {
+      main: '#dc004e', // Pink
+    },
+    success: {
+      main: '#4caf50', // Green
+    },
+    error: {
+      main: '#f44336', // Red
+    },
+    background: {
+      default: '#fafafa', // Light Gray
+      paper: '#ffffff',
+    },
+  },
 })
+
+// Dark theme
+export const darkTheme = createTheme({
+  ...commonThemeOptions,
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#90caf9', // Light Blue for dark mode
+    },
+    secondary: {
+      main: '#f48fb1', // Light Pink for dark mode
+    },
+    success: {
+      main: '#81c784', // Light Green for dark mode
+    },
+    error: {
+      main: '#e57373', // Light Red for dark mode
+    },
+    background: {
+      default: '#121212', // Dark background
+      paper: '#1e1e1e', // Dark paper
+    },
+  },
+})
+
+// Default export for backward compatibility
+export const theme = lightTheme
 

@@ -167,9 +167,9 @@ export function EditTagModal({
         onClose={() => !isSaving && onClose()}
         PaperProps={{ sx: standardDialogPaperSx }}
       >
-        <DialogTitle>Edit Tag</DialogTitle>
+        <DialogTitle sx={{ textAlign: 'center' }}>Edit Tag</DialogTitle>
         <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
+          <Stack spacing={2} sx={{ mt: 1, alignItems: 'center' }}>
             <TextField
               label="Tag Name"
               value={name}
@@ -184,6 +184,7 @@ export function EditTagModal({
                   handleSave()
                 }
               }}
+              sx={{ textAlign: 'center' }}
             />
             <FormControl fullWidth>
               <InputLabel>Type</InputLabel>
@@ -198,16 +199,16 @@ export function EditTagModal({
               </Select>
             </FormControl>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center', width: '100%' }}>
               {isLoadingPreview ? (
                 <>
                   <CircularProgress size={16} />
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
                     Checking affected transactions...
                   </Typography>
                 </>
               ) : (
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
                   {hasNameChanged && hasTypeChanged
                     ? (affectedCount ?? 0) > 0
                       ? `${affectedCount} transaction(s) will be updated if you rename and change the type of this tag`
@@ -228,7 +229,7 @@ export function EditTagModal({
             </Box>
           </Stack>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ justifyContent: 'center' }}>
           <Button onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>

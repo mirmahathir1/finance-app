@@ -396,7 +396,7 @@ export default function TransactionsPage() {
 
         {/* Filter Controls */}
         <AnimatedSection>
-          <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
+          <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: '30px' }}>
             <Typography variant="h6" gutterBottom>
               Filters
             </Typography>
@@ -489,17 +489,17 @@ export default function TransactionsPage() {
           />
         ) : isLoading ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <Paper elevation={2} sx={{ p: 3 }}>
+            <Paper elevation={2} sx={{ p: 3, borderRadius: '30px' }}>
               <Skeleton variant="text" width="30%" height={32} />
-              <Skeleton variant="rectangular" height={56} sx={{ mt: 2, borderRadius: 1 }} />
+              <Skeleton variant="rectangular" height={56} sx={{ mt: 2, borderRadius: '30px' }} />
             </Paper>
-            <Paper elevation={2} sx={{ p: 3 }}>
+            <Paper elevation={2} sx={{ p: 3, borderRadius: '30px' }}>
               {Array.from({ length: 3 }).map((_, index) => (
                 <Skeleton
                   key={index}
                   variant="rectangular"
                   height={72}
-                  sx={{ borderRadius: 1, mb: index !== 2 ? 2 : 0 }}
+                  sx={{ borderRadius: '30px', mb: index !== 2 ? 2 : 0 }}
                 />
               ))}
             </Paper>
@@ -537,7 +537,7 @@ export default function TransactionsPage() {
           />
         ) : (
           <AnimatedSection delay={80}>
-            <Box>
+            <Box sx={{ borderRadius: 0 }}>
             {groupedTransactions.map((group) => {
               const monthKey = `${group.year}-${group.month}`
               const isExpanded = expandedMonths.has(monthKey)
@@ -547,7 +547,20 @@ export default function TransactionsPage() {
                   key={monthKey}
                   expanded={isExpanded}
                   onChange={() => handleMonthToggle(monthKey)}
-                  sx={{ mb: 2 }}
+                  sx={{ 
+                    mb: 2, 
+                    borderRadius: '30px !important',
+                    '&:before': { display: 'none' },
+                    '&.Mui-expanded': {
+                      borderRadius: '30px !important',
+                    },
+                    '& .MuiAccordionSummary-root': {
+                      borderRadius: isExpanded ? '30px 30px 0 0 !important' : '30px !important',
+                    },
+                    '& .MuiAccordionDetails-root': {
+                      borderRadius: '0 0 30px 30px !important',
+                    },
+                  }}
                 >
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Typography variant="h6">{group.monthLabel}</Typography>

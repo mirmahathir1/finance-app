@@ -272,12 +272,22 @@ export default function DashboardPage() {
         {activeProfile && statistics && !statsError && !isLoadingStats && (
           <AnimatedSection delay={75}>
             <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{ textAlign: 'center' }}>
                 Quick Summary - {format(new Date(), 'MMMM yyyy')}
               </Typography>
-              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 3 }}>
-                <Card sx={{ flex: 1, backgroundColor: 'success.light', color: 'success.contrastText' }}>
-                  <CardContent>
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 3, justifyContent: 'center' }}>
+                <Card sx={{ 
+                  flex: 1, 
+                  background: 'linear-gradient(135deg, #4caf50 0%, #66bb6a 50%, #81c784 100%)',
+                  color: 'success.contrastText',
+                  boxShadow: 3,
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: 6,
+                  },
+                }}>
+                  <CardContent sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                     <Typography variant="subtitle2" gutterBottom>
                       Income
                     </Typography>
@@ -286,8 +296,18 @@ export default function DashboardPage() {
                     </Typography>
                   </CardContent>
                 </Card>
-                <Card sx={{ flex: 1, backgroundColor: 'error.light', color: 'error.contrastText' }}>
-                  <CardContent>
+                <Card sx={{ 
+                  flex: 1, 
+                  background: 'linear-gradient(135deg, #f44336 0%, #ef5350 50%, #e57373 100%)',
+                  color: 'error.contrastText',
+                  boxShadow: 3,
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: 6,
+                  },
+                }}>
+                  <CardContent sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                     <Typography variant="subtitle2" gutterBottom>
                       Expense
                     </Typography>
@@ -296,8 +316,18 @@ export default function DashboardPage() {
                     </Typography>
                   </CardContent>
                 </Card>
-                <Card sx={{ flex: 1, backgroundColor: 'info.light', color: 'info.contrastText' }}>
-                  <CardContent>
+                <Card sx={{ 
+                  flex: 1, 
+                  background: 'linear-gradient(135deg, #2196f3 0%, #42a5f5 50%, #64b5f6 100%)',
+                  color: 'info.contrastText',
+                  boxShadow: 3,
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: 6,
+                  },
+                }}>
+                  <CardContent sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                     <Typography variant="subtitle2" gutterBottom>
                       Balance
                     </Typography>
@@ -336,29 +366,55 @@ export default function DashboardPage() {
                 gap: 2,
               }}
             >
-              {actionButtons.map((button, index) => (
-                <Button
-                  key={button.title}
-                  fullWidth
-                  variant="contained"
-                  color={button.color}
-                  startIcon={button.icon}
-                  onClick={button.onClick}
-                  className="interactive-card"
-                  sx={{
-                    py: 2,
-                    height: '100%',
-                    minHeight: 80,
-                    flexDirection: 'column',
-                    gap: 1,
-                    transitionDelay: `${index * 30}ms`,
-                  }}
-                >
-                  <Typography variant="body1" fontWeight="bold">
-                    {button.title}
-                  </Typography>
-                </Button>
-              ))}
+              {actionButtons.map((button, index) => {
+                // Define gradients based on button color (very subtle gradients)
+                const getGradient = (color: string) => {
+                  switch (color) {
+                    case 'primary':
+                      return 'linear-gradient(135deg, #1976d2 0%, #1e88e5 50%, #2196f3 100%)'
+                    case 'secondary':
+                      return 'linear-gradient(135deg, #9c27b0 0%, #8e24aa 50%, #9c27b0 100%)'
+                    case 'info':
+                      return 'linear-gradient(135deg, #0288d1 0%, #039be5 50%, #03a9f4 100%)'
+                    case 'warning':
+                      return 'linear-gradient(135deg, #f57c00 0%, #f57c00 50%, #fb8c00 100%)'
+                    default:
+                      return 'linear-gradient(135deg, #1976d2 0%, #1e88e5 50%, #2196f3 100%)'
+                  }
+                }
+
+                return (
+                  <Button
+                    key={button.title}
+                    fullWidth
+                    variant="contained"
+                    color={button.color}
+                    startIcon={button.icon}
+                    onClick={button.onClick}
+                    className="interactive-card"
+                    sx={{
+                      py: 2,
+                      height: '100%',
+                      minHeight: 80,
+                      flexDirection: 'column',
+                      gap: 1,
+                      transitionDelay: `${index * 30}ms`,
+                      background: getGradient(button.color),
+                      boxShadow: 3,
+                      transition: 'transform 0.2s, box-shadow 0.2s',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: 6,
+                        background: getGradient(button.color),
+                      },
+                    }}
+                  >
+                    <Typography variant="body1" fontWeight="bold">
+                      {button.title}
+                    </Typography>
+                  </Button>
+                )
+              })}
             </Box>
           </Paper>
         </AnimatedSection>

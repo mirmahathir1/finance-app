@@ -24,6 +24,8 @@ import {
   ArrowBack as ArrowBackIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
+  DarkMode as DarkModeIcon,
+  LightMode as LightModeIcon,
 } from '@mui/icons-material'
 import { PageLayout } from '@/components/PageLayout'
 import { AnimatedSection } from '@/components/AnimatedSection'
@@ -33,12 +35,14 @@ import { Snackbar } from '@/components/Snackbar'
 import { useAuth } from '@/contexts/AuthContext'
 import { useApi } from '@/utils/useApi'
 import { getFriendlyErrorMessage } from '@/utils/error'
+import { useThemeMode } from '@/components/ThemeProvider'
 
 type PasswordStrength = 'weak' | 'medium' | 'strong'
 
 export default function SettingsPage() {
   const router = useRouter()
   const { user, isGuestMode, isLoading: authLoading, signOut } = useAuth()
+  const { mode, toggleColorMode } = useThemeMode()
   const api = useApi()
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -408,6 +412,49 @@ export default function SettingsPage() {
       </AnimatedSection>
 
       <AnimatedSection delay={120}>
+        <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+          <Typography variant="h6" gutterBottom>
+            Appearance
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Customize the appearance of the app.
+          </Typography>
+          <Divider sx={{ my: 3 }} />
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {mode === 'dark' ? (
+                <DarkModeIcon color="primary" />
+              ) : (
+                <LightModeIcon color="primary" />
+              )}
+              <Box>
+                <Typography variant="body1">Dark Mode</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {mode === 'dark'
+                    ? 'Switch to light mode'
+                    : 'Switch to dark mode'}
+                </Typography>
+              </Box>
+            </Box>
+            <Button
+              variant={mode === 'dark' ? 'contained' : 'outlined'}
+              onClick={toggleColorMode}
+              startIcon={mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+              sx={{ minWidth: 150 }}
+            >
+              {mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </Button>
+          </Box>
+        </Paper>
+      </AnimatedSection>
+
+      <AnimatedSection delay={165}>
         <Paper elevation={2} sx={{ p: 3 }}>
           <Typography variant="h6" gutterBottom>
             Account

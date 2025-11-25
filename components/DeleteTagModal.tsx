@@ -100,29 +100,29 @@ export function DeleteTagModal({
       onClose={() => !isDeleting && onClose()}
       PaperProps={{ sx: standardDialogPaperSx }}
     >
-      <DialogTitle>Delete Tag</DialogTitle>
+      <DialogTitle sx={{ textAlign: 'center' }}>Delete Tag</DialogTitle>
       <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center' }}>
           Tag: <strong>{tag?.name}</strong>
         </Typography>
         {isLoadingPreview ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
             <CircularProgress size={16} />
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
               Checking usage...
             </Typography>
           </Box>
         ) : deletionBlocked ? (
-          <Alert severity="error" sx={{ mt: 1 }}>
+          <Alert severity="error" sx={{ mt: 1, textAlign: 'center' }}>
             Cannot delete this tag. It is used in {affectedCount} transaction(s).
           </Alert>
         ) : (
-          <Alert severity="warning" sx={{ mt: 1 }}>
+          <Alert severity="warning" sx={{ mt: 1, textAlign: 'center' }}>
             This action cannot be undone. The tag will be permanently deleted.
           </Alert>
         )}
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ justifyContent: 'center' }}>
         <Button onClick={onClose} disabled={isDeleting}>
           Cancel
         </Button>

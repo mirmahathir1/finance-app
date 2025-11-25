@@ -96,9 +96,9 @@ export function DeleteProfileModal({
       keepMounted
       PaperProps={{ sx: standardDialogPaperSx }}
     >
-      <DialogTitle>Delete Profile</DialogTitle>
+      <DialogTitle sx={{ textAlign: 'center' }}>Delete Profile</DialogTitle>
       <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center' }}>
           Profile: <strong>{profileName}</strong>
         </Typography>
         <Box
@@ -107,29 +107,30 @@ export function DeleteProfileModal({
             width: '100%',
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
           {isLoadingPreview ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
               <CircularProgress size={16} />
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
                 Checking usage...
               </Typography>
             </Box>
           ) : deletionBlocked ? (
-            <Alert severity="error" sx={{ width: '100%' }}>
+            <Alert severity="error" sx={{ width: '100%', textAlign: 'center' }}>
               Cannot delete this profile. It is used in {affectedCount} transaction(s).
             </Alert>
           ) : (
             <Fade in timeout={300} appear mountOnEnter unmountOnExit>
-              <Alert severity="warning" sx={{ width: '100%' }}>
+              <Alert severity="warning" sx={{ width: '100%', textAlign: 'center' }}>
                 This action cannot be undone. The profile will be permanently deleted.
               </Alert>
             </Fade>
           )}
         </Box>
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ justifyContent: 'center' }}>
         <Button onClick={onClose} disabled={isDeleting}>
           Cancel
         </Button>

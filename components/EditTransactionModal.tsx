@@ -215,12 +215,12 @@ export function EditTransactionModal({
       onClose={handleClose}
       PaperProps={{ sx: standardDialogPaperSx }}
     >
-      <DialogTitle>Edit Transaction</DialogTitle>
+      <DialogTitle sx={{ textAlign: 'center' }}>Edit Transaction</DialogTitle>
       <DialogContent>
-        <Box sx={{ pt: 2 }}>
+        <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           {/* Transaction Type Toggle */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
+          <Box sx={{ mb: 3, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom sx={{ textAlign: 'center' }}>
               Type
             </Typography>
             <ToggleButtonGroup
@@ -242,7 +242,7 @@ export function EditTransactionModal({
           </Box>
 
           {/* Date Picker */}
-          <Box sx={{ mb: 3 }}>
+          <Box sx={{ mb: 3, width: '100%' }}>
             <DatePicker
               label="Date"
               value={date}
@@ -254,7 +254,7 @@ export function EditTransactionModal({
           </Box>
 
           {/* Amount and Currency */}
-          <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+          <Box sx={{ display: 'flex', gap: 2, mb: 3, width: '100%', justifyContent: 'center' }}>
             <Box sx={{ flex: 1 }}>
               <AmountInput
                 label="Amount"
@@ -278,7 +278,7 @@ export function EditTransactionModal({
           </Box>
 
           {/* Description */}
-          <Box sx={{ mb: 3 }}>
+          <Box sx={{ mb: 3, width: '100%' }}>
             <TextField
               label="Description"
               value={description}
@@ -296,17 +296,17 @@ export function EditTransactionModal({
           </Box>
 
           {/* Tags */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
+          <Box sx={{ mb: 3, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom sx={{ textAlign: 'center' }}>
               Tags <Typography component="span" variant="caption" color="error">*</Typography>
             </Typography>
             {availableTags.length === 0 ? (
-              <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+              <Typography variant="body2" color="error" sx={{ mt: 1, textAlign: 'center' }}>
                 No {type} tags available yet. Please create at least one tag from the Tags page before editing this transaction.
               </Typography>
             ) : (
               <>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1, justifyContent: 'center' }}>
                   {availableTags.map((tag) => (
                     <Chip
                       key={tag.id}
@@ -319,7 +319,7 @@ export function EditTransactionModal({
                   ))}
                 </Box>
                 {errors.tags && (
-                  <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
+                  <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block', textAlign: 'center' }}>
                     {errors.tags}
                   </Typography>
                 )}
@@ -328,7 +328,7 @@ export function EditTransactionModal({
           </Box>
         </Box>
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ justifyContent: 'center' }}>
         <Button onClick={handleClose} disabled={isSubmitting}>
           Cancel
         </Button>

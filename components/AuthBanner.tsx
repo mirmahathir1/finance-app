@@ -37,15 +37,15 @@ export function AuthBanner({
         py: 2,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
         flexWrap: 'wrap',
         gap: 2,
         backgroundImage: 'linear-gradient(135deg, #1e88e5, #3949ab)',
         color: 'primary.contrastText',
-        borderRadius: 3,
+        borderRadius: '30px',
       }}
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, justifyContent: 'flex-start', alignItems: 'flex-start' }}>
         <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
           {title}
         </Typography>
@@ -61,7 +61,9 @@ export function AuthBanner({
           alignItems: 'center',
           gap: 2,
           flexWrap: 'wrap',
-          justifyContent: 'flex-end',
+          justifyContent: 'flex-start',
+          alignSelf: 'center',
+          ml: 'auto',
         }}
       >
         {isGuestMode && (
