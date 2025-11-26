@@ -31,15 +31,6 @@ export function InstallPrompt() {
       return
     }
 
-    // Check if dismissed recently (within last 7 days)
-    const dismissedTime = localStorage.getItem('installPromptDismissed')
-    if (dismissedTime) {
-      const daysSinceDismissed = (Date.now() - parseInt(dismissedTime)) / (1000 * 60 * 60 * 24)
-      if (daysSinceDismissed < 7) {
-        return
-      }
-    }
-
     // Listen for beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault()
@@ -68,8 +59,7 @@ export function InstallPrompt() {
 
   const handleDismiss = () => {
     setShowPrompt(false)
-    // Store dismissal in localStorage to avoid showing again for a while
-    localStorage.setItem('installPromptDismissed', Date.now().toString())
+    // Prompt will show again on next page load if still installable
   }
 
   // Don't show if already installed or if prompt shouldn't be shown
@@ -83,42 +73,62 @@ export function InstallPrompt() {
         elevation={6}
         sx={{
           position: 'fixed',
-          top: 16,
+          top: { xs: 8, sm: 16 },
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 1300,
-          p: 2,
-          maxWidth: 400,
-          width: '90%',
+          p: { xs: 1.5, sm: 2 },
+          maxWidth: { xs: 'calc(100% - 16px)', sm: 400 },
+          width: { xs: 'calc(100% - 16px)', sm: '90%' },
           display: 'flex',
-          alignItems: 'center',
-          gap: 2,
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'stretch', sm: 'center' },
+          gap: { xs: 1.5, sm: 2 },
         }}
       >
-        <GetAppIcon color="primary" />
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="body1" fontWeight="bold">
-            Install Finance App
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Add to home screen for quick access
-          </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+          <GetAppIcon color="primary" sx={{ fontSize: { xs: 24, sm: 28 } }} />
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography 
+              variant="body1" 
+              fontWeight="bold"
+              sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+            >
+              Install Finance App
+            </Typography>
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+            >
+              Add to home screen for quick access
+            </Typography>
+          </Box>
+          <IconButton
+            size="small"
+            onClick={handleDismiss}
+            sx={{ 
+              ml: 'auto',
+              flexShrink: 0,
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </Box>
         <Button
           variant="contained"
           size="small"
           onClick={handleInstall}
           startIcon={<GetAppIcon />}
+          fullWidth={false}
+          sx={{
+            width: { xs: '100%', sm: 'auto' },
+            minWidth: { xs: 'auto', sm: 100 },
+            alignSelf: { xs: 'stretch', sm: 'auto' },
+          }}
         >
           Install
         </Button>
-        <IconButton
-          size="small"
-          onClick={handleDismiss}
-          sx={{ ml: 1 }}
-        >
-          <CloseIcon fontSize="small" />
-        </IconButton>
       </Paper>
     </Slide>
   )
