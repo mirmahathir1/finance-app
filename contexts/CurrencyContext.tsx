@@ -159,9 +159,11 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       }
       setError(null)
       const allCurrencies = await getAllCurrencies()
+      console.log('[CurrencyContext] Loaded currencies from IndexedDB:', allCurrencies)
       setCurrencies(allCurrencies)
       const defaultEntry =
         allCurrencies.find((currency) => currency.isDefault) || null
+      console.log('[CurrencyContext] Default currency:', defaultEntry)
       setDefaultCurrency(defaultEntry)
     } catch (error) {
       console.error('Error loading currencies:', error)

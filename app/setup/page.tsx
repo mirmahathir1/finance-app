@@ -39,7 +39,6 @@ import {
   overwriteCurrencies,
   overwriteTagsForProfile,
   setActiveProfile as setActiveProfileDB,
-  setDefaultCurrency as setDefaultCurrencyDB,
 } from '@/utils/indexedDB'
 import { getCurrencyFromGeolocation } from '@/utils/geolocation'
 
@@ -96,21 +95,24 @@ export default function SetupPage() {
     activeProfile,
     isLoading: profilesLoading,
     refreshProfiles,
+    importProfilesFromTransactions,
   } = useProfile()
   const {
     addCurrency,
     defaultCurrency,
     isLoading: currenciesLoading,
     refreshCurrencies,
+    importCurrenciesFromTransactions,
   } = useCurrency()
-  const { refreshTags } = useTag()
+  const { refreshTags, importTagsFromTransactions } = useTag()
   const theme = useTheme()
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'))
   
   // Check if user has transactions
   const [hasTransactions, setHasTransactions] = useState<boolean | null>(null)
   const [isCheckingTransactions, setIsCheckingTransactions] = useState(true)
-  
+  const [isPrepopulating, setIsPrepopulating] = useState(false)
+
   // Persist step in sessionStorage to survive remounts
   const [activeStep, setActiveStep] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -130,24 +132,27 @@ export default function SetupPage() {
     }
   }, [activeStep])
   
-  // Check for transactions on mount
+  // Check for transactions on mount (but don't auto-prepopulate)
+  // Prepopulation is now handled by the /initializing page after sign-in
   useEffect(() => {
     const checkTransactions = async () => {
       try {
         setIsCheckingTransactions(true)
-        // Only check transactions if there's an active profile
-        // The API requires a profile parameter, and if there's no profile,
-        // there can't be any transactions anyway
-        if (!activeProfile) {
-          setHasTransactions(false)
-          setIsCheckingTransactions(false)
-          return
-        }
-        
-        const response = await api.getTransactions({ profile: activeProfile, limit: 1 })
-        if (response.success && response.data) {
-          const transactionCount = response.data.pagination?.total || response.data.transactions?.length || 0
-          setHasTransactions(transactionCount > 0)
+
+        // Check if transactions exist by calling the catalog API
+        const catalogResponse = await api.getSetupCatalog()
+
+        if (catalogResponse.success && catalogResponse.data?.catalog) {
+          const catalog = catalogResponse.data.catalog
+          const transactionCount = catalog.transactionCount || 0
+
+          if (transactionCount > 0) {
+            setHasTransactions(true)
+            // Set the catalog summary for display (but don't prepopulate or redirect)
+            setCatalogSummary(catalog)
+          } else {
+            setHasTransactions(false)
+          }
         } else {
           setHasTransactions(false)
         }
@@ -158,12 +163,12 @@ export default function SetupPage() {
         setIsCheckingTransactions(false)
       }
     }
-    
+
     // Wait for profiles to load before checking transactions
     if (!profilesLoading) {
       checkTransactions()
     }
-  }, [api, activeProfile, profilesLoading])
+  }, [api, profilesLoading])  // Removed activeProfile and defaultCurrency from dependencies to prevent infinite loops
 
   useEffect(() => {
     if (!hasTransactions) {
@@ -181,7 +186,9 @@ export default function SetupPage() {
   }>({})
   const [isInitializing, setIsInitializing] = useState(false)
   const [isCreatingProfileLoading, setIsCreatingProfileLoading] = useState(false)
+  const [isImportingProfiles, setIsImportingProfiles] = useState(false)
   const [isSelectingCurrency, setIsSelectingCurrency] = useState(false)
+  const [isImportingCurrencies, setIsImportingCurrencies] = useState(false)
   const [initializationProgress, setInitializationProgress] = useState(0)
   const [snackbar, setSnackbar] = useState<{
     open: boolean
@@ -246,7 +253,8 @@ export default function SetupPage() {
     }
   }, [defaultCurrency, currenciesLoading, hasTransactions])
 
-  // Automatically skip the profile step when a profile already exists OR when transactions exist
+  // Automatically skip steps ONLY when transactions exist
+  // When there are no transactions, user must go through all steps manually
   useEffect(() => {
     if (autoAdvanceAppliedRef.current) {
       return
@@ -254,8 +262,11 @@ export default function SetupPage() {
     if (profilesLoading || currenciesLoading || isCheckingTransactions || hasTransactions === null) {
       return
     }
-    // Skip profile step if profile exists OR if transactions exist
-    if (!hasExistingProfile && !hasTransactions) {
+    // Only auto-advance if transactions exist
+    // If no transactions, let user go through steps manually
+    if (!hasTransactions) {
+      // Don't auto-advance - user should go through steps manually
+      autoAdvanceAppliedRef.current = true
       return
     }
     // If transactions exist, skip directly to initialization
@@ -269,26 +280,12 @@ export default function SetupPage() {
       }
       return
     }
-    // If profile exists but no transactions, proceed normally
-    const nextStep = shouldShowCurrencyStep ? 2 : 3
-    if (activeStep >= nextStep) {
-      autoAdvanceAppliedRef.current = true
-      return
-    }
-    setActiveStep(nextStep)
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('setup-active-step', nextStep.toString())
-    }
-    autoAdvanceAppliedRef.current = true
   }, [
-    hasExistingProfile,
     profilesLoading,
     currenciesLoading,
-    defaultCurrency,
     activeStep,
     hasTransactions,
     isCheckingTransactions,
-    shouldShowCurrencyStep,
   ])
   
   // Decide ONCE whether to include the currency step in the stepper (don't collapse it later)
@@ -386,6 +383,30 @@ export default function SetupPage() {
     advancePastProfileStep()
   }
 
+  const handleImportProfiles = async () => {
+    setIsImportingProfiles(true)
+    try {
+      const { added, skipped } = await importProfilesFromTransactions()
+      setSnackbar({
+        open: true,
+        message: `Import complete: added ${added}, skipped ${skipped}`,
+        severity: 'success',
+      })
+      if (added > 0) {
+        // Auto-advance if profiles were imported
+        advancePastProfileStep()
+      }
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error?.message || 'Failed to import profiles',
+        severity: 'error',
+      })
+    } finally {
+      setIsImportingProfiles(false)
+    }
+  }
+
   const handleCreateProfile = async () => {
     if (!profileName.trim()) {
       setErrors({ profileName: 'Profile name is required' })
@@ -403,24 +424,24 @@ export default function SetupPage() {
 
     // Set flag to prevent step reset during profile creation
     isCreatingProfileRef.current = true
-    
+
     try {
       setIsCreatingProfileLoading(true)
       const trimmedName = profileName.trim()
       await addProfile(trimmedName)
-      
+
       // Clear the profile name field
       setProfileName('')
       setErrors({})
-      
+
       // Advance to next step directly
       advancePastProfileStep({ trackIntended: true })
-      
+
       // Reset flag after a delay to ensure state is committed
       setTimeout(() => {
         isCreatingProfileRef.current = false
       }, 300)
-      
+
       setSnackbar({
         open: true,
         message: 'Profile created successfully',
@@ -445,6 +466,30 @@ export default function SetupPage() {
       }
     } finally {
       setIsCreatingProfileLoading(false)
+    }
+  }
+
+  const handleImportCurrencies = async () => {
+    setIsImportingCurrencies(true)
+    try {
+      const { added, skipped } = await importCurrenciesFromTransactions()
+      setSnackbar({
+        open: true,
+        message: `Import complete: added ${added}, skipped ${skipped}`,
+        severity: 'success',
+      })
+      if (added > 0) {
+        // Auto-advance if currencies were imported
+        handleNext()
+      }
+    } catch (error: any) {
+      setSnackbar({
+        open: true,
+        message: error?.message || 'Failed to import currencies',
+        severity: 'error',
+      })
+    } finally {
+      setIsImportingCurrencies(false)
     }
   }
 
@@ -484,10 +529,93 @@ export default function SetupPage() {
     setInitializationProgress(0)
 
     try {
-      const totalSteps = hasTransactions ? 0 : 2 // Profile + currency if no transactions exist
+      const totalSteps = hasTransactions ? 1 : 3 // Import catalog, and optionally create profile & currency if no transactions exist
       let currentStep = 0
-      
-      // Step 1: Create profile (only if no transactions exist)
+
+      // Step 1: Import all data (profiles, currencies, tags) from database using single API call
+      try {
+        const response = await api.getSetupCatalog()
+        if (response.success && response.data?.catalog) {
+          const catalog = response.data.catalog
+          const now = new Date().toISOString()
+
+          // Import profiles
+          if (catalog.profiles && catalog.profiles.length > 0) {
+            const profileRecords: ProfileRecord[] = catalog.profiles.map((profile) => ({
+              name: profile.name,
+              createdAt: now,
+              updatedAt: now,
+            }))
+            await overwriteProfiles(profileRecords)
+
+            // Set active profile if needed
+            const suggestedProfile = pickSuggestedProfile(catalog, activeProfile)
+            if (suggestedProfile) {
+              await setActiveProfileDB(suggestedProfile)
+            }
+            console.log(`Imported ${catalog.profiles.length} profiles from database`)
+          }
+
+          // Import currencies
+          if (catalog.currencies && catalog.currencies.length > 0) {
+            const suggestedCurrency = pickSuggestedCurrency(catalog, defaultCurrency?.code ?? null)
+            const currencyRecords: CurrencyRecord[] = catalog.currencies.map((currency) => ({
+              code: currency.code,
+              isDefault: currency.code === suggestedCurrency, // Set isDefault here directly
+              createdAt: now,
+              updatedAt: now,
+            }))
+
+            // Write all currencies to IndexedDB
+            await overwriteCurrencies(currencyRecords)
+            console.log(`Imported ${catalog.currencies.length} currencies from database`)
+          }
+
+          // Import tags
+          if (catalog.tags && catalog.tags.length > 0) {
+            const tagGroups = new Map<string, Tag[]>()
+            const profilesToUpdate = new Set<string>()
+
+            profiles.forEach((profile) => profilesToUpdate.add(profile.name))
+            catalog.profiles.forEach((profile) => profilesToUpdate.add(profile.name))
+
+            catalog.tags.forEach((tagInfo) => {
+              profilesToUpdate.add(tagInfo.profile)
+              const tagRecord: Tag = {
+                id: UUID(),
+                name: tagInfo.name,
+                profile: tagInfo.profile,
+                type: tagInfo.type,
+                createdAt: now,
+                updatedAt: now,
+              }
+              const list = tagGroups.get(tagInfo.profile) ?? []
+              list.push(tagRecord)
+              tagGroups.set(tagInfo.profile, list)
+            })
+
+            await Promise.all(
+              Array.from(profilesToUpdate.values()).map((profileName) =>
+                overwriteTagsForProfile(profileName, tagGroups.get(profileName) ?? [])
+              )
+            )
+            console.log(`Imported ${catalog.tags.length} tags from database`)
+          }
+
+          // Refresh contexts to load the new data
+          await refreshProfiles()
+          await refreshCurrencies()
+          await refreshTags()
+        }
+      } catch (error: any) {
+        // Continue even if import fails - user can still use manually created data
+        console.error('Error importing catalog:', error)
+      }
+      currentStep++
+      setInitializationProgress((currentStep / totalSteps) * 100)
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      // Step 2: Create profile (only if no transactions exist)
       if (!hasTransactions) {
         // Check if profile needs to be created
         if (profiles.length === 0 && profileName.trim()) {
@@ -506,7 +634,7 @@ export default function SetupPage() {
         await new Promise((resolve) => setTimeout(resolve, 500))
       }
 
-      // Step 2: Add currency (only if no transactions exist)
+      // Step 3: Add currency (only if no transactions exist)
       if (!hasTransactions) {
         // Check if currency needs to be added
         if (!defaultCurrency) {
@@ -615,24 +743,18 @@ export default function SetupPage() {
         await setActiveProfileDB(suggestedProfile)
       }
 
-      const currencyRecords: CurrencyRecord[] = catalogSummary.currencies.map(
-        (currency) => ({
-          code: currency.code,
-          isDefault: false,
-          createdAt: now,
-          updatedAt: now,
-        })
-      )
       const suggestedCurrency = pickSuggestedCurrency(
         catalogSummary,
         defaultCurrency?.code ?? null
       )
-      if (suggestedCurrency) {
-        currencyRecords.forEach((currency) => {
-          currency.isDefault = currency.code === suggestedCurrency
+      const currencyRecords: CurrencyRecord[] = catalogSummary.currencies.map(
+        (currency) => ({
+          code: currency.code,
+          isDefault: currency.code === suggestedCurrency, // Set isDefault here directly
+          createdAt: now,
+          updatedAt: now,
         })
-        await setDefaultCurrencyDB(suggestedCurrency)
-      }
+      )
       await overwriteCurrencies(currencyRecords)
 
       const tagGroups = new Map<string, Tag[]>()
@@ -838,6 +960,18 @@ export default function SetupPage() {
                 <Typography variant="body1">Family</Typography>
               </li>
             </Box>
+
+            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+              <LoadingButton
+                variant="outlined"
+                onClick={handleImportProfiles}
+                loading={isImportingProfiles}
+                disabled={profilesLoading || isCreatingProfileLoading}
+              >
+                Import from Database
+              </LoadingButton>
+            </Box>
+
             <TextField
               fullWidth
               label={hasExistingProfile ? 'Existing Profile' : 'Profile Name'}
@@ -883,6 +1017,18 @@ export default function SetupPage() {
                 ? `We detected ${detectedCurrency} based on your location. You can change it if needed:`
                 : 'Enter your primary currency code:'}
             </Typography>
+
+            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+              <LoadingButton
+                variant="outlined"
+                onClick={handleImportCurrencies}
+                loading={isImportingCurrencies}
+                disabled={currenciesLoading || isSelectingCurrency || isDetectingCurrency}
+              >
+                Import from Database
+              </LoadingButton>
+            </Box>
+
             {isDetectingCurrency ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
                 <CircularProgress />
@@ -924,9 +1070,14 @@ export default function SetupPage() {
                 </Typography>
                 <LinearProgress variant="determinate" value={initializationProgress} sx={{ mb: 2 }} />
                 <Box component="ul" sx={{ pl: 3 }}>
+                  <li>
+                    <Typography variant="body1" color={initializationProgress >= (hasTransactions ? 100 : 34) ? 'success.main' : 'text.secondary'}>
+                      Importing profiles, currencies, and tags from database
+                    </Typography>
+                  </li>
                   {!hasTransactions && (
                     <li>
-                      <Typography variant="body1" color={initializationProgress >= 50 ? 'success.main' : 'text.secondary'}>
+                      <Typography variant="body1" color={initializationProgress >= 67 ? 'success.main' : 'text.secondary'}>
                         Creating profile in database
                       </Typography>
                     </li>
@@ -946,6 +1097,9 @@ export default function SetupPage() {
                   Ready to initialize your account. This will:
                 </Typography>
                 <Box component="ul" sx={{ pl: 3 }}>
+                  <li>
+                    <Typography variant="body1">Import profiles, currencies, and tags from database</Typography>
+                  </li>
                   {!hasTransactions && (
                     <li>
                       <Typography variant="body1">Create your profile</Typography>
@@ -1018,9 +1172,17 @@ export default function SetupPage() {
           </Box>
 
           <Box sx={{ minHeight: 300, mb: 4 }}>
-            {isCheckingTransactions ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
-                <CircularProgress />
+            {(isCheckingTransactions || isPrepopulating || profilesLoading || currenciesLoading) ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: 300, gap: 2 }}>
+                <CircularProgress size={48} />
+                <Typography variant="h6" color="text.secondary">
+                  {isPrepopulating ? 'Setting up App...' : 'Configuring app...'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {isPrepopulating
+                    ? 'Importing profiles, currencies, and tags from your transactions'
+                    : 'Checking your setup and preparing the application'}
+                </Typography>
               </Box>
             ) : (
               renderStepContent(activeStep)
@@ -1029,13 +1191,13 @@ export default function SetupPage() {
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Button
-              disabled={activeStep === 0 || isInitializing || isCheckingTransactions}
+              disabled={activeStep === 0 || isInitializing || isCheckingTransactions || isPrepopulating || profilesLoading || currenciesLoading}
               onClick={handleBack}
             >
               Back
             </Button>
             <Box>
-              {isCheckingTransactions ? null : activeStep === 1 && shouldShowProfileStep ? (
+              {(isCheckingTransactions || isPrepopulating || profilesLoading || currenciesLoading) ? null : activeStep === 1 && shouldShowProfileStep ? (
                 hasExistingProfile ? (
                   <Button
                     variant="contained"
@@ -1073,7 +1235,7 @@ export default function SetupPage() {
                   Complete Setup
                 </LoadingButton>
               ) : (
-                <Button variant="contained" onClick={handleNext} disabled={isCheckingTransactions}>
+                <Button variant="contained" onClick={handleNext} disabled={isCheckingTransactions || isPrepopulating || profilesLoading || currenciesLoading}>
                   Continue
                 </Button>
               )}

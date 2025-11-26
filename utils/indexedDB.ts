@@ -351,16 +351,38 @@ export async function overwriteTagsForProfile(
     const transaction = db.transaction([STORE_TAGS], 'readwrite')
     const store = transaction.objectStore(STORE_TAGS)
     const index = store.index('profile')
-    let cleared = false
+    let putCount = 0
+    
+    // Filter and deduplicate tags by (profile, name) to avoid unique constraint violations
+    // Also ensure all tags belong to the specified profile
+    const uniqueTags = new Map<string, Tag>()
+    tags.forEach((tag) => {
+      // Ensure tag belongs to the specified profile
+      if (tag.profile !== profile) {
+        console.warn(`Tag "${tag.name}" has profile "${tag.profile}" but expected "${profile}". Skipping.`)
+        return
+      }
+      const key = `${tag.profile}:${tag.name}`
+      if (!uniqueTags.has(key)) {
+        uniqueTags.set(key, tag)
+      }
+    })
+    const deduplicatedTags = Array.from(uniqueTags.values())
+    const expectedPutCount = deduplicatedTags.length
 
-    transaction.oncomplete = () => resolve()
+    transaction.oncomplete = () => {
+      resolve()
+    }
     transaction.onerror = () => {
-      reject(transaction.error || new Error('Failed to overwrite tags'))
+      const error = transaction.error || new Error('Failed to overwrite tags')
+      reject(error)
     }
     transaction.onabort = () => {
-      reject(transaction.error || new Error('Failed to overwrite tags'))
+      const error = transaction.error || new Error('Failed to overwrite tags')
+      reject(error)
     }
 
+    // First, delete all existing tags for this profile
     const cursorRequest = index.openCursor(IDBKeyRange.only(profile))
     cursorRequest.onerror = () => {
       reject(cursorRequest.error || new Error('Failed to read tags'))
@@ -368,15 +390,32 @@ export async function overwriteTagsForProfile(
     cursorRequest.onsuccess = (event) => {
       const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result
       if (cursor) {
-        cursor.delete()
-        cursor.continue()
-      } else if (!cleared) {
-        cleared = true
-        if (!tags.length) {
-          return
+        const deleteRequest = cursor.delete()
+        deleteRequest.onerror = () => {
+          reject(deleteRequest.error || new Error('Failed to delete tag'))
         }
-        tags.forEach((tag) => {
-          store.put(tag)
+        cursor.continue()
+      } else {
+        // All deletions complete, now add new tags
+        if (deduplicatedTags.length === 0) {
+          return // No tags to add, transaction will complete
+        }
+        
+        deduplicatedTags.forEach((tag) => {
+          const putRequest = store.put(tag)
+          putRequest.onerror = () => {
+            const error = putRequest.error || new Error(`Failed to add tag: ${tag.name}`)
+            // Abort transaction on first error to maintain consistency
+            transaction.abort()
+            reject(error)
+          }
+          putRequest.onsuccess = () => {
+            putCount++
+            // All puts completed successfully when count matches expected
+            if (putCount === expectedPutCount) {
+              // Transaction will complete naturally
+            }
+          }
         })
       }
     }

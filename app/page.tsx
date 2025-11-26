@@ -84,14 +84,33 @@ export default function DashboardPage() {
   // Allow guest mode to render (API is intercepted)
 
   const loadStatistics = useCallback(async () => {
+    console.log('[Dashboard] loadStatistics called', {
+      activeProfile,
+      defaultCurrency: defaultCurrency?.code,
+      currenciesLoading,
+    })
+
     if (!activeProfile) {
+      console.log('[Dashboard] No active profile, skipping statistics')
       setStatistics(null)
       setStatsError(null)
+      setIsLoadingStats(false)
       return
     }
 
     const currencyCode = defaultCurrency?.code
     if (!currencyCode) {
+      console.log('[Dashboard] No currency code', { currenciesLoading })
+      // Show loading state while waiting for currency to load
+      if (!currenciesLoading) {
+        // Currency is loaded but not set, stop loading
+        console.log('[Dashboard] Currency loaded but not set')
+        setIsLoadingStats(false)
+      } else {
+        // Currency is still loading, show loading state
+        console.log('[Dashboard] Currency still loading, showing skeleton')
+        setIsLoadingStats(true)
+      }
       return
     }
     setIsLoadingStats(true)
@@ -102,6 +121,8 @@ export default function DashboardPage() {
       const from = format(startOfMonth(now), 'yyyy-MM-dd')
       const to = format(endOfMonth(now), 'yyyy-MM-dd')
 
+      console.log('[Dashboard] Fetching statistics', { profile: activeProfile, from, to, currency: currencyCode })
+
       const response = await api.getStatistics({
         profile: activeProfile,
         from,
@@ -109,22 +130,27 @@ export default function DashboardPage() {
         currency: currencyCode,
       })
 
+      console.log('[Dashboard] Statistics response', response)
+
       if (response.success && response.data) {
         setStatistics(response.data)
         setStatsError(null)
+        console.log('[Dashboard] Statistics loaded successfully')
       } else {
         setStatistics(null)
         setStatsError(
           !response.success ? response.error.message : 'Failed to load statistics.'
         )
+        console.log('[Dashboard] Statistics failed', response)
       }
     } catch (error) {
       setStatistics(null)
       setStatsError(getFriendlyErrorMessage(error, 'Failed to load statistics.'))
+      console.error('[Dashboard] Statistics error', error)
     } finally {
       setIsLoadingStats(false)
     }
-  }, [activeProfile, defaultCurrency?.code, api])
+  }, [activeProfile, defaultCurrency?.code, currenciesLoading, api])
 
   useEffect(() => {
     loadStatistics()
@@ -282,6 +308,18 @@ export default function DashboardPage() {
         </AnimatedSection>
 
         {/* Quick Summary */}
+        {(() => {
+          console.log('[Dashboard] Render state', {
+            activeProfile,
+            hasStatistics: !!statistics,
+            statsError,
+            isLoadingStats,
+            defaultCurrency: defaultCurrency?.code,
+            currenciesLoading,
+          })
+          return null
+        })()}
+
         {statsError && (
           <ErrorState
             title="Unable to load statistics"
@@ -313,8 +351,8 @@ export default function DashboardPage() {
                 Quick Summary - {format(new Date(), 'MMMM yyyy')}
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 3, justifyContent: 'center' }}>
-                <Card sx={{ 
-                  flex: 1, 
+                <Card sx={{
+                  flex: 1,
                   background: 'linear-gradient(135deg, #0d4f1a 0%, #1b5e20 50%, #2e7d32 100%)',
                   color: 'success.contrastText',
                   boxShadow: 3,
@@ -333,8 +371,8 @@ export default function DashboardPage() {
                     </Typography>
                   </CardContent>
                 </Card>
-                <Card sx={{ 
-                  flex: 1, 
+                <Card sx={{
+                  flex: 1,
                   background: 'linear-gradient(135deg, #8b0000 0%, #b71c1c 50%, #c62828 100%)',
                   color: 'error.contrastText',
                   boxShadow: 3,
@@ -353,8 +391,8 @@ export default function DashboardPage() {
                     </Typography>
                   </CardContent>
                 </Card>
-                <Card sx={{ 
-                  flex: 1, 
+                <Card sx={{
+                  flex: 1,
                   background: 'linear-gradient(135deg, #0a3d91 0%, #0d47a1 50%, #1565c0 100%)',
                   color: 'white',
                   boxShadow: 3,
@@ -374,6 +412,17 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
               </Box>
+            </Paper>
+          </AnimatedSection>
+        )}
+
+        {/* Show message when no statistics and not loading */}
+        {activeProfile && !statistics && !statsError && !isLoadingStats && defaultCurrency && (
+          <AnimatedSection delay={75}>
+            <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+              <Alert severity="info">
+                No transactions found for this month. Create your first transaction to see your financial summary.
+              </Alert>
             </Paper>
           </AnimatedSection>
         )}

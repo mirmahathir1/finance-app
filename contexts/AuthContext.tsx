@@ -218,9 +218,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await clearGuestModeState()
         }
         
-        // Redirect to dashboard after sign-in
-        // Users can access setup page manually if needed
-        router.push('/')
+        // Redirect to initialization page to handle prepopulation
+        // This ensures a single loading page during setup
+        router.push('/initializing')
       } else {
         const errorMessage =
           !response.success && 'error' in response

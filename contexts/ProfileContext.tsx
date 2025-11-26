@@ -126,7 +126,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
     const initialize = async () => {
       await loadProfiles({ showLoader: false })
-      await autoPopulateProfiles()
+      // Auto-populate is now handled by the setup page using the catalog API
+      // This avoids multiple paginated API calls on mount
     }
     initialize()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -158,21 +159,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       } else if (showLoader) {
         setIsLoading(true)
       }
-    }
-  }
-
-  /**
-   * Auto-populate profiles from transactions if IndexedDB is empty
-   * Runs silently at startup
-   */
-  const autoPopulateProfiles = async () => {
-    try {
-      const currentProfiles = await getAllProfiles()
-      if (currentProfiles.length === 0) {
-        await importProfilesFromTransactions()
-      }
-    } catch (error) {
-      console.debug('Auto-populate profiles failed:', error)
     }
   }
 

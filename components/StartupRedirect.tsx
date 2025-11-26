@@ -30,8 +30,8 @@ export function StartupRedirect({ children }: { children: React.ReactNode }) {
       return
     }
 
-    // Skip redirect logic for setup page
-    if (pathname === '/setup') {
+    // Skip redirect logic for setup and initialization pages
+    if (pathname === '/setup' || pathname === '/initializing') {
       return
     }
 
@@ -80,13 +80,14 @@ export function StartupRedirect({ children }: { children: React.ReactNode }) {
     return null // Or a loading spinner if desired
   }
 
-  // Allow auth pages and setup page to render even when not authenticated
+  // Allow auth pages, setup page, and initialization page to render even when not authenticated
   const authPaths = ['/auth/signin', '/auth/signup', '/auth/verify', '/auth/set-password', '/auth/forgot-password', '/auth/reset-password', '/auth/mock-email']
   const isAuthPage = authPaths.includes(pathname)
   const isSetupPage = pathname === '/setup'
+  const isInitializingPage = pathname === '/initializing'
 
-  // If on auth page or setup page, always render (these pages handle their own logic)
-  if (isAuthPage || isSetupPage) {
+  // If on auth page, setup page, or initialization page, always render (these pages handle their own logic)
+  if (isAuthPage || isSetupPage || isInitializingPage) {
     return <>{children}</>
   }
 
