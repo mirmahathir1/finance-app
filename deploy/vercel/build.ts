@@ -42,15 +42,23 @@ async function build(): Promise<void> {
     console.log('📝 Syncing environment variables...')
     syncVercelEnvToFile()
     
+    // Verify DATABASE_URL is set before proceeding
+    if (!process.env.DATABASE_URL) {
+      console.error('❌ DATABASE_URL environment variable is not set')
+      process.exit(1)
+    }
+    
     // Step 2: Generate Prisma Client
+    // Use npx prisma generate directly since env vars are already in process.env
     execCommand(
-      'npm run prisma:generate:prod',
+      'npx prisma generate',
       'Generating Prisma Client'
     )
     
     // Step 3: Run database migrations
+    // Use npx prisma migrate deploy directly since env vars are already in process.env
     execCommand(
-      'npm run prisma:migrate:deploy:prod',
+      'npx prisma migrate deploy',
       'Running database migrations'
     )
     
