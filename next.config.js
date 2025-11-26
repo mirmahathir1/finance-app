@@ -114,6 +114,9 @@ const nextConfig = {
     // Ensure TypeScript errors are caught during build
     ignoreBuildErrors: false,
   },
+  // Explicitly configure Turbopack to silence warning
+  // Since next-pwa requires webpack, we'll use --webpack flag in build commands
+  turbopack: {},
 };
 
 module.exports = withPWA(nextConfig);

@@ -1,0 +1,8 @@
+{
+  "buildCommand": "tsx deploy/vercel/build.ts",
+  "devCommand": "npm run dev:local",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "outputDirectory": ".next"
+}
+
