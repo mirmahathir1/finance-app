@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Container,
   Box,
@@ -15,9 +15,13 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Snackbar } from '@/components/Snackbar'
 import { LoadingButton } from '@/components/LoadingButton'
 import { validateEmail, validateRequired } from '@/utils/validation'
+import { useInstallPrompt } from '@/hooks/useInstallPrompt'
+import { GetApp as GetAppIcon } from '@mui/icons-material'
+import { Button } from '@mui/material'
 
 export default function SignInPage() {
   const { signIn, isLoading: authLoading } = useAuth()
+  const { isAvailable, handleInstall, isInstalled } = useInstallPrompt()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
@@ -28,6 +32,11 @@ export default function SignInPage() {
     message: string
     severity: 'success' | 'error' | 'info' | 'warning'
   }>({ open: false, message: '', severity: 'info' })
+
+  // Debug logging for install prompt
+  useEffect(() => {
+    console.log('[SignInPage] Install prompt state:', { isAvailable, isInstalled })
+  }, [isAvailable, isInstalled])
 
   const handleEmailChange = (value: string) => {
     setEmail(value)
@@ -174,6 +183,19 @@ export default function SignInPage() {
             >
               Sign In
             </LoadingButton>
+
+            {!isInstalled && (
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<GetAppIcon />}
+                onClick={handleInstall}
+                disabled={!isAvailable}
+                sx={{ mb: 2 }}
+              >
+                Install App
+              </Button>
+            )}
           </Box>
 
           {/* Sign Up Link */}

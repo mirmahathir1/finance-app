@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import {
   Box,
   Paper,
@@ -13,57 +14,29 @@ import {
   GetApp as GetAppIcon,
   Close as CloseIcon,
 } from '@mui/icons-material'
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-}
+import { useInstallPrompt } from '@/hooks/useInstallPrompt'
 
 export function InstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const pathname = usePathname()
+  const { isInstalled, isAvailable, handleInstall } = useInstallPrompt()
   const [showPrompt, setShowPrompt] = useState(false)
-  const [isInstalled, setIsInstalled] = useState(false)
 
   useEffect(() => {
-    // Check if app is already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true)
-      return
-    }
-
-    // Listen for beforeinstallprompt event
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault()
-      setDeferredPrompt(e as BeforeInstallPromptEvent)
+    // Show prompt if available and not on sign in page
+    if (isAvailable && pathname !== '/auth/signin') {
       setShowPrompt(true)
-    }
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-    }
-  }, [])
-
-  const handleInstall = async () => {
-    if (!deferredPrompt) return
-
-    deferredPrompt.prompt()
-    const { outcome } = await deferredPrompt.userChoice
-
-    if (outcome === 'accepted') {
+    } else {
       setShowPrompt(false)
-      setDeferredPrompt(null)
     }
-  }
+  }, [isAvailable, pathname])
 
   const handleDismiss = () => {
     setShowPrompt(false)
     // Prompt will show again on next page load if still installable
   }
 
-  // Don't show if already installed or if prompt shouldn't be shown
-  if (isInstalled || !showPrompt || !deferredPrompt) {
+  // Don't show if already installed, not available, or on sign in page
+  if (isInstalled || !showPrompt || !isAvailable || pathname === '/auth/signin') {
     return null
   }
 
@@ -73,9 +46,9 @@ export function InstallPrompt() {
         elevation={6}
         sx={{
           position: 'fixed',
-          top: { xs: 8, sm: 16 },
+          top: '50%',
           left: '50%',
-          transform: 'translateX(-50%)',
+          transform: 'translate(-50%, -50%)',
           zIndex: 1300,
           p: { xs: 1.5, sm: 2 },
           maxWidth: { xs: 'calc(100% - 16px)', sm: 400 },
@@ -118,7 +91,10 @@ export function InstallPrompt() {
         <Button
           variant="contained"
           size="small"
-          onClick={handleInstall}
+          onClick={() => {
+            handleInstall()
+            setShowPrompt(false)
+          }}
           startIcon={<GetAppIcon />}
           fullWidth={false}
           sx={{
