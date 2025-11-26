@@ -134,12 +134,44 @@ npm run generate-icons
 ```
 
 ### Verification
-- Check that `public/icons/` directory exists
-- Verify all icon files are generated:
-  - `favicon.ico`
-  - `icon-16x16.png` through `icon-512x512.png`
-  - `apple-touch-icon.png`
-- Icons should be visible and properly sized
+
+#### Command Line Verification
+```bash
+# Check icons directory exists
+ls -lh public/icons/
+
+# Verify all 12 files are created
+ls public/icons/ | wc -l  # Should output: 12
+```
+
+**Expected files:**
+- `favicon.ico`
+- `icon-16x16.png`, `icon-32x32.png`, `icon-48x48.png`
+- `icon-96x96.png`, `icon-128x128.png`, `icon-180x180.png`
+- `icon-192x192.png`, `icon-256x256.png`, `icon-384x384.png`, `icon-512x512.png`
+- `apple-touch-icon.png`
+
+#### Browser Verification (After Starting App)
+
+**Using Docker:**
+```bash
+docker-compose -f deploy/docker/docker-compose.yml up
+```
+
+**Using Local:**
+```bash
+npm run dev:local
+```
+
+Then open `http://localhost:3000` and verify:
+
+1. **Direct Icon Access** - Open these URLs to confirm icons load:
+   - `http://localhost:3000/icons/favicon.ico`
+   - `http://localhost:3000/icons/icon-192x192.png`
+   - `http://localhost:3000/icons/icon-512x512.png`
+   - `http://localhost:3000/icons/apple-touch-icon.png`
+
+2. **Visual Check** - Each URL should display your app's logo at the respective size
 
 ### Files Created
 - `scripts/generate-icons.js`
@@ -228,10 +260,123 @@ Alternatively, if using a custom head, add these tags:
 ```
 
 ### Verification
-- Open browser DevTools → Application tab → Manifest
-- Verify manifest is detected and valid
-- Check that icons are listed correctly
-- Verify theme color is set
+
+#### Using Docker
+```bash
+docker-compose -f deploy/docker/docker-compose.yml up
+```
+
+#### Using Local Dev Server
+```bash
+npm run dev:local
+```
+
+Then open `http://localhost:3000` in your browser.
+
+#### Step 1: Verify Favicon in Browser Tab
+- Look at the browser tab
+- You should see your Finance App icon (not the default Next.js icon)
+
+#### Step 2: Verify Manifest File Loads
+Open `http://localhost:3000/manifest.json` directly in the browser.
+
+**Expected output:**
+```json
+{
+  "name": "Finance App",
+  "short_name": "Finance",
+  "description": "Track your expenses and income",
+  ...
+}
+```
+
+#### Step 3: Verify Manifest in DevTools
+
+**Chrome/Edge:**
+1. Press `F12` to open DevTools
+2. Go to **Application** tab
+3. Click **Manifest** in the left sidebar
+
+**What to check:**
+- ✅ Manifest is detected (no errors shown)
+- ✅ Identity section shows:
+  - Name: "Finance App"
+  - Short name: "Finance"
+- ✅ Presentation section shows:
+  - Start URL: "/"
+  - Theme color: #1976d2
+  - Background color: #ffffff
+  - Display mode: "standalone"
+- ✅ Icons section shows 2 icons:
+  - icon-192x192.png (192×192)
+  - icon-512x512.png (512×512)
+- ✅ Icon previews are visible and show your logo
+
+**Firefox:**
+1. Press `F12` to open DevTools
+2. Go to **Storage** or **Application** tab
+3. Look for **Manifest** section
+
+#### Step 4: Verify HTML Meta Tags
+
+In DevTools → **Elements** tab, inspect the `<head>` section:
+
+**Expected tags:**
+```html
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1976d2">
+<link rel="icon" href="/icons/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="/icons/icon-48x48.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Finance App">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+```
+
+#### Step 5: Verify Theme Color (Mobile)
+
+**On Android Chrome:**
+1. Access the app on your Android device
+   - Use your computer's IP address: `http://YOUR_IP:3000`
+   - Example: `http://192.168.1.100:3000`
+2. The browser's address bar should be colored #1976d2 (blue)
+
+**To find your computer's IP:**
+```bash
+# macOS/Linux
+ifconfig | grep inet
+
+# Windows
+ipconfig
+```
+
+#### Step 6: Type Check
+
+Verify no TypeScript errors:
+```bash
+npm run type-check
+```
+
+Should complete without errors.
+
+### Troubleshooting
+
+**Manifest not loading:**
+- Check `public/manifest.json` exists
+- Verify JSON syntax is valid: `cat public/manifest.json | jq .`
+- Check browser console for errors
+
+**Icons not showing in manifest:**
+- Ensure icons were generated in Phase 1
+- Verify icon paths in manifest.json are correct
+- Check icon URLs load: `http://localhost:3000/icons/icon-192x192.png`
+
+**Favicon not appearing:**
+- Hard refresh the page (Ctrl+Shift+R or Cmd+Shift+R)
+- Clear browser cache
+- Check favicon.ico exists in public/icons/
 
 ### Files Created/Modified
 - `public/manifest.json` (created)
@@ -243,6 +388,27 @@ Alternatively, if using a custom head, add these tags:
 
 ### Overview
 Configure `next-pwa` to add service worker functionality with static asset caching and automatic updates.
+
+⚠️ **IMPORTANT: Service Worker requires Production Mode**
+
+The configuration includes `disable: process.env.NODE_ENV === 'development'`, which means:
+- ❌ Service worker will **NOT** register in development mode
+- ✅ Service worker **ONLY** works in production build
+
+**To test service worker features, you MUST use:**
+```bash
+# Option 1: Local production build
+npm run build:local
+npm run start:local
+
+# Option 2: Docker production mode
+docker-compose -f deploy/docker/docker-compose.yml --profile prod up app-prod
+```
+
+**Why disable in development?**
+- Hot reloading works better without service worker
+- Prevents caching issues during development
+- Easier debugging of code changes
 
 ### Prerequisites
 - Next.js app running
@@ -395,11 +561,183 @@ npm run start:local
 ```
 
 ### Verification
-- Open browser DevTools → Application tab → Service Workers
-- Verify service worker is registered
-- Check that service worker is active
-- Open Network tab and verify static assets are being cached
-- Test offline mode (DevTools → Network → Offline) - static assets should still load
+
+⚠️ **REMINDER: Service worker only works in production mode!**
+
+#### Option 1: Local Production Build
+```bash
+# Build the app
+npm run build:local
+
+# Start in production mode
+npm run start:local
+```
+
+Then open `http://localhost:3000`
+
+#### Option 2: Docker Production Mode
+```bash
+# Stop development containers
+docker-compose -f deploy/docker/docker-compose.yml down
+
+# Start production container
+docker-compose -f deploy/docker/docker-compose.yml --profile prod up app-prod
+```
+
+Then open `http://localhost:3000`
+
+---
+
+#### Step 1: Verify Service Worker Files Generated
+
+After building, check these files exist:
+```bash
+ls -la public/sw.js
+ls -la public/workbox-*.js
+```
+
+**Expected output:**
+- `public/sw.js` (service worker main file)
+- `public/workbox-*.js` (workbox runtime files)
+- `public/sw.js.map` (source map)
+
+#### Step 2: Verify Service Worker Registration
+
+**Using Chrome/Edge DevTools:**
+
+1. Open `http://localhost:3000`
+2. Press `F12` to open DevTools
+3. Go to **Application** tab
+4. Click **Service Workers** in the left sidebar
+
+**What to check:**
+- ✅ Service worker is listed (shows `sw.js`)
+- ✅ Source shows the file path (`http://localhost:3000/sw.js`)
+- ✅ Status shows "**activated and is running**"
+- ✅ No error messages
+
+**Common Issues:**
+- ❌ "No service workers have been detected" = Running in development mode
+- ❌ Error status = Check browser console for errors
+
+#### Step 3: Verify Service Worker File is Accessible
+
+Open `http://localhost:3000/sw.js` directly in browser.
+
+**Expected result:**
+- Should display JavaScript code (service worker script)
+- Status 200 (not 404)
+
+#### Step 4: Verify Cache Storage Created
+
+**In DevTools Application tab:**
+
+1. Expand **Cache Storage** in the left sidebar
+2. You should see caches like:
+   - `workbox-precache-v2-http://localhost:3000/` (or similar)
+   - After navigating: `next-static-assets`, `static-js-css-assets`, etc.
+
+**What to check:**
+- ✅ At least one cache is created
+- ✅ Precache contains static assets
+- ✅ Click on cache to see cached files
+
+#### Step 5: Test Static Asset Caching
+
+**In DevTools Network tab:**
+
+1. Reload the page (`Ctrl+R` or `Cmd+R`)
+2. Look at the **Size** column for static assets (JS, CSS, images)
+3. Some files should show:
+   - "(ServiceWorker)" or "(from ServiceWorker)"
+   - Or "disk cache" / "memory cache"
+
+**What to check:**
+- ✅ Static assets are being cached
+- ✅ Subsequent page loads are faster
+
+#### Step 6: Test Offline Functionality
+
+**Steps:**
+
+1. Navigate around the app (visit 2-3 pages to cache them)
+2. Open DevTools → **Network** tab
+3. Find the **Throttling** dropdown (says "No throttling")
+4. Select **"Offline"**
+5. Try to reload the page (`Ctrl+R` or `Cmd+R`)
+
+**Expected result:**
+- ✅ Previously visited pages load from cache
+- ✅ Static assets (CSS, JS, images) still load
+- ✅ You see "(from ServiceWorker)" in Network tab
+- ❌ API calls fail (expected - dynamic data isn't cached)
+
+**Re-enable online:**
+- Set throttling back to "No throttling"
+
+#### Step 7: Verify Service Worker Console
+
+**In DevTools:**
+
+1. Go to **Console** tab
+2. Look for service worker messages
+3. You might see messages like:
+   - "Workbox is controlling this page"
+   - Precaching messages
+
+**Note:** Some messages only appear during registration, so you may need to reload.
+
+#### Step 8: Inspect Service Worker Code (Optional)
+
+**In DevTools Application → Service Workers:**
+
+1. Click on the service worker source link
+2. This opens the service worker JavaScript code
+3. You can see the Workbox-generated code and caching strategies
+
+### Development Mode Check
+
+If service worker features don't work, verify you're in production mode:
+
+```bash
+# This will NOT have service worker (development)
+npm run dev:local
+
+# This WILL have service worker (production)
+npm run build:local && npm run start:local
+```
+
+**In the browser console, check:**
+```javascript
+// Run this in browser console
+console.log('NODE_ENV:', process.env.NODE_ENV)
+// Should output: "production" for service worker to work
+```
+
+### Troubleshooting
+
+**Service worker not registering:**
+- ✅ Confirm running in production mode (`npm run build:local && npm run start:local`)
+- ✅ Check `public/sw.js` exists after build
+- ✅ Check browser console for registration errors
+- ✅ Try in incognito/private window
+- ✅ Clear browser cache and reload
+
+**Service worker not updating:**
+- Clear service worker: DevTools → Application → Service Workers → "Unregister"
+- Clear cache: Application → Storage → "Clear site data"
+- Hard reload: `Ctrl+Shift+R` or `Cmd+Shift+R`
+
+**Offline mode not working:**
+- Ensure you visited pages before going offline
+- Check Cache Storage contains the pages
+- Verify service worker is active
+- Check console for errors
+
+**Build fails:**
+- Ensure `next-pwa` is installed: `npm install next-pwa`
+- Check `next.config.js` syntax is correct
+- Try removing `.next` folder: `rm -rf .next && npm run build:local`
 
 ### Files Modified
 - `next.config.js` (modified)
