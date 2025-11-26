@@ -55,8 +55,10 @@ async function build(): Promise<void> {
     )
     
     // Step 4: Build Next.js application
+    // Use next build directly with --webpack flag for PWA support
+    // The .env.production file has already been created in Step 1
     execCommand(
-      'npm run build:prod',
+      'npx next build --webpack',
       'Building Next.js application'
     )
     
