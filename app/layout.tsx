@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { Providers } from '@/components/Providers'
@@ -9,7 +9,6 @@ export const metadata: Metadata = {
   title: 'Finance App',
   description: 'Track your expenses and income',
   manifest: '/manifest.json',
-  themeColor: '#1976d2',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -26,6 +25,10 @@ export const metadata: Metadata = {
       { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#1976d2',
 }
 
 export default function RootLayout({
