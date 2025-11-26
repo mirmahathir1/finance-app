@@ -26,6 +26,7 @@ import {
   Cancel as CancelIcon,
   DarkMode as DarkModeIcon,
   LightMode as LightModeIcon,
+  Build as BuildIcon,
 } from '@mui/icons-material'
 import { PageLayout } from '@/components/PageLayout'
 import { AnimatedSection } from '@/components/AnimatedSection'
@@ -67,6 +68,11 @@ export default function SettingsPage() {
     message: '',
     severity: 'info',
   })
+  const [buildInfo, setBuildInfo] = useState<{
+    buildTime?: string
+    buildTimestamp?: number
+    version?: string
+  } | null>(null)
 
   useEffect(() => {
     if (authLoading) return
@@ -74,6 +80,20 @@ export default function SettingsPage() {
       router.replace('/auth/signin')
     }
   }, [authLoading, user, router])
+
+  useEffect(() => {
+    fetch('/build-info.json')
+      .then((res) => res.json())
+      .then((data) => setBuildInfo(data))
+      .catch((err) => {
+        console.error('Failed to load build info:', err)
+        // Set fallback if file doesn't exist
+        setBuildInfo({
+          buildTime: new Date().toISOString(),
+          version: '0.1.0',
+        })
+      })
+  }, [])
 
   const handleSignOut = useCallback(async () => {
     setIsSigningOut(true)
@@ -446,7 +466,41 @@ export default function SettingsPage() {
         </Paper>
       </AnimatedSection>
 
-      <AnimatedSection delay={165}>
+      <AnimatedSection delay={210}>
+        <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
+          <Typography variant="h6" gutterBottom>
+            App Information
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Build information and version details.
+          </Typography>
+          <Divider sx={{ my: 3 }} />
+          {buildInfo && (
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                <BuildIcon color="primary" />
+                <Box>
+                  <Typography variant="body1">Build Time</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {buildInfo.buildTime
+                      ? new Date(buildInfo.buildTime).toLocaleString()
+                      : 'Unknown'}
+                  </Typography>
+                </Box>
+              </Box>
+              {buildInfo.version && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Version: {buildInfo.version}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+        </Paper>
+      </AnimatedSection>
+
+      <AnimatedSection delay={255}>
         <Paper elevation={2} sx={{ p: 3 }}>
           <Typography variant="h6" gutterBottom>
             Account

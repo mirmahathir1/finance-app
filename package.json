@@ -5,8 +5,9 @@
   "scripts": {
     "dev:local": "dotenv -e .env.local -- next dev",
     "dev:prod": "dotenv -e .env.production -- next dev",
-    "build:local": "dotenv -e .env.local -- next build --webpack",
-    "build:prod": "dotenv -e .env.production -- next build --webpack",
+    "generate-build-info": "node scripts/generate-build-info.js",
+    "build:local": "npm run generate-build-info && dotenv -e .env.local -- next build --webpack",
+    "build:prod": "npm run generate-build-info && dotenv -e .env.production -- next build --webpack",
     "start:local": "dotenv -e .env.local -- next start",
     "start:prod": "dotenv -e .env.production -- next start",
     "lint": "next lint",

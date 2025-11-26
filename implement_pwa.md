@@ -1074,11 +1074,200 @@ npm run start:local
 ```
 
 ### Verification
+
+#### Option 1: Local Production Build
+```bash
+npm run build:local
+npm run start:local
+```
+
+Then open `http://localhost:3000` and verify:
 - Install prompt appears when app is installable
 - Install button triggers native install prompt
 - Dismiss button hides the prompt
 - Prompt doesn't appear if app is already installed
 - Prompt respects dismissal (won't show again for 7 days)
+
+#### Option 2: Docker Production Mode
+
+⚠️ **IMPORTANT: Install prompt only works in production mode!**
+
+**Step 1: Stop any running containers**
+```bash
+# From project root
+docker-compose -f deploy/docker/docker-compose.yml down
+```
+
+**Step 2: Start production Docker containers**
+```bash
+# From project root - Start production build
+docker-compose -f deploy/docker/docker-compose.yml --profile prod up app-prod postgres
+```
+
+Wait for containers to be ready. You should see:
+```
+finance_app_nextjs_prod | ✓ Ready in Xms
+```
+
+**Step 3: Access the application**
+Open your browser and navigate to:
+```
+http://localhost:3000
+```
+
+**Step 4: Verify prerequisites for install prompt**
+
+**4.1: Check Service Worker is registered**
+1. Open DevTools (F12)
+2. Go to **Application** tab
+3. Click **Service Workers** in the left sidebar
+4. Verify:
+   - ✅ Service worker is listed
+   - ✅ Status shows "activated and is running"
+   - ✅ Source shows `http://localhost:3000/sw.js`
+
+**4.2: Check Manifest is valid**
+1. In DevTools → **Application** tab
+2. Click **Manifest** in the left sidebar
+3. Verify:
+   - ✅ No errors shown
+   - ✅ Icons are displayed
+   - ✅ All manifest fields are correct
+
+**4.3: Check build-info.json exists**
+Open directly in browser:
+```
+http://localhost:3000/build-info.json
+```
+Should show JSON with `buildTime`, `buildTimestamp`, and `version`.
+
+**Step 5: Test Install Prompt**
+
+**5.1: Clear browser state (if testing again)**
+If you've tested before, clear the dismissal:
+```javascript
+// In browser console (F12 → Console tab)
+localStorage.removeItem('installPromptDismissed')
+```
+
+**5.2: Reload the page**
+Press `Ctrl+R` (or `Cmd+R` on Mac) to reload.
+
+**5.3: Look for the install prompt**
+The install prompt should appear as a banner at the top of the page with:
+- Download icon
+- "Install Finance App" title
+- "Add to home screen for quick access" description
+- "Install" button
+- Close (X) button
+
+**Step 6: Test Install Prompt functionality**
+
+**6.1: Test Install button**
+1. Click the "Install" button
+2. Expected: Native browser install prompt appears
+3. You can:
+   - Accept: App installs (or shows install dialog)
+   - Cancel: Prompt closes, custom prompt remains
+
+**6.2: Test Dismiss button**
+1. Click the X (close) button
+2. Expected: Prompt slides up and disappears
+3. Reload the page
+4. Expected: Prompt does not appear again (dismissed for 7 days)
+
+**6.3: Verify dismissal is remembered**
+1. In browser console, check:
+```javascript
+localStorage.getItem('installPromptDismissed')
+// Should return a timestamp
+```
+2. Reload page multiple times
+3. Expected: Prompt does not reappear
+
+**Step 7: Test after 7-day dismissal period**
+To test the 7-day cooldown (for testing purposes only):
+```javascript
+// In browser console - simulate old dismissal
+localStorage.setItem('installPromptDismissed', (Date.now() - 8 * 24 * 60 * 60 * 1000).toString())
+// Reload page - prompt should appear again
+```
+
+**Step 8: Test in standalone mode (if installed)**
+If you install the app:
+1. The prompt should not appear when running in standalone mode
+2. Check by opening DevTools console:
+```javascript
+window.matchMedia('(display-mode: standalone)').matches
+// Should return true if installed
+```
+
+**Browser Compatibility:**
+
+**Supported browsers (show install prompt):**
+- Chrome (Desktop & Android)
+- Edge (Desktop & Android)
+- Samsung Internet
+- Opera
+
+**Not supported (no install prompt, manual install only):**
+- iOS Safari (use "Add to Home Screen" from share menu)
+- Firefox (no beforeinstallprompt event)
+- Safari (Desktop)
+
+**Quick Test Script:**
+Run this in the browser console to check everything:
+```javascript
+// Check if install prompt prerequisites are met
+const checks = {
+  serviceWorker: 'serviceWorker' in navigator,
+  standalone: window.matchMedia('(display-mode: standalone)').matches,
+  dismissed: localStorage.getItem('installPromptDismissed'),
+  manifest: document.querySelector('link[rel="manifest"]') !== null,
+}
+
+console.table(checks)
+```
+
+**Troubleshooting in Docker:**
+
+**Install prompt not appearing:**
+1. Verify production mode:
+   ```bash
+   # Check container logs
+   docker-compose -f deploy/docker/docker-compose.yml logs app-prod | grep NODE_ENV
+   # Should show: NODE_ENV=production
+   ```
+2. Check browser console for errors (F12 → Console)
+3. Verify service worker is active (DevTools → Application → Service Workers)
+4. Verify manifest is valid (DevTools → Application → Manifest)
+5. Clear browser cache and reload
+6. Try incognito/private window
+7. Check if dismissed:
+   ```javascript
+   localStorage.getItem('installPromptDismissed')
+   ```
+
+**Service worker not registering:**
+- Ensure you're using the production container (`app-prod`), not the dev container
+- Check that `public/sw.js` exists in the container:
+  ```bash
+  docker-compose -f deploy/docker/docker-compose.yml exec app-prod ls -la /app/public/sw.js
+  ```
+
+**Build info not showing:**
+- Verify build-info.json was generated:
+  ```bash
+  docker-compose -f deploy/docker/docker-compose.yml exec app-prod cat /app/public/build-info.json
+  ```
+
+**Expected Behavior Summary:**
+- ✅ Prompt appears automatically when app is installable
+- ✅ Prompt shows on first visit (if not dismissed)
+- ✅ Install button triggers native browser install dialog
+- ✅ Dismiss button hides prompt and remembers for 7 days
+- ✅ Prompt does not show if app is already installed
+- ✅ Prompt does not show if dismissed within last 7 days
 
 ### Files Created/Modified
 - `components/InstallPrompt.tsx` (created)
@@ -1129,6 +1318,10 @@ After completing all phases, verify:
 - Manifest must be valid
 - Service worker must be registered
 - Browser must support `beforeinstallprompt` event
+- **Docker**: Ensure using production container (`app-prod`), not dev container
+- **Docker**: Verify `NODE_ENV=production` in container logs
+- Check if dismissed: `localStorage.getItem('installPromptDismissed')` in browser console
+- Clear browser cache and try incognito/private window
 
 ## Next Steps
 

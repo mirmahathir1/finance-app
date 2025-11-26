@@ -18,9 +18,13 @@ COPY . .
 # Generate Prisma Client
 RUN npx prisma generate
 
+# Generate build info (before build)
+RUN npm run generate-build-info
+
 # Build Next.js application
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build:prod
+# Run next build directly (build:prod uses dotenv which may not work in Docker)
+RUN npx next build --webpack
 
 # Stage 3: Runner
 FROM node:20-alpine AS runner
