@@ -3,6 +3,7 @@
 import { guestDataService } from '@/services/guestDataService'
 import { getGuestModeState } from '@/utils/indexedDB'
 import type {
+  ApiErrorResponse,
   ApiResponse,
   TransactionsListData,
   TransactionData,
@@ -508,21 +509,34 @@ export async function downloadBackupCsv(): Promise<BlobApiResponse> {
 
   if (guestMode) {
     try {
-      const result = (await handleGuestModeRequest(endpoint, requestOptions)) as ApiResponse<{ csv: string }>
+      const result = (await handleGuestModeRequest(
+        endpoint,
+        requestOptions
+      )) as ApiResponse<{ csv: string }>
       logClientResponse(info, result)
 
-      if (result.success && result.data?.csv) {
+      if (result.success) {
+        if (result.data?.csv) {
+          return {
+            success: true,
+            data: new Blob([result.data.csv], { type: 'text/csv;charset=utf-8;' }),
+          }
+        }
+
         return {
-          success: true,
-          data: new Blob([result.data.csv], { type: 'text/csv;charset=utf-8;' }),
+          success: false,
+          error: {
+            message: 'Backup completed but CSV payload was missing.',
+            code: 'CSV_MISSING',
+          },
         }
       }
 
       return {
         success: false,
         error: {
-          message: result.error?.message || 'Failed to generate backup.',
-          code: result.error?.code,
+          message: result.error.message || 'Failed to generate backup.',
+          code: result.error.code,
         },
       }
     } catch (error) {
@@ -709,7 +723,7 @@ export async function apiCall<T = any>(
     if (!response.ok) {
       // Silently handle 404s when backend is not available (expected in development)
       if (response.status === 404) {
-        const notFoundPayload = {
+        const notFoundPayload: ApiErrorResponse = {
           success: false,
           error: {
             message: 'Endpoint not found',
@@ -717,12 +731,10 @@ export async function apiCall<T = any>(
           },
         }
         logClientResponse(info, notFoundPayload)
-        return {
-          ...notFoundPayload,
-        }
+        return notFoundPayload
       }
       const errorData = await response.json().catch(() => ({}))
-      const errorPayload = {
+      const errorPayload: ApiErrorResponse = {
         success: false,
         error: {
           message: errorData.message || response.statusText,
@@ -730,9 +742,7 @@ export async function apiCall<T = any>(
         },
       }
       logClientResponse(info, errorPayload)
-      return {
-        ...errorPayload,
-      }
+      return errorPayload
     }
 
     const data = await response.json()
