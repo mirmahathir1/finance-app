@@ -156,8 +156,7 @@ export default function SetupPage() {
         } else {
           setHasTransactions(false)
         }
-      } catch (error) {
-        console.error('Error checking transactions:', error)
+      } catch {
         setHasTransactions(false)
       } finally {
         setIsCheckingTransactions(false)
@@ -217,8 +216,7 @@ export default function SetupPage() {
             setUseCustomCurrency(true)
           }
         })
-        .catch((error) => {
-          console.error('Error detecting currency:', error)
+        .catch(() => {
           setUseCustomCurrency(true)
         })
         .finally(() => {
@@ -553,7 +551,6 @@ export default function SetupPage() {
             if (suggestedProfile) {
               await setActiveProfileDB(suggestedProfile)
             }
-            console.log(`Imported ${catalog.profiles.length} profiles from database`)
           }
 
           // Import currencies
@@ -568,7 +565,6 @@ export default function SetupPage() {
 
             // Write all currencies to IndexedDB
             await overwriteCurrencies(currencyRecords)
-            console.log(`Imported ${catalog.currencies.length} currencies from database`)
           }
 
           // Import tags
@@ -599,7 +595,6 @@ export default function SetupPage() {
                 overwriteTagsForProfile(profileName, tagGroups.get(profileName) ?? [])
               )
             )
-            console.log(`Imported ${catalog.tags.length} tags from database`)
           }
 
           // Refresh contexts to load the new data
@@ -607,9 +602,8 @@ export default function SetupPage() {
           await refreshCurrencies()
           await refreshTags()
         }
-      } catch (error: any) {
+      } catch {
         // Continue even if import fails - user can still use manually created data
-        console.error('Error importing catalog:', error)
       }
       currentStep++
       setInitializationProgress((currentStep / totalSteps) * 100)

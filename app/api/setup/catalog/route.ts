@@ -34,8 +34,7 @@ export async function GET() {
     return success({
       catalog: summarizeCatalog(inputs),
     })
-  } catch (error) {
-    console.error('setup catalog scan failed', error)
+  } catch {
     return errorResponse(
       'Unable to analyze transactions for setup. Please try again later.',
       500

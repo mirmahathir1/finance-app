@@ -121,7 +121,6 @@ export function TagProvider({ children }: { children: ReactNode }) {
       const profileTags = await getTagsForProfile(activeProfile)
       setTags(profileTags)
     } catch (error) {
-      console.error('Error loading tags:', error)
       setError(getFriendlyErrorMessage(error, 'Failed to load tags.'))
     } finally {
       if (!silent) {
@@ -381,7 +380,6 @@ export function TagProvider({ children }: { children: ReactNode }) {
 
       return { added, skipped }
     } catch (error) {
-      console.error('Error importing tags:', error)
       throw error
     }
   }

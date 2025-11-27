@@ -40,7 +40,6 @@ export async function getCurrencyCode(lat: number, lon: number): Promise<string>
   }
 
   if (!countryCode2) {
-    console.error('Nominatim response:', JSON.stringify(nominatimData, null, 2));
     throw new Error("Could not determine country code from coordinates.");
   }
 
@@ -78,9 +77,6 @@ export async function getCurrencyCode(lat: number, lon: number): Promise<string>
   const currencies = countryData?.currencies;
 
   if (!currencies || typeof currencies !== "object" || Array.isArray(currencies)) {
-    console.error('REST Countries response:', JSON.stringify(restData, null, 2));
-    console.error('Country code used:', countryCode2);
-    console.error('Country data:', countryData);
     throw new Error(`No currency information found for country code: ${countryCode2}`);
   }
 
@@ -111,13 +107,11 @@ export async function getCurrencyFromGeolocation(): Promise<string | null> {
             position.coords.longitude
           );
           resolve(currencyCode);
-        } catch (error) {
-          console.error('Error getting currency from geolocation:', error);
+        } catch {
           resolve(null);
         }
       },
-      (error) => {
-        console.error('Geolocation error:', error);
+      () => {
         resolve(null);
       },
       {

@@ -59,12 +59,6 @@ export function recordCatalogValidationFailure(
     timestamp: new Date().toISOString(),
   }
 
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn('[catalog-validation]', {
-      source,
-      field,
-    })
-  }
 }
 
 export function getCatalogValidationStats(): CatalogValidationStats {

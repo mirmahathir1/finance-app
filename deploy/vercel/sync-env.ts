@@ -78,7 +78,6 @@ export function syncVercelEnvToFile(): void {
   }
   
   if (envVars.length === 0) {
-    console.warn('⚠️  No environment variables found to sync')
     return
   }
   
@@ -88,9 +87,7 @@ export function syncVercelEnvToFile(): void {
   
   try {
     writeFileSync(envFilePath, envContent, 'utf-8')
-    console.log(`✅ Synced ${syncedCount} environment variable(s) to .env.production`)
-  } catch (error) {
-    console.error('❌ Failed to write .env.production:', error)
+  } catch {
     process.exit(1)
   }
 }

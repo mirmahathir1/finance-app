@@ -84,9 +84,8 @@ export function EditTransactionModal({
           if (!isNaN(date.getTime())) {
             dateStr = format(date, 'yyyy-MM-dd')
           }
-        } catch (e) {
+        } catch {
           // If parsing fails, use today's date
-          console.warn('Failed to parse transaction date:', transaction.occurredAt)
         }
       }
       setDate(dateStr)

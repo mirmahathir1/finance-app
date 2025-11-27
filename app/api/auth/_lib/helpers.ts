@@ -74,6 +74,6 @@ export function isValidEmail(email?: string | null): boolean {
 
 export function isValidPassword(password?: string | null): boolean {
   if (!password) return false
-  return password.length >= 8
+  return password.length >= 6
 }
 

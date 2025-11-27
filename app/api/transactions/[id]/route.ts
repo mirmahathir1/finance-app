@@ -55,8 +55,7 @@ export async function GET(
     }
 
     return success({ transaction: toPayload(transaction) })
-  } catch (error) {
-    console.error('get transaction error', error)
+  } catch {
     return errorResponse('Unable to load transaction.', 500)
   }
 }
@@ -143,8 +142,7 @@ export async function PUT(
     })
 
     return success({ transaction: toPayload(transaction) })
-  } catch (error) {
-    console.error('update transaction error', error)
+  } catch {
     return errorResponse('Unable to update transaction.', 500)
   }
 }
@@ -173,10 +171,7 @@ export async function DELETE(
     })
 
     return success({ message: 'Transaction deleted successfully.' })
-  } catch (error) {
-    console.error('delete transaction error', error)
+  } catch {
     return errorResponse('Unable to delete transaction.', 500)
   }
 }
-
-

@@ -11,7 +11,6 @@ import {
   TextField,
   FormControlLabel,
   Checkbox,
-  LinearProgress,
   List,
   ListItem,
   ListItemIcon,
@@ -38,7 +37,6 @@ import { useApi } from '@/utils/useApi'
 import { getFriendlyErrorMessage } from '@/utils/error'
 import { useThemeMode } from '@/components/ThemeProvider'
 
-type PasswordStrength = 'weak' | 'medium' | 'strong'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -86,7 +84,6 @@ export default function SettingsPage() {
       .then((res) => res.json())
       .then((data) => setBuildInfo(data))
       .catch((err) => {
-        console.error('Failed to load build info:', err)
         // Set fallback if file doesn't exist
         setBuildInfo({
           buildTime: new Date().toISOString(),
@@ -100,7 +97,7 @@ export default function SettingsPage() {
     try {
       await signOut()
     } catch (error) {
-      console.error('Error signing out:', error)
+      // no-op
     } finally {
       setIsSigningOut(false)
     }
@@ -144,21 +141,8 @@ export default function SettingsPage() {
   }
 
   const checkPasswordRequirements = (pwd: string) => ({
-    minLength: pwd.length >= 8,
-    hasUppercase: /[A-Z]/.test(pwd),
-    hasLowercase: /[a-z]/.test(pwd),
-    hasNumber: /[0-9]/.test(pwd),
-    hasSpecial: /[!@#$%^&*]/.test(pwd),
+    minLength: pwd.length >= 6,
   })
-
-  const getPasswordStrength = (pwd: string): PasswordStrength => {
-    if (pwd.length === 0) return 'weak'
-    const reqs = checkPasswordRequirements(pwd)
-    const metCount = Object.values(reqs).filter(Boolean).length
-    if (metCount <= 2) return 'weak'
-    if (metCount <= 4) return 'medium'
-    return 'strong'
-  }
 
   const allRequirementsMet = (pwd: string): boolean => {
     const reqs = checkPasswordRequirements(pwd)
@@ -166,10 +150,6 @@ export default function SettingsPage() {
   }
 
   const requirements = checkPasswordRequirements(newPassword)
-  const strength = getPasswordStrength(newPassword)
-  const strengthValue = strength === 'weak' ? 33 : strength === 'medium' ? 66 : 100
-  const strengthColor =
-    strength === 'weak' ? 'error' : strength === 'medium' ? 'warning' : 'success'
 
   const handleChangePassword = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -325,86 +305,15 @@ export default function SettingsPage() {
                     )}
                   </ListItemIcon>
                   <ListItemText
-                    primary="At least 8 characters long"
+                    primary="At least 6 characters long"
                     primaryTypographyProps={{
                       variant: 'body2',
                       color: requirements.minLength ? 'text.primary' : 'text.secondary',
                     }}
                   />
                 </ListItem>
-                <ListItem sx={{ py: 0.5 }}>
-                  <ListItemIcon sx={{ minWidth: 32 }}>
-                    {requirements.hasUppercase && requirements.hasLowercase ? (
-                      <CheckCircleIcon color="success" fontSize="small" />
-                    ) : (
-                      <CancelIcon color="error" fontSize="small" />
-                    )}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Contains uppercase and lowercase letters"
-                    primaryTypographyProps={{
-                      variant: 'body2',
-                      color:
-                        requirements.hasUppercase && requirements.hasLowercase
-                          ? 'text.primary'
-                          : 'text.secondary',
-                    }}
-                  />
-                </ListItem>
-                <ListItem sx={{ py: 0.5 }}>
-                  <ListItemIcon sx={{ minWidth: 32 }}>
-                    {requirements.hasNumber ? (
-                      <CheckCircleIcon color="success" fontSize="small" />
-                    ) : (
-                      <CancelIcon color="error" fontSize="small" />
-                    )}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Contains at least one number"
-                    primaryTypographyProps={{
-                      variant: 'body2',
-                      color: requirements.hasNumber ? 'text.primary' : 'text.secondary',
-                    }}
-                  />
-                </ListItem>
-                <ListItem sx={{ py: 0.5 }}>
-                  <ListItemIcon sx={{ minWidth: 32 }}>
-                    {requirements.hasSpecial ? (
-                      <CheckCircleIcon color="success" fontSize="small" />
-                    ) : (
-                      <CancelIcon color="error" fontSize="small" />
-                    )}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Contains at least one special character (!@#$%^&*)"
-                    primaryTypographyProps={{
-                      variant: 'body2',
-                      color: requirements.hasSpecial ? 'text.primary' : 'text.secondary',
-                    }}
-                  />
-                </ListItem>
               </List>
             </Box>
-            {newPassword && (
-              <Box sx={{ mt: 2, mb: 2 }}>
-                <Typography variant="body2" gutterBottom>
-                  Password strength:
-                </Typography>
-                <LinearProgress
-                  variant="determinate"
-                  value={strengthValue}
-                  color={strengthColor}
-                  sx={{ height: 8, borderRadius: 1 }}
-                />
-                <Typography
-                  variant="caption"
-                  color={`${strengthColor}.main`}
-                  sx={{ display: 'block', mt: 0.5 }}
-                >
-                  {strength.charAt(0).toUpperCase() + strength.slice(1)}
-                </Typography>
-              </Box>
-            )}
             <LoadingButton
               type="submit"
               variant="contained"

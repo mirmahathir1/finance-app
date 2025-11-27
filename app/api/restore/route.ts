@@ -255,8 +255,7 @@ export async function POST(request: NextRequest) {
       },
       message: 'Backup restored successfully.',
     })
-  } catch (error) {
-    console.error('restore import error', error)
+  } catch {
     return errorResponse('Unable to restore backup.', 500)
   }
 }

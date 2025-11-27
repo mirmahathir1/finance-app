@@ -6,8 +6,6 @@ import {
   Box,
   Typography,
   TextField,
-  Checkbox,
-  FormControlLabel,
   Link,
   Paper,
 } from '@mui/material'
@@ -24,7 +22,6 @@ export default function SignInPage() {
   const { isAvailable, handleInstall, isInstalled } = useInstallPrompt()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [snackbar, setSnackbar] = useState<{
@@ -32,11 +29,6 @@ export default function SignInPage() {
     message: string
     severity: 'success' | 'error' | 'info' | 'warning'
   }>({ open: false, message: '', severity: 'info' })
-
-  // Debug logging for install prompt
-  useEffect(() => {
-    console.log('[SignInPage] Install prompt state:', { isAvailable, isInstalled })
-  }, [isAvailable, isInstalled])
 
   const handleEmailChange = (value: string) => {
     setEmail(value)
@@ -146,17 +138,7 @@ export default function SignInPage() {
               disabled={authLoading || isSubmitting}
             />
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    disabled={authLoading || isSubmitting}
-                  />
-                }
-                label="Remember me"
-              />
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 1 }}>
               <Link
                 href="/auth/forgot-password"
                 variant="body2"

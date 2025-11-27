@@ -14,8 +14,7 @@ export function GuestModeIndicator() {
       } else {
         await enterGuestMode()
       }
-    } catch (error) {
-      console.error('Error toggling guest mode:', error)
+    } catch {
     }
   }
 

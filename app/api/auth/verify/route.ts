@@ -34,8 +34,7 @@ export async function GET(request: Request) {
       email: user.email,
       expiresAt: user.verificationTokenExpiresAt,
     })
-  } catch (error) {
-    console.error('verify error', error)
+  } catch {
     return errorResponse('Unable to verify email token. Please try again later.', 500)
   }
 }

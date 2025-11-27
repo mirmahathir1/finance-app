@@ -68,9 +68,5 @@ export function getFriendlyErrorMessage(
 /**
  * Helper to safely log unexpected errors (without interrupting the UI).
  */
-export function logError(context: string, error: unknown) {
-  if (process.env.NODE_ENV !== 'production') {
-    console.error(`[${context}]`, error)
-  }
-}
+export function logError(_context: string, _error: unknown) {}
 

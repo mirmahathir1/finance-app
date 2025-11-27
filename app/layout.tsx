@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import EmotionCacheProvider from '@/lib/emotion-cache'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { Providers } from '@/components/Providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -38,14 +39,16 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
       <body suppressHydrationWarning>
         <PWARegistration />
-        <ThemeProvider>
-          <ErrorBoundary>
-            <Providers>{children}</Providers>
-          </ErrorBoundary>
-        </ThemeProvider>
+        <EmotionCacheProvider>
+          <ThemeProvider>
+            <ErrorBoundary>
+              <Providers>{children}</Providers>
+            </ErrorBoundary>
+          </ThemeProvider>
+        </EmotionCacheProvider>
         <InstallPrompt />
       </body>
     </html>

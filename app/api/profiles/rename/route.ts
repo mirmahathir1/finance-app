@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuthenticatedUser } from '@/app/api/_lib/auth'
 import { success, errorResponse } from '@/app/api/auth/_lib/responses'
-
 export async function POST(request: NextRequest) {
   const { user, response } = await requireAuthenticatedUser()
   if (!user) {
@@ -40,8 +39,7 @@ export async function POST(request: NextRequest) {
     return success({
       updatedCount: result.count,
     })
-  } catch (error) {
-    console.error('rename profile error', error)
+  } catch {
     return errorResponse('Unable to rename profile.', 500)
   }
 }

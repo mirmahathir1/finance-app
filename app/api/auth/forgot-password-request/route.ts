@@ -50,8 +50,7 @@ export async function POST(request: Request) {
     }
 
     return successMessage('Password reset email sent')
-  } catch (error) {
-    console.error('forgot-password-request error', error)
+  } catch {
     return errorResponse('Unable to start password reset. Please try again later.', 500)
   }
 }

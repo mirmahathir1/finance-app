@@ -25,9 +25,7 @@ try {
   // Write build info
   fs.writeFileSync(outputPath, JSON.stringify(buildInfo, null, 2), 'utf8');
 
-  console.log('Build info generated:', buildInfo);
 } catch (error) {
-  console.error('Error generating build info:', error.message);
   process.exit(1);
 }
 

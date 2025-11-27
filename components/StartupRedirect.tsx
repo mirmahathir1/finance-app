@@ -37,7 +37,7 @@ export function StartupRedirect({ children }: { children: React.ReactNode }) {
 
     // CRITICAL: Check authentication FIRST - do this immediately, don't wait
     // Allow Guest Mode to proceed (API is intercepted client-side)
-    
+
     // If not authenticated (no real user), redirect to sign-in immediately
     if (!user) {
       // Use replace to avoid adding to history
@@ -66,8 +66,8 @@ export function StartupRedirect({ children }: { children: React.ReactNode }) {
 
         // If we're on the root path and have profiles, we're already on dashboard
         // No redirect needed
-      } catch (error) {
-        console.error('Error in startup redirect:', error)
+      } catch {
+        // Ignore startup redirect errors
       }
     }
 

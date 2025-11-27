@@ -17,16 +17,13 @@ import { syncVercelEnvToFile } from './sync-env'
 /**
  * Executes a command and handles errors
  */
-function execCommand(command: string, description: string): void {
-  console.log(`\n📦 ${description}...`)
+function execCommand(command: string, _description: string): void {
   try {
     execSync(command, {
       stdio: 'inherit',
       env: process.env,
     })
-    console.log(`✅ ${description} completed`)
-  } catch (error) {
-    console.error(`❌ ${description} failed:`, error)
+  } catch {
     process.exit(1)
   }
 }
@@ -35,16 +32,12 @@ function execCommand(command: string, description: string): void {
  * Main build function
  */
 async function build(): Promise<void> {
-  console.log('🚀 Starting Vercel build process...\n')
-  
   try {
     // Step 1: Sync environment variables
-    console.log('📝 Syncing environment variables...')
     syncVercelEnvToFile()
     
     // Verify DATABASE_URL is set before proceeding
     if (!process.env.DATABASE_URL) {
-      console.error('❌ DATABASE_URL environment variable is not set')
       process.exit(1)
     }
     
@@ -69,10 +62,7 @@ async function build(): Promise<void> {
       'npx next build --webpack',
       'Building Next.js application'
     )
-    
-    console.log('\n🎉 Build completed successfully!')
-  } catch (error) {
-    console.error('\n❌ Build failed:', error)
+  } catch {
     process.exit(1)
   }
 }

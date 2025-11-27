@@ -27,7 +27,7 @@ if (require.main === module) {
   const run = async () => {
     if (action === 'reset') {
       await resetDb()
-      console.log('Database reset successfully.')
+      process.stdout.write('Database reset successfully.\n')
       return
     }
     throw new Error(`Unknown action "${action}". Expected "reset".`)
@@ -35,7 +35,9 @@ if (require.main === module) {
 
   run()
     .catch((error) => {
-      console.error(error)
+      const message =
+        error instanceof Error ? error.stack ?? error.message : String(error)
+      process.stderr.write(`${message}\n`)
       process.exitCode = 1
     })
     .finally(() => {

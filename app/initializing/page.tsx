@@ -235,8 +235,7 @@ export default function InitializingPage() {
             }, 500)
           }
         }
-      } catch (error) {
-        console.error('Error during initialization:', error)
+      } catch {
         // On error, redirect to dashboard anyway
         setTimeout(() => {
           router.replace('/')

@@ -81,14 +81,12 @@ export async function PATCH(request: Request) {
       message.includes('relation') &&
       message.includes('does not exist')
     ) {
-      console.error('change password error: database schema missing', error)
       return errorResponse(
         'Database not initialized. Please run migrations.',
         500
       )
     }
 
-    console.error('change password error', error)
     return errorResponse(
       'Unable to update password. Please try again later.',
       500

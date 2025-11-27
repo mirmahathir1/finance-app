@@ -16,7 +16,6 @@ export function useInstallPrompt() {
     // Check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true)
-      console.log('[InstallPrompt] App is already installed')
       return
     }
 
@@ -26,7 +25,6 @@ export function useInstallPrompt() {
       const promptEvent = e as BeforeInstallPromptEvent
       setDeferredPrompt(promptEvent)
       setIsAvailable(true)
-      console.log('[InstallPrompt] beforeinstallprompt event received')
       // Store globally for access from other components
       ;(window as any).deferredPrompt = promptEvent
     }
@@ -36,11 +34,9 @@ export function useInstallPrompt() {
       const storedPrompt = (window as any).deferredPrompt as BeforeInstallPromptEvent
       setDeferredPrompt(storedPrompt)
       setIsAvailable(true)
-      console.log('[InstallPrompt] Using stored deferred prompt')
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-    console.log('[InstallPrompt] Listening for beforeinstallprompt event')
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -60,8 +56,8 @@ export function useInstallPrompt() {
             setIsAvailable(false)
             ;(window as any).deferredPrompt = null
           }
-        } catch (error) {
-          console.error('Install prompt error:', error)
+        } catch {
+          // Ignore install prompt errors
         }
       }
       return
@@ -76,8 +72,8 @@ export function useInstallPrompt() {
         setIsAvailable(false)
         ;(window as any).deferredPrompt = null
       }
-    } catch (error) {
-      console.error('Install prompt error:', error)
+    } catch {
+      // Ignore install prompt errors
     }
   }
 

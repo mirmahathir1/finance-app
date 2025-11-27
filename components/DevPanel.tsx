@@ -72,7 +72,6 @@ export function DevPanel() {
         })
       }
     } catch (error: any) {
-      console.error('Error toggling guest mode:', error)
       setSnackbar({
         open: true,
         message: error?.message || 'Failed to toggle guest mode',
@@ -91,13 +90,13 @@ export function DevPanel() {
       guestDataService.reset()
       try {
         sessionStorage.clear()
-      } catch (error) {
-        console.warn('Unable to clear sessionStorage during hard reset:', error)
+      } catch {
+        // Ignore session storage clearing failures
       }
       try {
         localStorage.clear()
-      } catch (error) {
-        console.warn('Unable to clear localStorage during hard reset:', error)
+      } catch {
+        // Ignore local storage clearing failures
       }
       setSnackbar({
         open: true,
@@ -106,7 +105,6 @@ export function DevPanel() {
       })
       router.refresh()
     } catch (error: any) {
-      console.error('Error performing hard reset:', error)
       setSnackbar({
         open: true,
         message: error?.message || 'Failed to clear local data.',
@@ -119,41 +117,55 @@ export function DevPanel() {
 
   if (isHidden) {
     return (
-      <Fab
-        color="default"
-        size="small"
+      <IconButton
         onClick={handleShow}
+        size="small"
         sx={{
           position: 'fixed',
-          bottom: 24,
-          right: 24,
+          bottom: 8,
+          right: 8,
           zIndex: 1000,
+          width: 24,
+          height: 24,
+          minWidth: 24,
+          padding: 0.5,
+          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.2)',
+          },
         }}
         aria-label="Show Dev Panel"
       >
-        <ArrowUpIcon />
-      </Fab>
+        <ArrowUpIcon sx={{ fontSize: 16 }} />
+      </IconButton>
     )
   }
 
   return (
     <>
       {/* Floating toggle button */}
-      <Fab
-        color={isExpanded ? 'secondary' : 'default'}
-        size="small"
+      <IconButton
         onClick={handleToggleExpand}
+        size="small"
         sx={{
           position: 'fixed',
-          bottom: isExpanded ? 280 : 24,
-          right: 24,
+          bottom: isExpanded ? 280 : 8,
+          right: 8,
           zIndex: 1001,
           transition: 'bottom 0.3s ease-in-out',
+          width: 24,
+          height: 24,
+          minWidth: 24,
+          padding: 0.5,
+          backgroundColor: isExpanded ? 'rgba(156, 39, 176, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+          '&:hover': {
+            backgroundColor: isExpanded ? 'rgba(156, 39, 176, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+          },
         }}
         aria-label={isExpanded ? 'Collapse Dev Panel' : 'Expand Dev Panel'}
       >
-        {isExpanded ? <ArrowDownIcon /> : <ArrowUpIcon />}
-      </Fab>
+        {isExpanded ? <ArrowDownIcon sx={{ fontSize: 16 }} /> : <ArrowUpIcon sx={{ fontSize: 16 }} />}
+      </IconButton>
 
       {/* Expandable panel */}
       <Slide direction="up" in={isExpanded} mountOnEnter unmountOnExit>

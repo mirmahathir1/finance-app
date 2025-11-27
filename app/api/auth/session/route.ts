@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     const token = await getSessionToken()
+
     if (!token) {
       return errorResponse('Not authenticated.', 401)
     }
@@ -38,7 +39,6 @@ export async function GET() {
       return errorResponse('Not authenticated.', 401)
     }
 
-    console.error('session error', error)
     return errorResponse('Unable to fetch session.', 500)
   }
 }

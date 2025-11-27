@@ -16,6 +16,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const log = (message = '') => process.stdout.write(`${message}\n`);
+
 // CSV headers expected by the finance app
 const CSV_HEADERS = [
   'profile',
@@ -319,24 +321,24 @@ function main() {
   const incomeFile = path.join(baseDir, 'Life Expenses - income_sheet.csv');
   const outputFile = path.join(baseDir, 'restore.csv');
 
-  console.log('Reading expense CSV...');
+  log('Reading expense CSV...');
   const expenseResult = parseExpenseCsv(expenseFile);
   const expenses = expenseResult.rows;
   const expenseFailedDates = expenseResult.failedDates;
-  console.log(`Parsed ${expenses.length} expenses`);
+  log(`Parsed ${expenses.length} expenses`);
 
-  console.log('Reading income CSV...');
+  log('Reading income CSV...');
   const incomeResult = parseIncomeCsv(incomeFile);
   const incomes = incomeResult.rows;
   const incomeFailedDates = incomeResult.failedDates;
-  console.log(`Parsed ${incomes.length} incomes`);
+  log(`Parsed ${incomes.length} incomes`);
 
   // Combine and sort by date
   const allTransactions = [...expenses, ...incomes].sort((a, b) => {
     return a.occurredAt.getTime() - b.occurredAt.getTime();
   });
 
-  console.log(`Total transactions: ${allTransactions.length}`);
+  log(`Total transactions: ${allTransactions.length}`);
 
   // Generate CSV
   const csvRows = [
@@ -350,36 +352,36 @@ function main() {
   fs.writeFileSync(outputFile, csv, 'utf-8');
   
   // Report results
-  console.log(`\n✅ Successfully created restore CSV: ${outputFile}`);
-  console.log(`   Total transactions: ${allTransactions.length}`);
-  console.log(`   Expenses: ${expenses.length}`);
-  console.log(`   Incomes: ${incomes.length}`);
+  log(`\n✅ Successfully created restore CSV: ${outputFile}`);
+  log(`   Total transactions: ${allTransactions.length}`);
+  log(`   Expenses: ${expenses.length}`);
+  log(`   Incomes: ${incomes.length}`);
   
   // Report failed date parsing
   const totalFailedDates = expenseFailedDates.length + incomeFailedDates.length;
-  console.log(`\n📊 Date Parsing Summary:`);
-  console.log(`   Failed to parse dates: ${totalFailedDates}`);
-  console.log(`   - From expenses: ${expenseFailedDates.length}`);
-  console.log(`   - From incomes: ${incomeFailedDates.length}`);
+  log(`\n📊 Date Parsing Summary:`);
+  log(`   Failed to parse dates: ${totalFailedDates}`);
+  log(`   - From expenses: ${expenseFailedDates.length}`);
+  log(`   - From incomes: ${incomeFailedDates.length}`);
   
   if (totalFailedDates > 0) {
-    console.log(`\n⚠️  Dates that could not be parsed:\n`);
+    log(`\n⚠️  Dates that could not be parsed:\n`);
     
     if (expenseFailedDates.length > 0) {
-      console.log(`   Expenses (${expenseFailedDates.length}):`);
+      log(`   Expenses (${expenseFailedDates.length}):`);
       expenseFailedDates.forEach(({ row, dateStr, description }) => {
-        console.log(`     Row ${row}: "${dateStr}" (${description || 'no description'})`);
+        log(`     Row ${row}: "${dateStr}" (${description || 'no description'})`);
       });
     }
     
     if (incomeFailedDates.length > 0) {
-      console.log(`   Incomes (${incomeFailedDates.length}):`);
+      log(`   Incomes (${incomeFailedDates.length}):`);
       incomeFailedDates.forEach(({ row, dateStr, description }) => {
-        console.log(`     Row ${row}: "${dateStr}" (${description || 'no description'})`);
+        log(`     Row ${row}: "${dateStr}" (${description || 'no description'})`);
       });
     }
   } else {
-    console.log(`   ✅ All dates parsed successfully!`);
+    log(`   ✅ All dates parsed successfully!`);
   }
 }
 

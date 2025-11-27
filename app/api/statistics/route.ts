@@ -30,7 +30,6 @@ async function getConversionRates(baseCurrency: string): Promise<Record<string, 
     })
     
     if (!response.ok) {
-      console.error(`Exchange rate API error: ${response.status} ${response.statusText}`)
       return {}
     }
     
@@ -41,12 +40,11 @@ async function getConversionRates(baseCurrency: string): Promise<Record<string, 
     }
     
     if (data.error) {
-      console.error(`Exchange rate API error: ${data.error}`)
+      return {}
     }
     
     return {}
-  } catch (error) {
-    console.error('Failed to fetch exchange rates:', error)
+  } catch {
     return {}
   }
 }
@@ -308,13 +306,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('statistics error', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    const errorStack = error instanceof Error ? error.stack : undefined
-    console.error('Statistics error details:', {
-      message: errorMessage,
-      stack: errorStack,
-    })
     return errorResponse(`Unable to load statistics: ${errorMessage}`, 500)
   }
 }

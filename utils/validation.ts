@@ -13,7 +13,7 @@ export function validateEmail(value: string): string | null {
   return null
 }
 
-export function validatePassword(value: string, { minLength = 8 } = {}): string | null {
+export function validatePassword(value: string, { minLength = 6 } = {}): string | null {
   if (!value) {
     return 'Password is required'
   }

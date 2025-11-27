@@ -34,8 +34,7 @@ export async function GET(request: Request) {
       email: user.email,
       expiresAt: user.resetPasswordTokenExpiresAt,
     })
-  } catch (error) {
-    console.error('reset-password-verify error', error)
+  } catch {
     return errorResponse('Unable to verify reset token.', 500)
   }
 }

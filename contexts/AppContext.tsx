@@ -59,8 +59,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // Set default if not found
         setDateFormatState(DEFAULT_DATE_FORMAT)
       }
-    } catch (error) {
-      console.error('Error loading app settings:', error)
+    } catch {
       // Use default on error
       setDateFormatState(DEFAULT_DATE_FORMAT)
     } finally {
@@ -84,7 +83,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // Update state
       setDateFormatState(format)
     } catch (error) {
-      console.error('Error saving date format:', error)
       throw error
     }
   }

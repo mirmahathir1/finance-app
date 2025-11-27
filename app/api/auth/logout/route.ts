@@ -13,15 +13,14 @@ export async function POST() {
         where: { sessionToken: token },
         data: { sessionToken: null },
       })
-    }
+}
 
     await clearSessionCookie()
 
     return successMessage('Logged out successfully.')
-  } catch (error) {
-    console.error('logout error', error)
+  } catch {
     await clearSessionCookie()
     return successMessage('Logged out successfully.')
   }
-}
+})
 

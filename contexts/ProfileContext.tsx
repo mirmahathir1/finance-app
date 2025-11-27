@@ -125,7 +125,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
 
     const initialize = async () => {
-      await loadProfiles({ showLoader: false })
+      // Show loader during initialization to prevent race conditions
+      // This ensures pages wait for profiles to load before checking profilesLoading
+      await loadProfiles({ showLoader: true })
       // Auto-populate is now handled by the setup page using the catalog API
       // This avoids multiple paginated API calls on mount
     }
@@ -150,7 +152,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       setProfiles(allProfiles)
       setActiveProfile(active)
     } catch (error) {
-      console.error('Error loading profiles:', error)
       setError(getFriendlyErrorMessage(error, 'Failed to load profiles.'))
     } finally {
       activeLoadCountRef.current = Math.max(0, activeLoadCountRef.current - 1)
@@ -217,7 +218,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
       return { added, skipped }
     } catch (error) {
-      console.error('Error importing profiles:', error)
       throw error
     }
   }

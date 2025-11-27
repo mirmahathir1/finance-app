@@ -32,8 +32,7 @@ export async function DELETE() {
     await clearSessionCookie()
 
     return successMessage('Account deleted successfully.')
-  } catch (error) {
-    console.error('delete account error', error)
+  } catch {
     return errorResponse(
       'Unable to delete account. Please try again later.',
       500

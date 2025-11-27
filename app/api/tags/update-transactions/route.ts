@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma'
 import { requireAuthenticatedUser } from '@/app/api/_lib/auth'
 import { success, errorResponse } from '@/app/api/auth/_lib/responses'
 import type { TransactionType } from '@prisma/client'
-
 export async function POST(request: NextRequest) {
   const { user, response } = await requireAuthenticatedUser()
   if (!user) {
@@ -86,8 +85,7 @@ export async function POST(request: NextRequest) {
     return success({
       updatedCount: Number(result),
     })
-  } catch (error) {
-    console.error('update transactions for tag error', error)
+  } catch {
     return errorResponse('Unable to update transactions.', 500)
   }
 }

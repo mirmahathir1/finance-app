@@ -130,7 +130,6 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('list transactions error', error)
     return errorResponse('Unable to load transactions.', 500)
   }
 }
@@ -212,7 +211,6 @@ export async function POST(request: Request) {
       { status: 201 }
     )
   } catch (error: any) {
-    console.error('create transaction error', error)
     
     // Provide more detailed error information for debugging
     const errorMessage = error?.message || 'Unknown error'
@@ -228,14 +226,6 @@ export async function POST(request: Request) {
     if (errorMessage.includes('Foreign key constraint')) {
       return errorResponse('Invalid user reference. Please try logging in again.', 400)
     }
-    
-    // Log full error details for debugging
-    console.error('Full error details:', {
-      message: errorMessage,
-      code: errorCode,
-      meta: error?.meta,
-      stack: error?.stack,
-    })
     
     return errorResponse(
       `Unable to create transaction: ${errorMessage}. Please try again.`,

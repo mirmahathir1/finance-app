@@ -44,54 +44,13 @@ export default function DashboardPage() {
   const [isLoadingStats, setIsLoadingStats] = useState(false)
   const [statsError, setStatsError] = useState<string | null>(null)
 
-  // Generate random dark colors for action buttons (generated once on mount)
-  const [buttonColors] = useState(() => {
-    const generateRandomDarkColor = () => {
-      // Generate random RGB values between 0-150 (dark range)
-      const r = Math.floor(Math.random() * 100) + 0 // 0-100
-      const g = Math.floor(Math.random() * 100) + 0 // 0-100
-      const b = Math.floor(Math.random() * 100) + 0 // 0-100
-      return `rgb(${r}, ${g}, ${b})`
-    }
-
-    const generateRandomDarkHex = () => {
-      // Generate hex values between 00-99 (dark range)
-      const r = Math.floor(Math.random() * 100).toString(16).padStart(2, '0')
-      const g = Math.floor(Math.random() * 100).toString(16).padStart(2, '0')
-      const b = Math.floor(Math.random() * 100).toString(16).padStart(2, '0')
-      return `#${r}${g}${b}`
-    }
-
-    // Generate 3 slightly different shades for gradient
-    const generateGradient = () => {
-      const baseR = Math.floor(Math.random() * 80) + 0 // 0-80
-      const baseG = Math.floor(Math.random() * 80) + 0 // 0-80
-      const baseB = Math.floor(Math.random() * 80) + 0 // 0-80
-      
-      const toHex = (n: number) => n.toString(16).padStart(2, '0')
-      
-      const color1 = `#${toHex(baseR)}${toHex(baseG)}${toHex(baseB)}`
-      const color2 = `#${toHex(Math.min(baseR + 20, 100))}${toHex(Math.min(baseG + 20, 100))}${toHex(Math.min(baseB + 20, 100))}`
-      const color3 = `#${toHex(Math.min(baseR + 40, 120))}${toHex(Math.min(baseG + 40, 120))}${toHex(Math.min(baseB + 40, 120))}`
-      
-      return `linear-gradient(135deg, ${color1} 0%, ${color2} 50%, ${color3} 100%)`
-    }
-
-    // Generate 8 random gradients (one for each button)
-    return Array.from({ length: 8 }, () => generateGradient())
-  })
+  // Consistent blue gradient for all action buttons
+  const buttonGradient = 'linear-gradient(135deg, #1976d2 0%, #1565c0 50%, #0d47a1 100%)'
 
   // Allow guest mode to render (API is intercepted)
 
   const loadStatistics = useCallback(async () => {
-    console.log('[Dashboard] loadStatistics called', {
-      activeProfile,
-      defaultCurrency: defaultCurrency?.code,
-      currenciesLoading,
-    })
-
     if (!activeProfile) {
-      console.log('[Dashboard] No active profile, skipping statistics')
       setStatistics(null)
       setStatsError(null)
       setIsLoadingStats(false)
@@ -100,15 +59,12 @@ export default function DashboardPage() {
 
     const currencyCode = defaultCurrency?.code
     if (!currencyCode) {
-      console.log('[Dashboard] No currency code', { currenciesLoading })
       // Show loading state while waiting for currency to load
       if (!currenciesLoading) {
         // Currency is loaded but not set, stop loading
-        console.log('[Dashboard] Currency loaded but not set')
         setIsLoadingStats(false)
       } else {
         // Currency is still loading, show loading state
-        console.log('[Dashboard] Currency still loading, showing skeleton')
         setIsLoadingStats(true)
       }
       return
@@ -121,8 +77,6 @@ export default function DashboardPage() {
       const from = format(startOfMonth(now), 'yyyy-MM-dd')
       const to = format(endOfMonth(now), 'yyyy-MM-dd')
 
-      console.log('[Dashboard] Fetching statistics', { profile: activeProfile, from, to, currency: currencyCode })
-
       const response = await api.getStatistics({
         profile: activeProfile,
         from,
@@ -130,23 +84,18 @@ export default function DashboardPage() {
         currency: currencyCode,
       })
 
-      console.log('[Dashboard] Statistics response', response)
-
       if (response.success && response.data) {
         setStatistics(response.data)
         setStatsError(null)
-        console.log('[Dashboard] Statistics loaded successfully')
       } else {
         setStatistics(null)
         setStatsError(
           !response.success ? response.error.message : 'Failed to load statistics.'
         )
-        console.log('[Dashboard] Statistics failed', response)
       }
     } catch (error) {
       setStatistics(null)
       setStatsError(getFriendlyErrorMessage(error, 'Failed to load statistics.'))
-      console.error('[Dashboard] Statistics error', error)
     } finally {
       setIsLoadingStats(false)
     }
@@ -178,98 +127,55 @@ export default function DashboardPage() {
       {
         title: 'Create Transaction',
         icon: <AddIcon />,
-        color: 'primary' as const,
         onClick: navigateTo('/transactions/create'),
       },
       {
         title: 'View Transactions',
         icon: <ListIcon />,
-        color: 'primary' as const,
         onClick: navigateTo('/transactions'),
       },
       {
         title: 'Edit Tags',
         icon: <LabelIcon />,
-        color: 'secondary' as const,
         onClick: navigateTo('/tags'),
       },
       {
         title: 'Manage Currencies',
         icon: <CurrencyExchangeIcon />,
-        color: 'secondary' as const,
         onClick: navigateTo('/currencies'),
       },
       {
         title: 'Statistics',
         icon: <BarChartIcon />,
-        color: 'info' as const,
         onClick: navigateTo('/statistics'),
       },
       {
         title: 'Manage Profiles',
         icon: <PeopleIcon />,
-        color: 'info' as const,
         onClick: navigateTo('/profiles'),
       },
       {
         title: 'Backup & Restore',
         icon: <BackupIcon />,
-        color: 'warning' as const,
         onClick: navigateTo('/backup-restore'),
       },
       {
         title: 'Settings',
         icon: <SettingsIcon />,
-        color: 'info' as const,
         onClick: navigateTo('/settings'),
       },
     ],
     [navigateTo]
   )
 
-  // Check authentication first - redirect to sign-in if not authenticated
-  useEffect(() => {
-    // Wait for auth to load first
-    if (authLoading) return
-    
-    // Allow guest mode to proceed (API is intercepted)
-    
-    // If not authenticated (no real user), redirect to sign-in immediately
-    if (!user) {
-      router.replace('/auth/signin')
-      return
-    }
-    
-    // Only check profiles if we have a real authenticated user
-    // Wait for profiles to load
-    if (profilesLoading) return
-    
-    // If authenticated but no profiles exist, redirect to setup
-    if (user && profiles.length === 0) {
-      router.replace('/setup')
-      return
-    }
-  }, [user, isGuestMode, authLoading, profilesLoading, profiles.length, router])
-  
   // Show loading state while checking auth
+  // StartupRedirect handles all authentication redirects
   if (authLoading) {
     return null
   }
   
-  // If not authenticated (no real user), don't render (will redirect)
-  if (!user) {
-    return null
-  }
-  
-  // Allow guest mode to render
-  
   // Wait for profiles to load if authenticated
   if (profilesLoading) {
-    return null
-  }
-  
-  // If no profiles exist, don't render (will redirect to setup)
-  if (user && profiles.length === 0) {
     return null
   }
 
@@ -308,18 +214,6 @@ export default function DashboardPage() {
         </AnimatedSection>
 
         {/* Quick Summary */}
-        {(() => {
-          console.log('[Dashboard] Render state', {
-            activeProfile,
-            hasStatistics: !!statistics,
-            statsError,
-            isLoadingStats,
-            defaultCurrency: defaultCurrency?.code,
-            currenciesLoading,
-          })
-          return null
-        })()}
-
         {statsError && (
           <ErrorState
             title="Unable to load statistics"
@@ -452,42 +346,37 @@ export default function DashboardPage() {
                 gap: 2,
               }}
             >
-              {actionButtons.map((button, index) => {
-                // Use random dark gradient for each button
-                const randomGradient = buttonColors[index] || buttonColors[0]
-
-                return (
-                  <Button
-                    key={button.title}
-                    fullWidth
-                    variant="contained"
-                    startIcon={button.icon}
-                    onClick={button.onClick}
-                    className="interactive-card"
-                    sx={{
-                      py: 2,
-                      height: '100%',
-                      minHeight: 80,
-                      flexDirection: 'column',
-                      gap: 1,
-                      transitionDelay: `${index * 30}ms`,
-                      background: randomGradient,
-                      color: 'white',
-                      boxShadow: 3,
-                      transition: 'transform 0.2s, box-shadow 0.2s',
-                      '&:hover': {
-                        transform: 'translateY(-4px)',
-                        boxShadow: 6,
-                        background: randomGradient,
-                      },
-                    }}
-                  >
-                    <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>
-                      {button.title}
-                    </Typography>
-                  </Button>
-                )
-              })}
+              {actionButtons.map((button, index) => (
+                <Button
+                  key={button.title}
+                  fullWidth
+                  variant="contained"
+                  startIcon={button.icon}
+                  onClick={button.onClick}
+                  className="interactive-card"
+                  sx={{
+                    py: 2,
+                    height: '100%',
+                    minHeight: 80,
+                    flexDirection: 'column',
+                    gap: 1,
+                    transitionDelay: `${index * 30}ms`,
+                    background: buttonGradient,
+                    color: 'white',
+                    boxShadow: 3,
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: 6,
+                      background: buttonGradient,
+                    },
+                  }}
+                >
+                  <Typography variant="body1" fontWeight="bold" sx={{ color: 'white' }}>
+                    {button.title}
+                  </Typography>
+                </Button>
+              ))}
             </Box>
           </Paper>
         </AnimatedSection>

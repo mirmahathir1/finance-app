@@ -15,8 +15,7 @@ export async function GET() {
       timestamp: new Date().toISOString(),
       catalogValidation: getCatalogValidationStats(),
     })
-  } catch (error) {
-    console.error('Health check failed', error)
+  } catch {
     return NextResponse.json(
       {
         ok: false,

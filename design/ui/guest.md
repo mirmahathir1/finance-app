@@ -145,8 +145,7 @@ export async function getGuestModeState(): Promise<boolean> {
         resolve(result ? result.value === true : false);
       };
     });
-  } catch (error) {
-    console.error('Error reading guest mode state from IndexedDB:', error);
+  } catch {
     return false;
   }
 }
@@ -166,7 +165,6 @@ export async function setGuestModeState(value: boolean): Promise<void> {
       request.onsuccess = () => resolve();
     });
   } catch (error) {
-    console.error('Error writing guest mode state to IndexedDB:', error);
     throw error;
   }
 }
@@ -186,7 +184,6 @@ export async function clearGuestModeState(): Promise<void> {
       request.onsuccess = () => resolve();
     });
   } catch (error) {
-    console.error('Error clearing guest mode state from IndexedDB:', error);
     throw error;
   }
 }

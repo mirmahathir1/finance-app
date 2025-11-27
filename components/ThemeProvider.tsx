@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, useMemo } from 'react'
-import { ThemeProvider as MUIThemeProvider } from '@mui/material/styles'
+import { ThemeProvider as MUIThemeProvider, useTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { lightTheme, darkTheme } from '@/utils/theme'
 
@@ -70,6 +70,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return (
       <MUIThemeProvider theme={lightTheme}>
         <CssBaseline />
+        <BodyBackgroundColor />
         {children}
       </MUIThemeProvider>
     )
@@ -79,9 +80,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     <ThemeContext.Provider value={contextValue}>
       <MUIThemeProvider theme={theme}>
         <CssBaseline />
+        <BodyBackgroundColor />
         {children}
       </MUIThemeProvider>
     </ThemeContext.Provider>
   )
+}
+
+// Component to set body background color based on theme
+// This ensures the background color is applied correctly in dark mode
+function BodyBackgroundColor() {
+  const theme = useTheme()
+  
+  useEffect(() => {
+    // Set background color with !important to ensure it overrides any conflicting styles
+    const bgColor = theme.palette.background.default
+    document.body.style.setProperty('background-color', bgColor, 'important')
+    
+    return () => {
+      document.body.style.removeProperty('background-color')
+    }
+  }, [theme.palette.background.default])
+
+  return null
 }
 

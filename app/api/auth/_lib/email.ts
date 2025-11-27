@@ -14,16 +14,6 @@ const resolvedProvider =
 
 const EMAIL_PROVIDER = resolvedProvider.toLowerCase()
 
-// Debug logging for email configuration
-if (process.env.NODE_ENV === 'production') {
-  console.log('[Email Config Debug]', {
-    EMAIL_PROVIDER,
-    hasBrevoApiKey: !!BREVO_API_KEY,
-    brevoApiKeyLength: BREVO_API_KEY?.length,
-    rawEmailProvider: process.env.EMAIL_PROVIDER,
-  })
-}
-
 // Use VERCEL_URL for automatic deployment URL, or fallback to NEXT_PUBLIC_APP_URL
 // This function is called at runtime to get the current deployment URL
 function getAppUrl(): string {
@@ -31,17 +21,17 @@ function getAppUrl(): string {
   if (process.env.NEXT_PUBLIC_APP_URL) {
     return process.env.NEXT_PUBLIC_APP_URL
   }
-  
+
   // Second priority: Vercel deployment URL (runtime)
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`
   }
-  
+
   // Third priority: Check if running on Vercel by checking for Vercel-specific env vars
   if (process.env.VERCEL === '1' && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
     return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
   }
-  
+
   // Fallback: localhost for development
   return 'http://localhost:3000'
 }
@@ -62,7 +52,6 @@ type EmailPayload = {
 
 async function sendEmail(payload: EmailPayload): Promise<void> {
   if (FORCE_GUEST_MODE || EMAIL_PROVIDER === 'mock') {
-    console.info('[Email mocked]', payload)
     return
   }
 
@@ -86,8 +75,7 @@ async function sendEmail(payload: EmailPayload): Promise<void> {
         html: payload.htmlContent,
       })
       return
-    } catch (error) {
-      console.error('[Email] Failed to send via MailHog SMTP', error)
+    } catch {
       return
     }
   }
@@ -113,24 +101,14 @@ async function sendEmail(payload: EmailPayload): Promise<void> {
       })
 
       if (!response.ok) {
-        const errorBody = await response.text()
-        console.error(
-          '[Email] Brevo API error',
-          response.status,
-          response.statusText,
-          errorBody
-        )
+        await response.text()
       }
-    } catch (error) {
-      console.error('[Email] Failed to send email via Brevo', error)
+    } catch {
     }
     return
   }
 
-  console.warn(
-    '[Email] No valid provider configured. Set EMAIL_PROVIDER to "mailhog" or "brevo".'
-  )
-  console.info('[Email fallback log]', payload)
+  return
 }
 
 export async function sendVerificationEmail(
@@ -138,13 +116,6 @@ export async function sendVerificationEmail(
   token: string
 ): Promise<void> {
   const APP_URL = getAppUrl() // Get URL at runtime
-  console.log('[Email URL Debug]', {
-    APP_URL,
-    VERCEL_URL: process.env.VERCEL_URL,
-    VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-    VERCEL: process.env.VERCEL,
-  })
   const verificationLink = `${APP_URL}/auth/verify?token=${token}`
   await sendEmail({
     to,

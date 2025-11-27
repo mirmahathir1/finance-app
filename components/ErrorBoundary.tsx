@@ -30,11 +30,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return { hasError: true, error }
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('ErrorBoundary caught an error', error, info)
-    }
-  }
+  componentDidCatch(_error: Error, _info: ErrorInfo) {}
 
   componentDidUpdate(prevProps: ErrorBoundaryProps) {
     if (!this.state.hasError) {

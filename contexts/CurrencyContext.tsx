@@ -159,14 +159,11 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       }
       setError(null)
       const allCurrencies = await getAllCurrencies()
-      console.log('[CurrencyContext] Loaded currencies from IndexedDB:', allCurrencies)
       setCurrencies(allCurrencies)
       const defaultEntry =
         allCurrencies.find((currency) => currency.isDefault) || null
-      console.log('[CurrencyContext] Default currency:', defaultEntry)
       setDefaultCurrency(defaultEntry)
     } catch (error) {
-      console.error('Error loading currencies:', error)
       setError(getFriendlyErrorMessage(error, 'Failed to load currencies.'))
     } finally {
       activeLoadCountRef.current = Math.max(0, activeLoadCountRef.current - 1)
@@ -313,8 +310,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         try {
           await addCurrencyDB(currencyCode, false)
           added++
-        } catch (error) {
-          console.error(`Error adding currency "${currencyCode}":`, error)
+        } catch {
           skipped++
         }
       }

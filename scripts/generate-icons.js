@@ -21,10 +21,7 @@ async function generateIcons() {
     // Create output directory
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
-      console.log(`Created directory: ${outputDir}`);
     }
-
-    console.log('Generating icons...');
 
     // Generate PNG icons
     const pngPromises = iconSizes.map(async (size) => {
@@ -36,7 +33,6 @@ async function generateIcons() {
         })
         .png()
         .toFile(outputPath);
-      console.log(`✓ Generated ${outputPath}`);
     });
 
     await Promise.all(pngPromises);
@@ -58,19 +54,14 @@ async function generateIcons() {
     const icoBuffer = await toIco(faviconBuffers);
     const faviconPath = path.join(outputDir, 'favicon.ico');
     fs.writeFileSync(faviconPath, icoBuffer);
-    console.log(`✓ Generated ${faviconPath}`);
 
     // Copy 180x180 as apple-touch-icon
     const appleTouchIcon = path.join(outputDir, 'icon-180x180.png');
     const appleTouchIconDest = path.join(outputDir, 'apple-touch-icon.png');
     if (fs.existsSync(appleTouchIcon)) {
       fs.copyFileSync(appleTouchIcon, appleTouchIconDest);
-      console.log(`✓ Generated ${appleTouchIconDest}`);
     }
-
-    console.log('\n✅ All icons generated successfully!');
-  } catch (error) {
-    console.error('❌ Error generating icons:', error.message);
+  } catch {
     process.exit(1);
   }
 }

@@ -73,8 +73,7 @@ export async function POST(request: Request) {
         expiresAt,
       },
     })
-  } catch (error) {
-    console.error('signup-request error', error)
+  } catch {
     return errorResponse('Unable to start signup flow. Please try again later.', 500)
   }
 }

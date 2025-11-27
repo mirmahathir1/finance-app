@@ -71,8 +71,7 @@ export async function GET() {
         'Cache-Control': 'no-store',
       },
     })
-  } catch (error) {
-    console.error('backup export error', error)
+  } catch {
     return errorResponse('Unable to generate backup.', 500)
   }
 }

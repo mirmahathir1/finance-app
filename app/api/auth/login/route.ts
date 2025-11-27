@@ -58,14 +58,12 @@ export async function POST(request: Request) {
       errorMessage.includes('relation') &&
       errorMessage.includes('does not exist')
     ) {
-      console.error('login error: database schema not initialized', error)
       return errorResponse(
         'Database not initialized. Please run migrations.',
         500
       )
     }
 
-    console.error('login error', error)
     return errorResponse('Unable to sign in. Please try again later.', 500)
   }
 }

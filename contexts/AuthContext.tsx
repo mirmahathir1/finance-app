@@ -34,6 +34,32 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Module-level flags to persist across component remounts (React Strict Mode)
+// This prevents duplicate session checks when the component remounts
+// These flags persist for the entire page load and are reset on full page reload
+let globalAuthCheckCompleted = false
+let globalSessionCheckInProgress = false
+let cachedAuthResult: { user: User | null; isGuestMode: boolean } | null = null
+
+// Reset flags on page unload to allow fresh checks on next page load
+// Also reset on page visibility change to handle cases where the page is hidden/shown
+if (typeof window !== 'undefined') {
+  const resetAuthCache = () => {
+    globalAuthCheckCompleted = false
+    globalSessionCheckInProgress = false
+    cachedAuthResult = null
+  }
+
+  window.addEventListener('beforeunload', resetAuthCache)
+
+  // Also reset when page becomes visible (handles tab switching, etc.)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      // Don't reset on hide, only on unload
+    }
+  })
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const api = useApi()
@@ -42,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isGuestMode, setIsGuestMode] = useState(false)
   const [isBackendAvailable, setIsBackendAvailable] = useState(false)
   const hasCheckedInitialAuth = useRef(false)
+  const sessionCheckInProgress = useRef(false)
 
   const FORCE_GUEST_MODE =
     process.env.NEXT_PUBLIC_FORCE_GUEST_MODE === 'true'
@@ -53,14 +80,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       sessionStorage.clear()
-    } catch (error) {
-      console.warn('Unable to clear sessionStorage during logout:', error)
+    } catch {
+      // Ignore session storage failures
     }
 
     try {
       localStorage.clear()
-    } catch (error) {
-      console.warn('Unable to clear localStorage during logout:', error)
+    } catch {
+      // Ignore local storage failures
     }
   }
 
@@ -90,10 +117,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [checkBackendAvailability])
 
   useEffect(() => {
-    if (hasCheckedInitialAuth.current) {
-      return
+    // Prevent duplicate auth checks in React Strict Mode (development double-mounting)
+    // In production, this prevents redundant checks during component remounts
+    if (hasCheckedInitialAuth.current || globalAuthCheckCompleted) {
+      // Auth check already started/completed
+      // If we have cached results, restore them immediately
+      if (cachedAuthResult !== null) {
+        setUser(cachedAuthResult.user)
+        setIsGuestMode(cachedAuthResult.isGuestMode)
+        setIsLoading(false)
+        return
+      }
+      // No cache available - this shouldn't happen in normal flow
+      // but could occur if cache was explicitly cleared
+      hasCheckedInitialAuth.current = false
+      globalAuthCheckCompleted = false
     }
+
+    // Mark that we're starting the auth check to prevent duplicates
     hasCheckedInitialAuth.current = true
+    globalAuthCheckCompleted = true
 
     // Check authentication state on mount
     const checkAuth = async () => {
@@ -111,58 +154,104 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (guestPreference) {
           // In guest mode, set mock user
           const userData = await guestDataService.getCurrentUser()
-          setUser({
+          const guestUser = {
             id: userData.user.id,
             email: userData.user.email,
             passwordHash: '', // Not needed for guest mode
             emailVerifiedAt: userData.user.emailVerifiedAt || null,
             createdAt: userData.user.createdAt,
             updatedAt: userData.user.updatedAt,
-          })
+          }
+          setUser(guestUser)
+          // Cache the result for remounts
+          cachedAuthResult = { user: guestUser, isGuestMode: true }
         } else if (backendAvailable) {
           // Check for existing session
-          // Silently handle 404s (backend not available yet)
+          // Prevent duplicate calls using both ref and module-level flag
+          // (React Strict Mode causes remounts which reset refs)
+          // If a session check is already in progress, wait for it to complete
+          if (sessionCheckInProgress.current || globalSessionCheckInProgress) {
+            // Wait for the in-progress check to complete by polling
+            let attempts = 0
+            const maxAttempts = 50 // 5 seconds max wait (50 * 100ms)
+            while ((sessionCheckInProgress.current || globalSessionCheckInProgress) && attempts < maxAttempts) {
+              await new Promise(resolve => setTimeout(resolve, 100))
+              attempts++
+              // If cached result becomes available, use it
+              if (cachedAuthResult !== null) {
+                setUser(cachedAuthResult.user)
+                setIsGuestMode(cachedAuthResult.isGuestMode)
+                return
+              }
+            }
+          }
+          
+          sessionCheckInProgress.current = true
+          globalSessionCheckInProgress = true
+
           try {
             const response = await api.getCurrentUser()
+
             if (response.success && response.data) {
-              setUser({
+              const authenticatedUser = {
                 id: response.data.user.id,
                 email: response.data.user.email,
                 passwordHash: '', // Not stored in client
                 emailVerifiedAt: response.data.user.emailVerifiedAt || null,
                 createdAt: response.data.user.createdAt,
                 updatedAt: response.data.user.updatedAt,
-              })
+              }
+              setUser(authenticatedUser)
+              // Cache the result for remounts
+              cachedAuthResult = { user: authenticatedUser, isGuestMode: false }
+            } else if (!response.success && response.error?.code === '401') {
+              // 401 is expected when not authenticated - silently handle
+              setUser(null)
+              // Don't cache null results - allow re-check on next mount/reload
+              // This prevents stale null results from persisting across page reloads
+              cachedAuthResult = null
+            } else {
+              // Other error codes - don't cache null, allow re-check
+              setUser(null)
+              cachedAuthResult = null
             }
           } catch (sessionError: any) {
-            // Silently ignore 404s or network errors when backend is not available
-            // This is expected when building UI with mock data
+            // Silently ignore 404s, 401s, or network errors when backend is not available
+            // This is expected when building UI with mock data or when not authenticated
             const errorMessage = sessionError?.message || ''
             const is404 =
               errorMessage.includes('404') ||
               errorMessage.includes('not found') ||
               errorMessage.includes('Endpoint not found')
+            const is401 =
+              errorMessage.includes('401') ||
+              errorMessage.includes('Unauthorized') ||
+              errorMessage.includes('Not authenticated')
             const isNetworkError =
               errorMessage.includes('Failed to fetch') ||
               errorMessage.includes('NetworkError')
 
-            if (is404 || isNetworkError) {
-              // Backend not available - this is expected in development
+            if (is404 || is401 || isNetworkError) {
+              // Backend not available or not authenticated - this is expected
               // No need to log or handle
-            } else {
-              console.error('Error checking session:', sessionError)
+              setUser(null)
+              // Don't cache null results - allow re-check on next mount/reload
+              cachedAuthResult = null
             }
+          } finally {
+            sessionCheckInProgress.current = false
+            globalSessionCheckInProgress = false
           }
         } else {
           setUser(null)
+          // Don't cache null results - allow re-check on next mount/reload
+          cachedAuthResult = null
         }
-      } catch (error) {
-        // Only log unexpected errors
-        if (error instanceof Error && !error.message.includes('404')) {
-          console.error('Error checking auth state:', error)
-        }
+      } catch {
+        // Ignore unexpected errors during auth check
       } finally {
         setIsLoading(false)
+        // Don't reset globalAuthCheckCompleted - keep it true for entire page load
       }
     }
 
@@ -202,20 +291,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Clear browser storage to ensure clean state
         await clearBrowserStorage()
         
-        setUser({
+        const authenticatedUser = {
           id: response.data.user.id,
           email: response.data.user.email,
           passwordHash: '', // Not stored in client
           emailVerifiedAt: response.data.user.emailVerifiedAt || null,
           createdAt: response.data.user.createdAt,
           updatedAt: response.data.user.updatedAt,
-        })
+        }
+        setUser(authenticatedUser)
         
         // If we were NOT in guest mode, ensure guest mode is cleared
         // If we WERE in guest mode, keep it enabled so API stays mocked
         if (!wasGuestMode) {
           setIsGuestMode(false)
           await clearGuestModeState()
+          // Update cache
+          cachedAuthResult = { user: authenticatedUser, isGuestMode: false }
+        } else {
+          // Update cache - keep guest mode enabled
+          cachedAuthResult = { user: authenticatedUser, isGuestMode: true }
         }
         
         // Redirect to initialization page to handle prepopulation
@@ -250,20 +345,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 4. Clear local state
       setUser(null)
       setIsGuestMode(false)
+      // Update cache
+      cachedAuthResult = { user: null, isGuestMode: false }
       
       router.push('/auth/signin')
-    } catch (error) {
-      console.error('Error signing out:', error)
+    } catch (_error) {
       // Still clear local state even if API call fails
       try {
         await clearAllData()
         guestDataService.reset()
         await clearBrowserStorage()
-      } catch (clearError) {
-        console.error('Error clearing data during sign out:', clearError)
+      } catch {
+        // Ignore cleanup failures during sign out
       }
       setUser(null)
       setIsGuestMode(false)
+      // Update cache
+      cachedAuthResult = { user: null, isGuestMode: false }
       router.push('/auth/signin')
     }
   }
@@ -276,14 +374,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Set mock user from guest data service
       const userData = await guestDataService.getCurrentUser()
-      setUser({
+      const guestUser = {
         id: userData.user.id,
         email: userData.user.email,
         passwordHash: '',
         emailVerifiedAt: userData.user.emailVerifiedAt || null,
         createdAt: userData.user.createdAt,
         updatedAt: userData.user.updatedAt,
-      })
+      }
+      setUser(guestUser)
+      // Update cache
+      cachedAuthResult = { user: guestUser, isGuestMode: true }
 
       // Only redirect if we're not already on the signin page
       // This prevents clearing form data when entering guest mode from signin
@@ -292,7 +393,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       // If we're on signin page, stay there - StartupRedirect will handle the flow
     } catch (error) {
-      console.error('Error entering guest mode:', error)
       throw error
     }
   }
@@ -321,11 +421,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Reset local auth state
       setIsGuestMode(false)
       setUser(null)
+      // Update cache
+      cachedAuthResult = { user: null, isGuestMode: false }
       
       // Navigate to sign in
       router.push('/auth/signin')
     } catch (error) {
-      console.error('Error exiting guest mode:', error)
       throw error
     }
   }

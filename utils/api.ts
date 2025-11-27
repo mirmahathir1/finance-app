@@ -24,6 +24,56 @@ const FORCE_GUEST_MODE =
   typeof process !== 'undefined' &&
   process.env.NEXT_PUBLIC_FORCE_GUEST_MODE === 'true'
 
+const REQUEST_LOG_STYLE = 'color: #9c27b0; font-weight: bold;'
+const RESPONSE_LOG_STYLE = 'color: #2e7d32; font-weight: bold;'
+
+type RequestLogInfo = {
+  method: string
+  url: string
+}
+
+function formatLogMessage(prefix: 'Request' | 'Response', info: RequestLogInfo) {
+  const direction = prefix === 'Request' ? 'to' : 'from'
+  return `[API] ${prefix} ${direction} ${info.method} ${info.url}`
+}
+
+function normalizePayload(payload: unknown) {
+  if (payload === undefined || payload === null || payload === '') {
+    return undefined
+  }
+
+  if (typeof payload === 'string') {
+    try {
+      return JSON.parse(payload)
+    } catch {
+      return payload
+    }
+  }
+
+  return payload
+}
+
+function logClientRequest(info: RequestLogInfo, payload: unknown) {
+  if (typeof window === 'undefined' || process.env.NODE_ENV === 'test') return
+  const normalized = normalizePayload(payload)
+  console.log(`%c${formatLogMessage('Request', info)}`, REQUEST_LOG_STYLE, normalized)
+}
+
+function logClientResponse(info: RequestLogInfo, payload: unknown) {
+  if (typeof window === 'undefined' || process.env.NODE_ENV === 'test') return
+  const normalized = normalizePayload(payload)
+  console.log(`%c${formatLogMessage('Response', info)}`, RESPONSE_LOG_STYLE, normalized)
+}
+
+function getRequestInfo(endpoint: string, options?: RequestInit): RequestLogInfo {
+  const method = options?.method || 'GET'
+  const url = new URL(
+    endpoint,
+    typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+  ).toString()
+  return { method, url }
+}
+
 /**
  * Simulate backend latency for guest routes
  */
@@ -438,8 +488,12 @@ export async function apiCall<T = any>(
   endpoint: string,
   options?: RequestInit
 ): Promise<ApiResponse<T>> {
+  const info = getRequestInfo(endpoint, options)
+  const requestPayload = parseBody(options?.body)
+  logClientRequest(info, requestPayload)
+
   // Parse endpoint to check if it's an auth endpoint
-  const url = new URL(endpoint, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
+  const url = new URL(info.url)
   const path = url.pathname
   const guestMode = await isGuestMode()
 
@@ -448,8 +502,15 @@ export async function apiCall<T = any>(
   if (guestMode) {
     try {
       const result = await handleGuestModeRequest(endpoint, options)
+      logClientResponse(info, result)
       return result as ApiResponse<T>
     } catch (error) {
+      logClientResponse(info, {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : String(error),
+        },
+      })
       const message = getFriendlyErrorMessage(error, 'Failed to process request.')
       return {
         success: false,
@@ -475,27 +536,42 @@ export async function apiCall<T = any>(
     if (!response.ok) {
       // Silently handle 404s when backend is not available (expected in development)
       if (response.status === 404) {
-        return {
+        const notFoundPayload = {
           success: false,
           error: {
             message: 'Endpoint not found',
             code: '404',
           },
         }
+        logClientResponse(info, notFoundPayload)
+        return {
+          ...notFoundPayload,
+        }
       }
       const errorData = await response.json().catch(() => ({}))
-      return {
+      const errorPayload = {
         success: false,
         error: {
           message: errorData.message || response.statusText,
           code: response.status.toString(),
         },
       }
+      logClientResponse(info, errorPayload)
+      return {
+        ...errorPayload,
+      }
     }
 
     const data = await response.json()
+    logClientResponse(info, data)
     return data as ApiResponse<T>
   } catch (error) {
+    logClientResponse(info, {
+      success: false,
+      error: {
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+    })
     const message = getFriendlyErrorMessage(error, 'Unable to reach the server. Please try again.')
     return {
       success: false,

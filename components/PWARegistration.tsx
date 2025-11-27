@@ -18,7 +18,6 @@ export function PWARegistration() {
           const registrations = await navigator.serviceWorker.getRegistrations()
           for (const registration of registrations) {
             await registration.unregister()
-            console.log('Service Worker unregistered in development mode')
           }
           return
         }
@@ -34,16 +33,14 @@ export function PWARegistration() {
           typeof (window as any).workbox.register === 'function'
         ) {
           await (window as any).workbox.register()
-          console.log('Workbox service worker registered successfully')
         } else {
           // Fallback to standard service worker registration
-          const registration = await navigator.serviceWorker.register('/sw.js', {
+          await navigator.serviceWorker.register('/sw.js', {
             scope: '/',
           })
-          console.log('Service Worker registered successfully:', registration)
         }
-      } catch (error) {
-        console.error('Service Worker registration failed:', error)
+      } catch {
+        // Ignore service worker registration failures
       }
     }
 

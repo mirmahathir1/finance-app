@@ -64,8 +64,7 @@ export async function POST(request: Request) {
       user: sanitizeUser(updatedUser),
       message: 'Password set successfully.',
     })
-  } catch (error) {
-    console.error('set-password error', error)
+  } catch {
     return errorResponse('Unable to set password. Please try again later.', 500)
   }
 }
