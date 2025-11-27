@@ -13,7 +13,7 @@ export async function POST() {
         where: { sessionToken: token },
         data: { sessionToken: null },
       })
-}
+    }
 
     await clearSessionCookie()
 
@@ -22,5 +22,5 @@ export async function POST() {
     await clearSessionCookie()
     return successMessage('Logged out successfully.')
   }
-})
+}
 

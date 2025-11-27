@@ -19,6 +19,7 @@ import {
   setDefaultCurrency as setDefaultCurrencyDB,
 } from '@/utils/indexedDB'
 import { useApi } from '@/utils/useApi'
+import { fetchExchangeRateSnapshot } from '@/utils/api'
 import { getFriendlyErrorMessage } from '@/utils/error'
 
 interface CurrencyContextType {
@@ -54,16 +55,12 @@ function validateCurrencyCodeFormat(code: string): void {
  * Validate currency code using exchange rate API
  */
 async function validateCurrencyCodeWithAPI(currencyCode: string): Promise<boolean> {
-  try {
-    const response = await fetch(`https://open.er-api.com/v6/latest/${currencyCode}`)
-    if (!response.ok) {
-      return false
-    }
-    const data = await response.json()
-    return data.result === 'success' && data.rates !== undefined
-  } catch {
+  const snapshot = await fetchExchangeRateSnapshot(currencyCode)
+  if (!snapshot.success || !snapshot.data) {
     return false
   }
+
+  return snapshot.data.result === 'success' && snapshot.data.rates !== undefined
 }
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {

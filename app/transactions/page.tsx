@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import {
@@ -172,9 +172,27 @@ export default function TransactionsPage() {
     }
   }, [activeProfile, dateFrom, dateTo, api])
 
+  const autoFetchKeyRef = useRef<string | null>(null)
+
   useEffect(() => {
-    loadTransactions()
-  }, [loadTransactions])
+    const key = `${activeProfile ?? 'none'}|${dateFrom || 'none'}|${dateTo || 'none'}`
+
+    if (autoFetchKeyRef.current === key) {
+      return
+    }
+
+    autoFetchKeyRef.current = key
+
+    ;(async () => {
+      try {
+        await loadTransactions()
+      } finally {
+        if (autoFetchKeyRef.current === key) {
+          autoFetchKeyRef.current = null
+        }
+      }
+    })()
+  }, [activeProfile, dateFrom, dateTo, loadTransactions])
 
   const handleRetryLoad = () => {
     loadTransactions()

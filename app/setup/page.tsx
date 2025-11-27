@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Container,
@@ -41,6 +41,10 @@ import {
   setActiveProfile as setActiveProfileDB,
 } from '@/utils/indexedDB'
 import { getCurrencyFromGeolocation } from '@/utils/geolocation'
+import {
+  loadSetupCatalogSummary,
+  persistSetupCatalogSummary,
+} from '@/utils/setupCatalogStorage'
 
 const steps = ['Welcome', 'Create Profile', 'Choose Currency', 'Initialize']
 
@@ -108,8 +112,15 @@ export default function SetupPage() {
   const theme = useTheme()
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'))
   
+  const cachedCatalogSummary = useMemo(() => loadSetupCatalogSummary(), [])
+
   // Check if user has transactions
-  const [hasTransactions, setHasTransactions] = useState<boolean | null>(null)
+  const [hasTransactions, setHasTransactions] = useState<boolean | null>(() => {
+    if (!cachedCatalogSummary) {
+      return null
+    }
+    return (cachedCatalogSummary.transactionCount || 0) > 0
+  })
   const [isCheckingTransactions, setIsCheckingTransactions] = useState(true)
   const [isPrepopulating, setIsPrepopulating] = useState(false)
 
@@ -121,7 +132,16 @@ export default function SetupPage() {
     }
     return 0
   })
-  const [catalogSummary, setCatalogSummary] = useState<SetupCatalogData | null>(null)
+  const [catalogSummary, setCatalogSummary] = useState<SetupCatalogData | null>(
+    () => {
+      if (!cachedCatalogSummary) {
+        return null
+      }
+      return (cachedCatalogSummary.transactionCount || 0) > 0
+        ? cachedCatalogSummary
+        : null
+    }
+  )
   const [isScanningCatalog, setIsScanningCatalog] = useState(false)
   const [isApplyingCatalog, setIsApplyingCatalog] = useState(false)
   
@@ -135,6 +155,10 @@ export default function SetupPage() {
   // Check for transactions on mount (but don't auto-prepopulate)
   // Prepopulation is now handled by the /initializing page after sign-in
   useEffect(() => {
+    if (hasTransactions !== null) {
+      return
+    }
+
     const checkTransactions = async () => {
       try {
         setIsCheckingTransactions(true)
@@ -145,6 +169,7 @@ export default function SetupPage() {
         if (catalogResponse.success && catalogResponse.data?.catalog) {
           const catalog = catalogResponse.data.catalog
           const transactionCount = catalog.transactionCount || 0
+          persistSetupCatalogSummary(catalog)
 
           if (transactionCount > 0) {
             setHasTransactions(true)
@@ -154,9 +179,11 @@ export default function SetupPage() {
             setHasTransactions(false)
           }
         } else {
+          persistSetupCatalogSummary(null)
           setHasTransactions(false)
         }
       } catch {
+        persistSetupCatalogSummary(null)
         setHasTransactions(false)
       } finally {
         setIsCheckingTransactions(false)
@@ -167,7 +194,7 @@ export default function SetupPage() {
     if (!profilesLoading) {
       checkTransactions()
     }
-  }, [api, profilesLoading])  // Removed activeProfile and defaultCurrency from dependencies to prevent infinite loops
+  }, [api, profilesLoading, hasTransactions])  // Removed activeProfile and defaultCurrency from dependencies to prevent infinite loops
 
   useEffect(() => {
     if (!hasTransactions) {
@@ -690,6 +717,8 @@ export default function SetupPage() {
         )
       }
       setCatalogSummary(response.data.catalog)
+      setHasTransactions((response.data.catalog.transactionCount || 0) > 0)
+      persistSetupCatalogSummary(response.data.catalog)
       setSnackbar({
         open: true,
         message: `Analyzed ${response.data.catalog.transactionCount} transaction(s).`,

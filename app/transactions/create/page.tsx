@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Container,
@@ -125,9 +125,27 @@ export default function CreateTransactionPage() {
     }
   }, [activeProfile, api])
 
+  const recentFetchKeyRef = useRef<string | null>(null)
+
   useEffect(() => {
-    loadRecentTransactions()
-  }, [loadRecentTransactions])
+    const key = activeProfile ?? 'none'
+
+    if (recentFetchKeyRef.current === key) {
+      return
+    }
+
+    recentFetchKeyRef.current = key
+
+    ;(async () => {
+      try {
+        await loadRecentTransactions()
+      } finally {
+        if (recentFetchKeyRef.current === key) {
+          recentFetchKeyRef.current = null
+        }
+      }
+    })()
+  }, [activeProfile, loadRecentTransactions])
 
   const handleRetryRecentTransactions = () => {
     loadRecentTransactions()

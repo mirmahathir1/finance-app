@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Box,
@@ -101,9 +101,28 @@ export default function DashboardPage() {
     }
   }, [activeProfile, defaultCurrency?.code, currenciesLoading, api])
 
+  const autoFetchKeyRef = useRef<string | null>(null)
+
   useEffect(() => {
-    loadStatistics()
-  }, [loadStatistics])
+    const currencyCode = defaultCurrency?.code ?? 'none'
+    const key = `${activeProfile ?? 'none'}|${currencyCode}|${currenciesLoading ? 'loading' : 'ready'}`
+
+    if (autoFetchKeyRef.current === key) {
+      return
+    }
+
+    autoFetchKeyRef.current = key
+
+    ;(async () => {
+      try {
+        await loadStatistics()
+      } finally {
+        if (autoFetchKeyRef.current === key) {
+          autoFetchKeyRef.current = null
+        }
+      }
+    })()
+  }, [activeProfile, defaultCurrency?.code, currenciesLoading, loadStatistics])
 
   const handleRetryStatistics = () => {
     loadStatistics()

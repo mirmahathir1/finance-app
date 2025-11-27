@@ -37,7 +37,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 // Module-level flags to persist across component remounts (React Strict Mode)
 // This prevents duplicate session checks when the component remounts
 // These flags persist for the entire page load and are reset on full page reload
-let globalAuthCheckCompleted = false
+let globalAuthCheckInProgress = false
 let globalSessionCheckInProgress = false
 let cachedAuthResult: { user: User | null; isGuestMode: boolean } | null = null
 
@@ -45,7 +45,7 @@ let cachedAuthResult: { user: User | null; isGuestMode: boolean } | null = null
 // Also reset on page visibility change to handle cases where the page is hidden/shown
 if (typeof window !== 'undefined') {
   const resetAuthCache = () => {
-    globalAuthCheckCompleted = false
+    globalAuthCheckInProgress = false
     globalSessionCheckInProgress = false
     cachedAuthResult = null
   }
@@ -117,26 +117,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [checkBackendAvailability])
 
   useEffect(() => {
-    // Prevent duplicate auth checks in React Strict Mode (development double-mounting)
-    // In production, this prevents redundant checks during component remounts
-    if (hasCheckedInitialAuth.current || globalAuthCheckCompleted) {
-      // Auth check already started/completed
-      // If we have cached results, restore them immediately
-      if (cachedAuthResult !== null) {
-        setUser(cachedAuthResult.user)
-        setIsGuestMode(cachedAuthResult.isGuestMode)
-        setIsLoading(false)
-        return
+    // If we have cached results, restore them immediately and skip network work
+    if (cachedAuthResult !== null) {
+      setUser(cachedAuthResult.user)
+      setIsGuestMode(cachedAuthResult.isGuestMode)
+      setIsLoading(false)
+      return
+    }
+
+    // If another auth check is already running (Strict Mode / remount), wait for it
+    if (globalAuthCheckInProgress) {
+      let isSubscribed = true
+      const waitForCachedResult = async () => {
+        const maxAttempts = 100
+        let attempts = 0
+        while (isSubscribed && globalAuthCheckInProgress && attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          attempts += 1
+          if (cachedAuthResult !== null) {
+            setUser(cachedAuthResult.user)
+            setIsGuestMode(cachedAuthResult.isGuestMode)
+            setIsLoading(false)
+            return
+          }
+        }
+        if (isSubscribed && cachedAuthResult === null) {
+          setIsLoading(false)
+        }
       }
-      // No cache available - this shouldn't happen in normal flow
-      // but could occur if cache was explicitly cleared
-      hasCheckedInitialAuth.current = false
-      globalAuthCheckCompleted = false
+
+      waitForCachedResult()
+      return () => {
+        isSubscribed = false
+      }
+    }
+
+    // Prevent duplicate auth checks within the same component instance
+    if (hasCheckedInitialAuth.current) {
+      return
     }
 
     // Mark that we're starting the auth check to prevent duplicates
     hasCheckedInitialAuth.current = true
-    globalAuthCheckCompleted = true
+    globalAuthCheckInProgress = true
 
     // Check authentication state on mount
     const checkAuth = async () => {
@@ -207,13 +230,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } else if (!response.success && response.error?.code === '401') {
               // 401 is expected when not authenticated - silently handle
               setUser(null)
-              // Don't cache null results - allow re-check on next mount/reload
-              // This prevents stale null results from persisting across page reloads
-              cachedAuthResult = null
+              // Cache unauthenticated result to prevent duplicate calls during this session
+              cachedAuthResult = { user: null, isGuestMode: false }
             } else {
-              // Other error codes - don't cache null, allow re-check
+              // Treat other error codes as unauthenticated for this session
               setUser(null)
-              cachedAuthResult = null
+              cachedAuthResult = { user: null, isGuestMode: false }
             }
           } catch (sessionError: any) {
             // Silently ignore 404s, 401s, or network errors when backend is not available
@@ -235,8 +257,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               // Backend not available or not authenticated - this is expected
               // No need to log or handle
               setUser(null)
-              // Don't cache null results - allow re-check on next mount/reload
-              cachedAuthResult = null
+              // Cache result to prevent repeated fetch loops until reload
+              cachedAuthResult = { user: null, isGuestMode: false }
             }
           } finally {
             sessionCheckInProgress.current = false
@@ -244,8 +266,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } else {
           setUser(null)
-          // Don't cache null results - allow re-check on next mount/reload
-          cachedAuthResult = null
+          // Cache backend-unavailable state to avoid loops; reset on reload
+          cachedAuthResult = { user: null, isGuestMode: false }
         }
       } catch {
         // Ignore unexpected errors during auth check
@@ -255,7 +277,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    checkAuth()
+    checkAuth().finally(() => {
+      globalAuthCheckInProgress = false
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [FORCE_GUEST_MODE, api, checkBackendAvailability])
 

@@ -479,6 +479,179 @@ function generateMockCSV(transactions: any[]): string {
   return csv
 }
 
+export type BlobApiResponse = {
+  success: boolean
+  data?: Blob
+  error?: {
+    message: string
+    code?: string
+  }
+}
+
+type ExchangeRateSnapshot = {
+  result?: string
+  rates?: Record<string, number>
+  error?: string
+}
+
+/**
+ * Specialized helper to download the authenticated CSV backup while still leveraging the
+ * centralized API logging/guest-mode interception so the request shows up in debugging tools.
+ */
+export async function downloadBackupCsv(): Promise<BlobApiResponse> {
+  const endpoint = '/api/backup'
+  const requestOptions: RequestInit = { method: 'GET' }
+  const info = getRequestInfo(endpoint, requestOptions)
+  logClientRequest(info, undefined)
+
+  const guestMode = await isGuestMode()
+
+  if (guestMode) {
+    try {
+      const result = (await handleGuestModeRequest(endpoint, requestOptions)) as ApiResponse<{ csv: string }>
+      logClientResponse(info, result)
+
+      if (result.success && result.data?.csv) {
+        return {
+          success: true,
+          data: new Blob([result.data.csv], { type: 'text/csv;charset=utf-8;' }),
+        }
+      }
+
+      return {
+        success: false,
+        error: {
+          message: result.error?.message || 'Failed to generate backup.',
+          code: result.error?.code,
+        },
+      }
+    } catch (error) {
+      const message = getFriendlyErrorMessage(error, 'Failed to process request.')
+      logClientResponse(info, {
+        success: false,
+        error: { message },
+      })
+      return {
+        success: false,
+        error: {
+          message,
+          code: isNetworkError(error) ? 'NETWORK_ERROR' : 'UNKNOWN_ERROR',
+        },
+      }
+    }
+  }
+
+  try {
+    const response = await fetch(endpoint, {
+      ...requestOptions,
+      credentials: 'include',
+      headers: {
+        Accept: 'text/csv, text/plain;q=0.9, */*;q=0.8',
+      },
+    })
+
+    if (!response.ok) {
+      const errorPayload = await response.json().catch(async () => {
+        const fallbackText = await response.text().catch(() => '')
+        return fallbackText ? { message: fallbackText } : null
+      })
+
+      logClientResponse(info, errorPayload ?? { status: response.status })
+
+      return {
+        success: false,
+        error: {
+          message:
+            errorPayload?.error?.message ||
+            errorPayload?.message ||
+            response.statusText ||
+            'Failed to generate backup.',
+          code: response.status.toString(),
+        },
+      }
+    }
+
+    const blob = await response.blob()
+    logClientResponse(info, { success: true, message: 'CSV blob generated' })
+
+    return {
+      success: true,
+      data: blob,
+    }
+  } catch (error) {
+    const message = getFriendlyErrorMessage(error, 'Unable to reach the server. Please try again.')
+    logClientResponse(info, {
+      success: false,
+      error: { message },
+    })
+    return {
+      success: false,
+      error: {
+        message,
+        code: isNetworkError(error) ? 'NETWORK_ERROR' : 'UNKNOWN_ERROR',
+      },
+    }
+  }
+}
+
+type ExchangeRateSnapshotResponse = {
+  success: boolean
+  data?: ExchangeRateSnapshot
+  error?: {
+    message: string
+    code?: string
+  }
+}
+
+/**
+ * Fetch exchange-rate snapshot (used for currency validation) while ensuring the request
+ * participates in the standard API logging so the console captures the call.
+ */
+export async function fetchExchangeRateSnapshot(
+  currencyCode: string
+): Promise<ExchangeRateSnapshotResponse> {
+  const normalizedCode = currencyCode.trim().toUpperCase()
+  const endpoint = `https://open.er-api.com/v6/latest/${normalizedCode}`
+  const requestOptions: RequestInit = { method: 'GET' }
+  const info = getRequestInfo(endpoint, requestOptions)
+  logClientRequest(info, undefined)
+
+  try {
+    const response = await fetch(endpoint, requestOptions)
+    const payload: ExchangeRateSnapshot | null = await response.json().catch(() => null)
+
+    logClientResponse(info, payload ?? { status: response.status })
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: {
+          message: payload?.error || response.statusText || 'Failed to validate currency.',
+          code: response.status.toString(),
+        },
+      }
+    }
+
+    return {
+      success: true,
+      data: payload ?? undefined,
+    }
+  } catch (error) {
+    const message = getFriendlyErrorMessage(error, 'Unable to reach exchange rate service.')
+    logClientResponse(info, {
+      success: false,
+      error: { message },
+    })
+    return {
+      success: false,
+      error: {
+        message,
+        code: isNetworkError(error) ? 'NETWORK_ERROR' : 'UNKNOWN_ERROR',
+      },
+    }
+  }
+}
+
 /**
  * Main API call function
  * Intercepts requests in guest mode and routes to GuestDataService

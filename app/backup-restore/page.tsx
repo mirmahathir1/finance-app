@@ -14,7 +14,6 @@ import {
 import { PageLayout } from '@/components/PageLayout'
 import { Snackbar } from '@/components/Snackbar'
 import { useProfile } from '@/contexts/ProfileContext'
-import { useApi } from '@/utils/useApi'
 import { useLoading } from '@/contexts/LoadingContext'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material'
@@ -22,11 +21,11 @@ import { guestDataService } from '@/services/guestDataService'
 import { LoadingButton } from '@/components/LoadingButton'
 import { standardDialogPaperSx } from '@/components/dialogSizing'
 import { useAuth } from '@/contexts/AuthContext'
+import { downloadBackupCsv } from '@/utils/api'
 
 export default function BackupRestorePage() {
   const router = useRouter()
   const { activeProfile } = useProfile()
-  const api = useApi()
   const { startLoading, stopLoading } = useLoading()
   const { isGuestMode } = useAuth()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -48,55 +47,18 @@ export default function BackupRestorePage() {
   const handleDownloadClick = async () => {
     try {
       setIsDownloading(true)
-      if (isGuestMode) {
-        const response = await api.apiCall<{ csv: string }>('/api/backup')
-        if ('success' in response && response.success && response.data?.csv) {
-          const csv = response.data.csv
-          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-          const url = URL.createObjectURL(blob)
-          const a = document.createElement('a')
-          const dateStr = new Date().toISOString().slice(0, 10)
-          const profileSuffix = activeProfile ? `-${activeProfile}` : ''
-          a.href = url
-          a.download = `finance-backup${profileSuffix}-${dateStr}.csv`
-          document.body.appendChild(a)
-          a.click()
-          document.body.removeChild(a)
-          URL.revokeObjectURL(url)
-          setSnackbar({
-            open: true,
-            message: 'Backup downloaded successfully',
-            severity: 'success',
-          })
-        } else {
-          const message =
-            ('error' in response && response.error.message) ||
-            'Failed to generate backup'
-          setSnackbar({
-            open: true,
-            message,
-            severity: 'error',
-          })
-        }
-        return
+      const downloadResult = await downloadBackupCsv()
+      if (!downloadResult.success || !downloadResult.data) {
+        throw new Error(downloadResult.error?.message || 'Failed to generate backup')
       }
 
-      const response = await fetch('/api/backup', {
-        method: 'GET',
-        credentials: 'include',
-      })
-
-      if (!response.ok) {
-        const errorPayload = await response.json().catch(() => null)
-        throw new Error(errorPayload?.error?.message || 'Failed to generate backup')
-      }
-
-      const blob = await response.blob()
+      const blob = downloadResult.data
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       const dateStr = new Date().toISOString().slice(0, 10)
+      const profileSuffix = activeProfile ? `-${activeProfile}` : ''
       a.href = url
-      a.download = `finance-backup-${dateStr}.csv`
+      a.download = `finance-backup${profileSuffix}-${dateStr}.csv`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import {
@@ -110,6 +110,14 @@ export default function StatisticsPage() {
     severity: 'success' | 'error' | 'info' | 'warning'
   }>({ open: false, message: '', severity: 'info' })
 
+  const profileFetchRef = useRef<{
+    key: string | null
+    promise: Promise<Transaction[]> | null
+  }>({
+    key: null,
+    promise: null,
+  })
+
   // Load transactions once per profile for derived data
   useEffect(() => {
     if (!activeProfile) {
@@ -120,34 +128,57 @@ export default function StatisticsPage() {
       setCurrencyOptions([])
       setCurrency('')
       setIsLoadingTransactions(false)
+      profileFetchRef.current = { key: null, promise: null }
       return
     }
 
-    let isMounted = true
-    const loadProfileTransactions = async () => {
-      try {
-        setIsLoadingTransactions(true)
+    let isCancelled = false
+
+    const existingPromise =
+      profileFetchRef.current.key === activeProfile
+        ? profileFetchRef.current.promise
+        : null
+
+    const fetchPromise =
+      existingPromise ??
+      (async () => {
         const txRes = await api.getTransactions({ profile: activeProfile })
-        if (isMounted && txRes.success && txRes.data) {
-          setProfileTransactions(txRes.data.transactions as Transaction[])
+        if (!txRes.success || !txRes.data) {
+          throw new Error(
+            txRes.success ? 'Failed to load transactions.' : txRes.error.message
+          )
         }
-      } catch (e) {
-        if (isMounted) {
+        return txRes.data.transactions as Transaction[]
+      })()
+
+    profileFetchRef.current = { key: activeProfile, promise: fetchPromise }
+    setIsLoadingTransactions(true)
+
+    fetchPromise
+      .then((transactions) => {
+        if (!isCancelled) {
+          setProfileTransactions(transactions)
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
           setProfileTransactions([])
         }
-      } finally {
-        if (isMounted) {
+      })
+      .finally(() => {
+        if (!isCancelled) {
           setIsLoadingTransactions(false)
         }
-      }
-    }
+        if (profileFetchRef.current.promise === fetchPromise) {
+          profileFetchRef.current = { key: null, promise: null }
+        }
+      })
 
-    loadProfileTransactions()
     return () => {
-      isMounted = false
+      isCancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeProfile])
+  }, [activeProfile, api])
 
   // Derive available years from cached transactions
   const derivedYears = useMemo(() => {

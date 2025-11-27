@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Box,
@@ -14,6 +14,7 @@ import { useProfile } from '@/contexts/ProfileContext'
 import { useCurrency } from '@/contexts/CurrencyContext'
 import { useTag } from '@/contexts/TagContext'
 import { useApi } from '@/utils/useApi'
+import { persistSetupCatalogSummary } from '@/utils/setupCatalogStorage'
 import {
   overwriteProfiles,
   overwriteCurrencies,
@@ -77,7 +78,7 @@ export default function InitializingPage() {
   const { refreshTags } = useTag()
   const api = useApi()
   const [progress, setProgress] = useState(0)
-  const [hasStarted, setHasStarted] = useState(false)
+  const hasInitializedRef = useRef(false)
 
   useEffect(() => {
     // Wait for auth to load
@@ -92,20 +93,26 @@ export default function InitializingPage() {
     }
 
     // Only run initialization once
-    if (hasStarted) {
+    if (hasInitializedRef.current) {
       return
     }
 
     const initialize = async () => {
-      setHasStarted(true)
+      hasInitializedRef.current = true
+      persistSetupCatalogSummary(null)
       try {
         setProgress(10)
 
         // Check if transactions exist by calling the catalog API
         const catalogResponse = await api.getSetupCatalog()
+        const catalog =
+          catalogResponse.success && catalogResponse.data?.catalog
+            ? catalogResponse.data.catalog
+            : null
 
-        if (catalogResponse.success && catalogResponse.data?.catalog) {
-          const catalog = catalogResponse.data.catalog
+        persistSetupCatalogSummary(catalog)
+
+        if (catalog) {
           const transactionCount = catalog.transactionCount || 0
 
           if (transactionCount > 0) {
@@ -236,6 +243,7 @@ export default function InitializingPage() {
           }
         }
       } catch {
+        persistSetupCatalogSummary(null)
         // On error, redirect to dashboard anyway
         setTimeout(() => {
           router.replace('/')
@@ -245,7 +253,7 @@ export default function InitializingPage() {
 
     initialize()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, user, router, api, hasStarted])
+  }, [authLoading, user, router, api])
 
   // Show loading state while checking auth
   if (authLoading) {
