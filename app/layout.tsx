@@ -5,7 +5,6 @@ import { ThemeProvider } from '@/components/ThemeProvider'
 import { Providers } from '@/components/Providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { PWARegistration } from '@/components/PWARegistration'
-import { InstallPrompt } from '@/components/InstallPrompt'
 
 export const metadata: Metadata = {
   title: 'Finance App',
@@ -49,7 +48,6 @@ export default function RootLayout({
             </ErrorBoundary>
           </ThemeProvider>
         </EmotionCacheProvider>
-        <InstallPrompt />
       </body>
     </html>
   )
