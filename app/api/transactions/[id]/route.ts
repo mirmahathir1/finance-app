@@ -9,7 +9,8 @@ function toPayload(record: any) {
     id: record.id,
     userId: record.userId,
     profile: record.profile,
-    occurredAt: record.occurredAt.toISOString(),
+    // Send date-only string to avoid timezone shifts on the client
+    occurredAt: record.occurredAt.toISOString().slice(0, 10),
     amountMinor: Number(record.amountMinor),
     currency: record.currency,
     type: record.type,

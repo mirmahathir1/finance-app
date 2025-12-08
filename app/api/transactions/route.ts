@@ -14,12 +14,35 @@ function parseDate(input?: string | null): Date | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date
 }
 
+// Parse date string (YYYY-MM-DD) and return start/end of day in UTC
+// to ensure proper date-only comparison regardless of timezone
+function parseDateForFilter(input?: string | null): { start?: Date; end?: Date } {
+  if (!input) return {}
+  
+  // Validate the date string format (YYYY-MM-DD)
+  const dateMatch = input.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!dateMatch) return {}
+  
+  const [, year, month, day] = dateMatch
+  // Create a date at the start of the day in UTC
+  const start = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0))
+  // Create a date at the end of the day in UTC
+  const end = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59, 999))
+  
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return {}
+  }
+  
+  return { start, end }
+}
+
 function toTransactionPayload(record: Prisma.TransactionGetPayload<{}>) {
   return {
     id: record.id,
     userId: record.userId,
     profile: record.profile,
-    occurredAt: record.occurredAt.toISOString(),
+    // Send date-only string to avoid timezone shifts on the client
+    occurredAt: record.occurredAt.toISOString().slice(0, 10),
     amountMinor: Number(record.amountMinor),
     currency: record.currency,
     type: record.type,
@@ -53,14 +76,17 @@ export async function GET(request: NextRequest) {
     const tagParam = searchParams.get('tag')
     const tagFilter = tagParam ? tagParam.trim() : undefined
 
-    const fromDate = parseDate(searchParams.get('from'))
-    const toDate = parseDate(searchParams.get('to'))
+    const fromDateParam = searchParams.get('from')
+    const toDateParam = searchParams.get('to')
+    
+    const fromDateFilter = parseDateForFilter(fromDateParam)
+    const toDateFilter = parseDateForFilter(toDateParam)
 
-    if (searchParams.get('from') && !fromDate) {
-      return errorResponse('Invalid from date.', 400)
+    if (fromDateParam && !fromDateFilter.start) {
+      return errorResponse('Invalid from date. Expected format: YYYY-MM-DD', 400)
     }
-    if (searchParams.get('to') && !toDate) {
-      return errorResponse('Invalid to date.', 400)
+    if (toDateParam && !toDateFilter.end) {
+      return errorResponse('Invalid to date. Expected format: YYYY-MM-DD', 400)
     }
 
     const limitParam = searchParams.get('limit')
@@ -97,31 +123,57 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (fromDate || toDate) {
+    // For date filtering, we'll apply it after fetching to ensure correct date-only comparison
+    // Expand the DB query to include a wider date range if date filters are provided
+    if (fromDateFilter.start || toDateFilter.end) {
       where.occurredAt = {}
-      if (fromDate) {
-        where.occurredAt.gte = fromDate
+      if (fromDateFilter.start) {
+        // Query from 1 day before to account for timezone differences
+        const expandedStart = new Date(fromDateFilter.start)
+        expandedStart.setDate(expandedStart.getDate() - 1)
+        where.occurredAt.gte = expandedStart
       }
-      if (toDate) {
-        where.occurredAt.lte = toDate
+      if (toDateFilter.end) {
+        // Query until 1 day after to account for timezone differences  
+        const expandedEnd = new Date(toDateFilter.end)
+        expandedEnd.setDate(expandedEnd.getDate() + 1)
+        where.occurredAt.lte = expandedEnd
       }
     }
 
-    const [total, rows] = await prisma.$transaction([
-      prisma.transaction.count({ where }),
-      prisma.transaction.findMany({
-        where,
-        orderBy: [
-          { occurredAt: 'desc' },
-          { createdAt: 'desc' },
-        ],
-        ...(limit !== undefined && { take: limit }),
-        skip: offset,
-      }),
-    ])
+    const rows = await prisma.transaction.findMany({
+      where,
+      orderBy: [
+        { occurredAt: 'desc' },
+        { createdAt: 'desc' },
+      ],
+    })
+
+    // Filter by date on application side for accurate date-only comparison
+    let filteredRows = rows
+    if (fromDateParam || toDateParam) {
+      filteredRows = rows.filter((row) => {
+        // Extract date in YYYY-MM-DD format from the UTC timestamp
+        const transactionDate = row.occurredAt.toISOString().slice(0, 10)
+        
+        if (fromDateParam && transactionDate < fromDateParam) {
+          return false
+        }
+        if (toDateParam && transactionDate > toDateParam) {
+          return false
+        }
+        return true
+      })
+    }
+
+    // Apply pagination after filtering
+    const total = filteredRows.length
+    const paginatedRows = limit !== undefined
+      ? filteredRows.slice(offset, offset + limit)
+      : filteredRows.slice(offset)
 
     return success({
-      transactions: rows.map(toTransactionPayload),
+      transactions: paginatedRows.map(toTransactionPayload),
       pagination: {
         total,
         limit: limit ?? total,

@@ -14,7 +14,6 @@ import {
 } from '@mui/material'
 import {
   Add as AddIcon,
-  List as ListIcon,
   Label as LabelIcon,
   CurrencyExchange as CurrencyExchangeIcon,
   BarChart as BarChartIcon,
@@ -147,11 +146,6 @@ export default function DashboardPage() {
         title: 'Create Transaction',
         icon: <AddIcon />,
         onClick: navigateTo('/transactions/create'),
-      },
-      {
-        title: 'View Transactions',
-        icon: <ListIcon />,
-        onClick: navigateTo('/transactions'),
       },
       {
         title: 'Edit Tags',

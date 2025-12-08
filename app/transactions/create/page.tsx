@@ -367,7 +367,7 @@ export default function CreateTransactionPage() {
           <Button
             variant="contained"
             startIcon={<ArrowBackIcon />}
-            onClick={() => router.push('/transactions')}
+            onClick={() => router.push('/statistics')}
             sx={{ mb: 2 }}
           >
             Back to Transactions
@@ -510,7 +510,7 @@ export default function CreateTransactionPage() {
               <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                 <Button
                   variant="contained"
-                  onClick={() => router.push('/transactions')}
+                  onClick={() => router.push('/statistics')}
                   disabled={isSubmitting}
                 >
                   Cancel

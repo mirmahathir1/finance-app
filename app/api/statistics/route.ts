@@ -11,12 +11,6 @@ interface ExchangeRateResponse {
   error?: string
 }
 
-function parseDate(value?: string | null): Date | undefined {
-  if (!value) return undefined
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? undefined : date
-}
-
 function toNumber(value?: bigint | null) {
   return value ? Number(value) : 0
 }
@@ -60,153 +54,116 @@ export async function GET(request: NextRequest) {
     const profile = searchParams.get('profile')?.trim()
     const currency = searchParams.get('currency')?.trim().toUpperCase()
     const includeConverted = searchParams.get('includeConverted') === 'true'
-    const fromDate = parseDate(searchParams.get('from'))
-    const toDate = parseDate(searchParams.get('to'))
+    
+    const fromDateParam = searchParams.get('from')
+    const toDateParam = searchParams.get('to')
 
-    if (!profile || !currency || !fromDate || !toDate) {
+    if (!profile || !currency || !fromDateParam || !toDateParam) {
       return errorResponse(
-        'Profile, currency, from, and to parameters are required.',
+        'Profile, currency, from (YYYY-MM-DD), and to (YYYY-MM-DD) parameters are required.',
         400
       )
     }
 
+    // Validate date format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fromDateParam) || !/^\d{4}-\d{2}-\d{2}$/.test(toDateParam)) {
+      return errorResponse('Dates must be in YYYY-MM-DD format.', 400)
+    }
+
+    // Create expanded date range for DB query (to account for timezone edge cases)
+    const fromParts = fromDateParam.split('-').map(Number)
+    const toParts = toDateParam.split('-').map(Number)
+    const expandedStart = new Date(Date.UTC(fromParts[0], fromParts[1] - 1, fromParts[2] - 1))
+    const expandedEnd = new Date(Date.UTC(toParts[0], toParts[1] - 1, toParts[2] + 1))
+
     const dateWhere = {
-      gte: fromDate,
-      lte: toDate,
+      gte: expandedStart,
+      lte: expandedEnd,
     }
 
-    const baseWhere = {
-      userId: user.id,
-      profile,
-      currency,
-      occurredAt: dateWhere,
-    }
+    // Fetch base currency transactions
+    const baseTransactions = await prisma.transaction.findMany({
+      where: {
+        userId: user.id,
+        profile,
+        currency,
+        occurredAt: dateWhere,
+      },
+      select: {
+        type: true,
+        amountMinor: true,
+        tags: true,
+        occurredAt: true,
+      },
+    })
 
-    const [summaryAgg, tagAgg, emptyTagAgg] = await Promise.all([
-      prisma.transaction.groupBy({
-        where: baseWhere,
-        by: ['type'],
-        _sum: { amountMinor: true },
-      }),
-      prisma.$queryRaw<Array<{ type: TransactionType; tag: string; total: bigint }>>(
-        Prisma.sql`
-        SELECT
-          "type",
-          tag,
-          SUM("amountMinor")::bigint AS total
-        FROM "transactions"
-        CROSS JOIN LATERAL unnest("tags") AS tag
-        WHERE "userId"::text = ${user.id}
-          AND "profile" = ${profile}
-          AND "currency" = ${currency}
-          AND "occurredAt" >= ${fromDate}
-          AND "occurredAt" <= ${toDate}
-          AND cardinality("tags") > 0
-          AND "tags" IS NOT NULL
-        GROUP BY "type", tag
-      `
-      ),
-      prisma.$queryRaw<Array<{ type: TransactionType; total: bigint }>>(
-        Prisma.sql`
-        SELECT
-          "type",
-          SUM("amountMinor")::bigint AS total
-        FROM "transactions"
-        WHERE "userId"::text = ${user.id}
-          AND "profile" = ${profile}
-          AND "currency" = ${currency}
-          AND "occurredAt" >= ${fromDate}
-          AND "occurredAt" <= ${toDate}
-          AND (cardinality("tags") = 0 OR "tags" IS NULL)
-        GROUP BY "type"
-      `
-      ),
-    ])
+    // Filter by exact date (YYYY-MM-DD comparison)
+    const filteredBaseTransactions = baseTransactions.filter((t) => {
+      const transactionDate = t.occurredAt.toISOString().slice(0, 10)
+      return transactionDate >= fromDateParam && transactionDate <= toDateParam
+    })
 
+    // Calculate summary aggregates
     let totalIncome = 0
     let totalExpense = 0
     const expenseMap = new Map<string, number>()
     const incomeMap = new Map<string, number>()
 
-    summaryAgg.forEach((row) => {
-      const amount = toNumber(row._sum?.amountMinor)
-      if (row.type === 'income') {
+    filteredBaseTransactions.forEach((t) => {
+      const amount = Number(t.amountMinor)
+      const isIncome = t.type === 'income'
+      
+      if (isIncome) {
         totalIncome += amount
       } else {
         totalExpense += amount
       }
-    })
 
-    tagAgg.forEach((row) => {
-      const amount = toNumber(row.total)
-      if (!amount) return
-      if (row.type === 'income') {
-        incomeMap.set(row.tag, (incomeMap.get(row.tag) || 0) + amount)
+      // Handle tags
+      if (t.tags && t.tags.length > 0) {
+        t.tags.forEach((tag: string) => {
+          if (isIncome) {
+            incomeMap.set(tag, (incomeMap.get(tag) || 0) + amount)
+          } else {
+            expenseMap.set(tag, (expenseMap.get(tag) || 0) + amount)
+          }
+        })
       } else {
-        expenseMap.set(row.tag, (expenseMap.get(row.tag) || 0) + amount)
-      }
-    })
-
-    emptyTagAgg.forEach((row) => {
-      const amount = toNumber(row.total)
-      if (!amount) return
-      if (row.type === 'income') {
-        incomeMap.set('Uncategorized', (incomeMap.get('Uncategorized') || 0) + amount)
-      } else {
-        expenseMap.set('Uncategorized', (expenseMap.get('Uncategorized') || 0) + amount)
+        // Uncategorized
+        if (isIncome) {
+          incomeMap.set('Uncategorized', (incomeMap.get('Uncategorized') || 0) + amount)
+        } else {
+          expenseMap.set('Uncategorized', (expenseMap.get('Uncategorized') || 0) + amount)
+        }
       }
     })
 
     const metaSkipped = new Set<string>()
 
+    // Handle currency conversion if requested
     if (includeConverted) {
-      const [otherSummaryAgg, otherTagAgg, otherEmptyTagAgg] = await Promise.all([
-        prisma.transaction.groupBy({
-          where: {
-            userId: user.id,
-            profile,
-            occurredAt: dateWhere,
-            currency: { not: currency },
-          },
-          by: ['currency', 'type'],
-          _sum: { amountMinor: true },
-        }),
-        prisma.$queryRaw<Array<{ currency: string; type: TransactionType; tag: string; total: bigint }>>(
-          Prisma.sql`
-          SELECT
-            "currency",
-            "type",
-            tag,
-            SUM("amountMinor")::bigint AS total
-          FROM "transactions"
-          CROSS JOIN LATERAL unnest("tags") AS tag
-          WHERE "userId"::text = ${user.id}
-            AND "profile" = ${profile}
-            AND "currency" <> ${currency}
-            AND "occurredAt" >= ${fromDate}
-            AND "occurredAt" <= ${toDate}
-            AND cardinality("tags") > 0
-            AND "tags" IS NOT NULL
-          GROUP BY "currency", "type", tag
-        `
-        ),
-        prisma.$queryRaw<Array<{ currency: string; type: TransactionType; total: bigint }>>(
-          Prisma.sql`
-          SELECT
-            "currency",
-            "type",
-            SUM("amountMinor")::bigint AS total
-          FROM "transactions"
-          WHERE "userId"::text = ${user.id}
-            AND "profile" = ${profile}
-            AND "currency" <> ${currency}
-            AND "occurredAt" >= ${fromDate}
-            AND "occurredAt" <= ${toDate}
-            AND (cardinality("tags") = 0 OR "tags" IS NULL)
-          GROUP BY "currency", "type"
-        `
-        ),
-      ])
+      // Fetch other currency transactions
+      const otherTransactions = await prisma.transaction.findMany({
+        where: {
+          userId: user.id,
+          profile,
+          currency: { not: currency },
+          occurredAt: dateWhere,
+        },
+        select: {
+          type: true,
+          amountMinor: true,
+          tags: true,
+          occurredAt: true,
+          currency: true,
+        },
+      })
+
+      // Filter by exact date
+      const filteredOtherTransactions = otherTransactions.filter((t) => {
+        const transactionDate = t.occurredAt.toISOString().slice(0, 10)
+        return transactionDate >= fromDateParam && transactionDate <= toDateParam
+      })
 
       const rates = await getConversionRates(currency)
 
@@ -222,39 +179,35 @@ export async function GET(request: NextRequest) {
         return Math.round(amount / rate)
       }
 
-      otherSummaryAgg.forEach((row) => {
-        const amount = toNumber(row._sum?.amountMinor)
-        if (!amount) return
-        const converted = convertAmount(amount, row.currency)
+      filteredOtherTransactions.forEach((t) => {
+        const amount = Number(t.amountMinor)
+        const converted = convertAmount(amount, t.currency)
         if (!converted) return
-        if (row.type === 'income') {
+
+        const isIncome = t.type === 'income'
+        
+        if (isIncome) {
           totalIncome += converted
         } else {
           totalExpense += converted
         }
-      })
 
-      otherTagAgg.forEach((row) => {
-        const amount = toNumber(row.total)
-        if (!amount) return
-        const converted = convertAmount(amount, row.currency)
-        if (!converted) return
-        if (row.type === 'income') {
-          incomeMap.set(row.tag, (incomeMap.get(row.tag) || 0) + converted)
+        // Handle tags
+        if (t.tags && t.tags.length > 0) {
+          t.tags.forEach((tag: string) => {
+            if (isIncome) {
+              incomeMap.set(tag, (incomeMap.get(tag) || 0) + converted)
+            } else {
+              expenseMap.set(tag, (expenseMap.get(tag) || 0) + converted)
+            }
+          })
         } else {
-          expenseMap.set(row.tag, (expenseMap.get(row.tag) || 0) + converted)
-        }
-      })
-
-      otherEmptyTagAgg.forEach((row) => {
-        const amount = toNumber(row.total)
-        if (!amount) return
-        const converted = convertAmount(amount, row.currency)
-        if (!converted) return
-        if (row.type === 'income') {
-          incomeMap.set('Uncategorized', (incomeMap.get('Uncategorized') || 0) + converted)
-        } else {
-          expenseMap.set('Uncategorized', (expenseMap.get('Uncategorized') || 0) + converted)
+          // Uncategorized
+          if (isIncome) {
+            incomeMap.set('Uncategorized', (incomeMap.get('Uncategorized') || 0) + converted)
+          } else {
+            expenseMap.set('Uncategorized', (expenseMap.get('Uncategorized') || 0) + converted)
+          }
         }
       })
     }
@@ -297,8 +250,8 @@ export async function GET(request: NextRequest) {
       expenseBreakdown,
       incomeBreakdown,
       period: {
-        from: fromDate.toISOString(),
-        to: toDate.toISOString(),
+        from: fromDateParam,
+        to: toDateParam,
         currency,
       },
       meta: {
@@ -310,5 +263,3 @@ export async function GET(request: NextRequest) {
     return errorResponse(`Unable to load statistics: ${errorMessage}`, 500)
   }
 }
-
-
