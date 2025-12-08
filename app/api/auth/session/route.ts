@@ -3,6 +3,7 @@ import {
   clearSessionCookie,
   getSessionToken,
   sanitizeUser,
+  setSessionCookie,
 } from '@/app/api/auth/_lib/helpers'
 import { errorResponse, success } from '@/app/api/auth/_lib/responses'
 
@@ -24,6 +25,10 @@ export async function GET() {
       await clearSessionCookie()
       return errorResponse('Session expired.', 401)
     }
+
+    // Refresh the session cookie to implement sliding sessions
+    // This extends the expiration each time the session is checked
+    await setSessionCookie(token)
 
     return success({
       user: sanitizeUser(user),

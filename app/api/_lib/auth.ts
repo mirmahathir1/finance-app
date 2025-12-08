@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import {
   clearSessionCookie,
   getSessionToken,
+  setSessionCookie,
 } from '@/app/api/auth/_lib/helpers'
 import { errorResponse } from '@/app/api/auth/_lib/responses'
 
@@ -14,6 +15,7 @@ interface AuthResult {
 /**
  * Helper that resolves the authenticated user from the session cookie.
  * Returns { user } when authenticated or { user: null, response } when not.
+ * Also refreshes the session cookie to implement sliding sessions.
  */
 export async function requireAuthenticatedUser(): Promise<AuthResult> {
   const token = await getSessionToken()
@@ -36,6 +38,10 @@ export async function requireAuthenticatedUser(): Promise<AuthResult> {
       response: errorResponse('Session expired.', 401),
     }
   }
+
+  // Refresh the session cookie to implement sliding sessions
+  // This extends the expiration each time an authenticated request is made
+  await setSessionCookie(token)
 
   return { user }
 }
