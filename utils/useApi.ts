@@ -10,6 +10,7 @@ import {
   updateTransaction as apiUpdateTransaction,
   deleteTransaction as apiDeleteTransaction,
   getStatistics as apiGetStatistics,
+  getStatisticsCalendar as apiGetStatisticsCalendar,
   getCurrentUser as apiGetCurrentUser,
   login as apiLogin,
   logout as apiLogout,
@@ -31,11 +32,13 @@ import type {
   TransactionsListData,
   TransactionData,
   StatisticsData,
+  StatisticsCalendarData,
   UserData,
   CreateTransactionRequest,
   UpdateTransactionRequest,
   TransactionQueryParams,
   StatisticsQueryParams,
+  StatisticsCalendarQueryParams,
   PreviewResponse,
 } from '@/types'
 
@@ -91,6 +94,10 @@ export function useApi() {
       // Statistics API calls
       getStatistics: async (params: StatisticsQueryParams) => {
         return callWithLoading(() => apiGetStatistics(params))
+      },
+
+      getStatisticsCalendar: async (params: StatisticsCalendarQueryParams) => {
+        return callWithLoading(() => apiGetStatisticsCalendar(params))
       },
 
       // Auth API calls
@@ -160,4 +167,3 @@ export function useApi() {
     }
   }, [startLoading, stopLoading])
 }
-

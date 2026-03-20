@@ -34,6 +34,11 @@ export interface Transaction {
   note?: string | null
   createdAt: string
   updatedAt: string
+  displayAmountMinor?: number
+  displayCurrency?: string
+  originalAmountMinor?: number
+  originalCurrency?: string
+  displayWasConverted?: boolean
 }
 
 // ============================================================================
@@ -119,7 +124,10 @@ export interface TransactionQueryParams {
   to?: string // YYYY-MM-DD format
   type?: TransactionType
   currency?: string
+  displayCurrency?: string
   tag?: string
+  includeConverted?: boolean
+  sort?: 'asc' | 'desc'
   limit?: number
   offset?: number
 }
@@ -131,6 +139,13 @@ export interface StatisticsQueryParams {
   profile: string
   from: string // YYYY-MM-DD format
   to: string // YYYY-MM-DD format
+  currency: string
+  includeConverted?: boolean
+}
+
+export interface StatisticsCalendarQueryParams {
+  profile: string
+  month: string // YYYY-MM format
   currency: string
   includeConverted?: boolean
 }
@@ -224,6 +239,9 @@ export interface Pagination {
 export interface TransactionsListData {
   transactions: Transaction[]
   pagination: Pagination
+  meta?: {
+    skippedCurrencies?: string[]
+  }
 }
 
 /**
@@ -272,6 +290,21 @@ export interface StatisticsData {
     to: string
     currency: string
   }
+  meta?: {
+    skippedCurrencies?: string[]
+  }
+}
+
+export interface StatisticsCalendarDay {
+  date: string
+  totalIncome: AmountData
+  totalExpense: AmountData
+}
+
+export interface StatisticsCalendarData {
+  month: string
+  currency: string
+  days: StatisticsCalendarDay[]
   meta?: {
     skippedCurrencies?: string[]
   }
@@ -375,4 +408,3 @@ export interface CurrencyAmount {
 export interface GuestModeState {
   isGuestMode: boolean
 }
-

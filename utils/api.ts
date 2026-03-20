@@ -8,12 +8,14 @@ import type {
   TransactionsListData,
   TransactionData,
   StatisticsData,
+  StatisticsCalendarData,
   UserData,
   PreviewResponse,
   CreateTransactionRequest,
   UpdateTransactionRequest,
   TransactionQueryParams,
   StatisticsQueryParams,
+  StatisticsCalendarQueryParams,
   TransactionType,
   SetupCatalogData,
 } from '@/types'
@@ -186,6 +188,11 @@ async function handleGuestModeRequest(
       from: searchParams.from,
       to: searchParams.to,
       type: searchParams.type as any,
+      currency: searchParams.currency,
+      displayCurrency: searchParams.displayCurrency,
+      tag: searchParams.tag,
+      includeConverted: searchParams.includeConverted === 'true',
+      sort: searchParams.sort === 'asc' ? 'asc' : 'desc',
       limit: searchParams.limit ? parseInt(searchParams.limit, 10) : undefined,
       offset: searchParams.offset ? parseInt(searchParams.offset, 10) : undefined,
     }
@@ -239,8 +246,23 @@ async function handleGuestModeRequest(
       from: searchParams.from || '',
       to: searchParams.to || '',
       currency: searchParams.currency || '',
+      includeConverted: searchParams.includeConverted === 'true',
     }
     const result = await guestDataService.getStatistics(params)
+    return {
+      success: true,
+      data: result,
+    }
+  }
+
+  if (path === '/api/statistics/calendar' && method === 'GET') {
+    const params: StatisticsCalendarQueryParams = {
+      profile: searchParams.profile || '',
+      month: searchParams.month || '',
+      currency: searchParams.currency || '',
+      includeConverted: searchParams.includeConverted === 'true',
+    }
+    const result = await guestDataService.getStatisticsCalendar(params)
     return {
       success: true,
       data: result,
@@ -833,6 +855,21 @@ export async function getStatistics(
   return apiCall<StatisticsData>(`/api/statistics?${queryString}`)
 }
 
+export async function getStatisticsCalendar(
+  params: StatisticsCalendarQueryParams
+): Promise<ApiResponse<StatisticsCalendarData>> {
+  const queryString = new URLSearchParams(
+    Object.entries(params).reduce((acc, [key, value]) => {
+      if (value !== undefined && value !== null) {
+        acc[key] = String(value)
+      }
+      return acc
+    }, {} as Record<string, string>)
+  ).toString()
+
+  return apiCall<StatisticsCalendarData>(`/api/statistics/calendar?${queryString}`)
+}
+
 export async function getCurrentUser(): Promise<ApiResponse<UserData>> {
   return apiCall<UserData>('/api/auth/session')
 }
@@ -972,4 +1009,3 @@ export async function bulkUpdateTransactionsTag(
     }),
   })
 }
-

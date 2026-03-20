@@ -1,54 +1,47 @@
 'use client'
 
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Box,
   Button,
-  Container,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Paper,
-  Stack,
-  Typography,
-  Grid,
   Card,
   CardContent,
+  Container,
+  Grid,
+  Paper,
   Skeleton,
-  Checkbox,
-  Switch,
-  FormControlLabel,
-  Fade,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
-  TextField,
+  Typography,
 } from '@mui/material'
-import { TransitionGroup } from 'react-transition-group'
 import { PageLayout } from '@/components/PageLayout'
 import { Snackbar } from '@/components/Snackbar'
 import { EmptyState } from '@/components/EmptyState'
+import { ErrorState } from '@/components/ErrorState'
+import { TagChip } from '@/components/TagChip'
+import { AnimatedSection } from '@/components/AnimatedSection'
+import { StatisticsCalendar } from '@/components/StatisticsCalendar'
+import { StatisticsDayTransactionsDialog } from '@/components/StatisticsDayTransactionsDialog'
 import { useProfile } from '@/contexts/ProfileContext'
+import { useTag } from '@/contexts/TagContext'
+import { useCurrency } from '@/contexts/CurrencyContext'
 import { useApi } from '@/utils/useApi'
 import { formatAmount } from '@/utils/amount'
-import { startOfMonth, endOfMonth, format, parseISO } from 'date-fns'
-import type { StatisticsData, Transaction } from '@/types'
-import { useTag } from '@/contexts/TagContext'
-import { TagChip } from '@/components/TagChip'
-import { ErrorState } from '@/components/ErrorState'
 import { getFriendlyErrorMessage } from '@/utils/error'
-import { AnimatedSection } from '@/components/AnimatedSection'
-import { usePrefersReducedMotion, getMotionDuration } from '@/utils/motion'
+import {
+  endOfMonth,
+  format,
+  parseISO,
+  startOfMonth,
+} from 'date-fns'
+import type { StatisticsCalendarData, StatisticsData, Transaction, TransactionType } from '@/types'
 
 const ChartSkeleton = ({ height = 360 }: { height?: number }) => (
   <Paper elevation={2} sx={{ p: 3, height }}>
@@ -79,698 +72,494 @@ const IncomeExpenseBar = dynamic(
   }
 )
 
+function isValidMonth(value?: string | null) {
+  return Boolean(value && /^\d{4}-\d{2}$/.test(value))
+}
+
+function isValidDate(value?: string | null) {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value))
+}
+
+function normalizeRange(from: string, to: string) {
+  return from <= to ? { from, to } : { from: to, to: from }
+}
+
+function getMonthBounds(month: string) {
+  const monthDate = parseISO(`${month}-01`)
+  return {
+    from: format(startOfMonth(monthDate), 'yyyy-MM-dd'),
+    to: format(endOfMonth(monthDate), 'yyyy-MM-dd'),
+  }
+}
+
 export default function StatisticsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const api = useApi()
   const { activeProfile } = useProfile()
   const { tags } = useTag()
-  const api = useApi()
-  const prefersReducedMotion = usePrefersReducedMotion()
-  const contentTransitionDuration = getMotionDuration(prefersReducedMotion, 320)
+  const { defaultCurrency } = useCurrency()
 
-  // Filters
-  const [years, setYears] = useState<number[]>([new Date().getFullYear()])
-  const [months] = useState<{ value: number; label: string }[]>(
-    [
-      { value: 0, label: 'January' },
-      { value: 1, label: 'February' },
-      { value: 2, label: 'March' },
-      { value: 3, label: 'April' },
-      { value: 4, label: 'May' },
-      { value: 5, label: 'June' },
-      { value: 6, label: 'July' },
-      { value: 7, label: 'August' },
-      { value: 8, label: 'September' },
-      { value: 9, label: 'October' },
-      { value: 10, label: 'November' },
-      { value: 11, label: 'December' },
-    ]
-  )
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
-  const [selectedMonth, setSelectedMonth] = useState<number | 'all'>(new Date().getMonth())
-  const [advancedDateSearch, setAdvancedDateSearch] = useState(false)
-  const initialRange = useMemo(() => {
-    const start = format(startOfMonth(new Date()), 'yyyy-MM-dd')
-    const end = format(endOfMonth(new Date()), 'yyyy-MM-dd')
-    return { from: start, to: end }
-  }, [])
-  const [dateRange, setDateRange] = useState<{ from: string; to: string }>(initialRange)
-  const [advancedFrom, setAdvancedFrom] = useState<string>(initialRange.from)
-  const [advancedTo, setAdvancedTo] = useState<string>(initialRange.to)
-  const [hasInitializedFilters, setHasInitializedFilters] = useState(false)
-  const currencyFromUrlRef = useRef<string | null>(null)
+  const currentMonth = useMemo(() => format(new Date(), 'yyyy-MM'), [])
+  const defaultRange = useMemo(() => getMonthBounds(currentMonth), [currentMonth])
 
-  const setQueryParams = useCallback(
-    (updates: Record<string, string | undefined>) => {
-      const params = new URLSearchParams(searchParams?.toString() ?? '')
-      const currencyFromUrl = currencyFromUrlRef.current
-      
-      Object.entries(updates).forEach(([key, value]) => {
-        // Never delete currency if it came from URL
-        if (key === 'currency' && currencyFromUrl && (!value || value === '')) {
-          // Preserve currency from URL
-          params.set('currency', currencyFromUrl)
-          return
-        }
-        if (value === undefined || value === '') {
-          params.delete(key)
-        } else {
-          params.set(key, value)
-        }
-      })
-      
-      // Ensure currency from URL is always preserved if it exists
-      if (currencyFromUrl && !params.has('currency')) {
-        params.set('currency', currencyFromUrl)
-      }
-      
-      router.replace(`?${params.toString()}`)
-    },
-    [router, searchParams]
-  )
-
-  const computeRangeFromYearMonth = useCallback(
-    (year: number, month: number | 'all') => {
-      if (month === 'all') {
-        const fromDate = new Date(year, 0, 1)
-        const toDate = new Date(year, 11, 31)
-        return {
-          from: format(fromDate, 'yyyy-MM-dd'),
-          to: format(toDate, 'yyyy-MM-dd'),
-        }
-      }
-      const m = month as number
-      const fromDate = startOfMonth(new Date(year, m, 1))
-      const toDate = endOfMonth(new Date(year, m, 1))
-      return {
-        from: format(fromDate, 'yyyy-MM-dd'),
-        to: format(toDate, 'yyyy-MM-dd'),
-      }
-    },
-    []
-  )
-
-  // Keep advanced inputs in sync with current effective range, without triggering data reload
-  useEffect(() => {
-    if (advancedDateSearch) {
-      setAdvancedFrom(dateRange.from)
-      setAdvancedTo(dateRange.to)
-    }
-  }, [advancedDateSearch, dateRange.from, dateRange.to])
-
-  // Initialize state from URL (or write defaults to URL then initialize)
-  useEffect(() => {
-    if (hasInitializedFilters) return
-
-    const params = new URLSearchParams(searchParams?.toString() ?? '')
-    const hasParams = Array.from(params.keys()).length > 0
-
-    const defaultYear = new Date().getFullYear()
-    const defaultMonth = new Date().getMonth()
-    const defaultRange = computeRangeFromYearMonth(defaultYear, defaultMonth)
-
-    const nextAdvanced = params.get('advanced') === 'true'
-    const nextYear = Number(params.get('year')) || defaultYear
-    const rawMonth = params.get('month')
-    const nextMonth: number | 'all' =
-      rawMonth === 'all' ? 'all' : rawMonth !== null ? Number(rawMonth) : defaultMonth
-
-    let nextRange = nextAdvanced
-      ? {
-          from: params.get('from') || defaultRange.from,
-          to: params.get('to') || defaultRange.to,
-        }
-      : computeRangeFromYearMonth(nextYear, nextMonth)
-
-    const nextCurrency = params.get('currency') || ''
-    const nextIncludeConverted = params.get('includeConverted') === 'true'
-
-    // Track if currency came from URL to prevent clearing it
-    if (nextCurrency && params.has('currency')) {
-      currencyFromUrlRef.current = nextCurrency
-    }
-
-    setAdvancedDateSearch(nextAdvanced)
-    setSelectedYear(nextYear)
-    setSelectedMonth(nextMonth)
-    setDateRange(nextRange)
-    setAdvancedFrom(nextRange.from)
-    setAdvancedTo(nextRange.to)
-    setCurrency(nextCurrency)
-    setIncludeConverted(nextIncludeConverted)
-
-    if (!hasParams) {
-      // Set all default parameters explicitly
-      const defaultParams: Record<string, string> = {
-        year: String(nextYear),
-        month: nextMonth === 'all' ? 'all' : String(nextMonth),
-        from: nextRange.from,
-        to: nextRange.to,
-      }
-      if (nextCurrency) {
-        defaultParams.currency = nextCurrency
-      }
-      if (nextIncludeConverted) {
-        defaultParams.includeConverted = 'true'
-      }
-      setQueryParams(defaultParams)
-    }
-
-    setHasInitializedFilters(true)
-  }, [
-    computeRangeFromYearMonth,
-    hasInitializedFilters,
-    searchParams,
-    setQueryParams,
-  ])
-  const [currencyOptions, setCurrencyOptions] = useState<string[]>([])
-  const [currency, setCurrency] = useState<string>('')
+  const [hasInitializedFromUrl, setHasInitializedFromUrl] = useState(false)
+  const [visibleMonth, setVisibleMonth] = useState(currentMonth)
+  const [selectedRange, setSelectedRange] = useState(defaultRange)
+  const [pendingRangeStart, setPendingRangeStart] = useState<string | null>(null)
+  const [hasCommittedRangeSelection, setHasCommittedRangeSelection] = useState(false)
+  const [currency, setCurrency] = useState('')
   const [includeConverted, setIncludeConverted] = useState(false)
-
-  // Data
+  const [currencyOptions, setCurrencyOptions] = useState<string[]>([])
   const [profileTransactions, setProfileTransactions] = useState<Transaction[]>([])
-  const [stats, setStats] = useState<StatisticsData | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [statsError, setStatsError] = useState<string | null>(null)
-  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false)
+  const [isLoadingCurrencies, setIsLoadingCurrencies] = useState(false)
+  const [allowInitialActivityAutofocus, setAllowInitialActivityAutofocus] = useState(true)
+  const [didAutofocusActivityMonth, setDidAutofocusActivityMonth] = useState(false)
 
-  // Snackbar
+  const [calendarData, setCalendarData] = useState<StatisticsCalendarData | null>(null)
+  const [stats, setStats] = useState<StatisticsData | null>(null)
+  const [rangeTransactions, setRangeTransactions] = useState<Transaction[]>([])
+  const [isLoadingCalendar, setIsLoadingCalendar] = useState(false)
+  const [isLoadingRange, setIsLoadingRange] = useState(false)
+  const [calendarError, setCalendarError] = useState<string | null>(null)
+  const [rangeError, setRangeError] = useState<string | null>(null)
+
+  const [dialogState, setDialogState] = useState<{
+    open: boolean
+    date: string | null
+    type: TransactionType | null
+  }>({
+    open: false,
+    date: null,
+    type: null,
+  })
+  const [dayTransactions, setDayTransactions] = useState<Transaction[]>([])
+  const [isLoadingDayTransactions, setIsLoadingDayTransactions] = useState(false)
+
   const [snackbar, setSnackbar] = useState<{
     open: boolean
     message: string
     severity: 'success' | 'error' | 'info' | 'warning'
   }>({ open: false, message: '', severity: 'info' })
 
-  const profileFetchRef = useRef<{
-    key: string | null
-    promise: Promise<Transaction[]> | null
-  }>({
-    key: null,
-    promise: null,
-  })
+  const showSkippedCurrencies = useCallback((codes?: string[]) => {
+    if (!codes || codes.length === 0) {
+      return
+    }
 
-  // Load transactions once per profile for derived data
+    setSnackbar({
+      open: true,
+      severity: 'warning',
+      message: `Missing exchange rates for: ${codes.join(', ')}`,
+    })
+  }, [])
+
+  useEffect(() => {
+    if (hasInitializedFromUrl) return
+
+    const monthParam = searchParams?.get('month')
+    const fromParam = searchParams?.get('from')
+    const toParam = searchParams?.get('to')
+    const currencyParam = searchParams?.get('currency')
+    const includeConvertedParam = searchParams?.get('includeConverted') === 'true'
+
+    const nextVisibleMonth = isValidMonth(monthParam) ? monthParam! : currentMonth
+    const fallbackRange = getMonthBounds(nextVisibleMonth)
+    const nextRange =
+      isValidDate(fromParam) && isValidDate(toParam)
+        ? normalizeRange(fromParam!, toParam!)
+        : fallbackRange
+
+    setVisibleMonth(nextVisibleMonth)
+    setSelectedRange(nextRange)
+    setCurrency(currencyParam?.toUpperCase() || '')
+    setIncludeConverted(includeConvertedParam)
+    setAllowInitialActivityAutofocus(!isValidMonth(monthParam) && !(isValidDate(fromParam) && isValidDate(toParam)))
+    setHasInitializedFromUrl(true)
+  }, [currentMonth, hasInitializedFromUrl, searchParams])
+
+  useEffect(() => {
+    if (!hasInitializedFromUrl) return
+
+    const params = new URLSearchParams()
+    params.set('month', visibleMonth)
+    params.set('from', selectedRange.from)
+    params.set('to', selectedRange.to)
+
+    if (currency) {
+      params.set('currency', currency)
+    }
+
+    if (includeConverted) {
+      params.set('includeConverted', 'true')
+    }
+
+    router.replace(`?${params.toString()}`)
+  }, [currency, hasInitializedFromUrl, includeConverted, router, selectedRange.from, selectedRange.to, visibleMonth])
+
   useEffect(() => {
     if (!activeProfile) {
-      setProfileTransactions([])
-      const fallbackYear = new Date().getFullYear()
-      setYears([fallbackYear])
-      setSelectedYear(fallbackYear)
       setCurrencyOptions([])
-      // Don't clear currency if it came from URL
-      if (!currencyFromUrlRef.current) {
-        setCurrency('')
-      }
-      setIsLoadingTransactions(false)
-      profileFetchRef.current = { key: null, promise: null }
+      setProfileTransactions([])
+      setCurrency('')
       return
     }
 
-    let isCancelled = false
+    let cancelled = false
 
-    const existingPromise =
-      profileFetchRef.current.key === activeProfile
-        ? profileFetchRef.current.promise
-        : null
+    const loadProfileCurrencies = async () => {
+      try {
+        setIsLoadingCurrencies(true)
+        const response = await api.getTransactions({ profile: activeProfile })
 
-    const fetchPromise =
-      existingPromise ??
-      (async () => {
-        const txRes = await api.getTransactions({ profile: activeProfile })
-        if (!txRes.success || !txRes.data) {
+        if (!response.success || !response.data) {
           throw new Error(
-            txRes.success ? 'Failed to load transactions.' : txRes.error.message
+            !response.success ? response.error.message : 'Failed to load currencies.'
           )
         }
-        return txRes.data.transactions as Transaction[]
-      })()
 
-    profileFetchRef.current = { key: activeProfile, promise: fetchPromise }
-    setIsLoadingTransactions(true)
+        const profileItems = response.data.transactions
 
-    fetchPromise
-      .then((transactions) => {
-        if (!isCancelled) {
-          setProfileTransactions(transactions)
+        const nextOptions = Array.from(
+          new Set(profileItems.map((transaction) => transaction.currency))
+        ).sort()
+
+        if (!cancelled) {
+          setProfileTransactions(profileItems)
+          setCurrencyOptions(nextOptions)
         }
-      })
-      .catch(() => {
-        if (!isCancelled) {
+      } catch (error) {
+        if (!cancelled) {
           setProfileTransactions([])
+          setCurrencyOptions([])
+          setSnackbar({
+            open: true,
+            severity: 'error',
+            message: getFriendlyErrorMessage(error, 'Failed to load profile currencies.'),
+          })
         }
-      })
-      .finally(() => {
-        if (!isCancelled) {
-          setIsLoadingTransactions(false)
+      } finally {
+        if (!cancelled) {
+          setIsLoadingCurrencies(false)
         }
-        if (profileFetchRef.current.promise === fetchPromise) {
-          profileFetchRef.current = { key: null, promise: null }
-        }
-      })
+      }
+    }
+
+    loadProfileCurrencies()
 
     return () => {
-      isCancelled = true
+      cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeProfile, api])
 
-  // Derive available years from cached transactions
-  const derivedYears = useMemo(() => {
-    if (profileTransactions.length === 0) {
-      return [new Date().getFullYear()]
-    }
-    const yearSet = new Set<number>()
-    profileTransactions.forEach((t) => {
-      // Parse date in local timezone to get correct year
-      yearSet.add(parseISO(t.occurredAt).getFullYear())
-    })
-    return Array.from(yearSet).sort((a, b) => b - a)
-  }, [profileTransactions])
-
   useEffect(() => {
-    setYears(derivedYears)
-    if (!derivedYears.includes(selectedYear)) {
-      setSelectedYear(derivedYears[0])
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [derivedYears])
+    if (!hasInitializedFromUrl) return
 
-  // Derive currency options from cached transactions within range
-  const derivedCurrencyOptions = useMemo(() => {
-    if (profileTransactions.length === 0) return []
-    const codes = new Set<string>()
-    profileTransactions.forEach((t) => {
-      // Convert transaction date to YYYY-MM-DD in local timezone
-      const transactionDate = format(parseISO(t.occurredAt), 'yyyy-MM-dd')
-      if (transactionDate >= dateRange.from && transactionDate <= dateRange.to && t.currency) {
-        codes.add(t.currency)
-      }
-    })
-    return Array.from(codes).sort()
-  }, [profileTransactions, dateRange.from, dateRange.to])
-
-  const updateCurrency = useCallback(
-    (value: string) => {
-      // Don't clear currency if it came from URL - preserve it in both state and URL
-      const currencyFromUrl = currencyFromUrlRef.current
-      if (!value && currencyFromUrl) {
-        // Currency came from URL, don't clear it
-        return
-      }
-      // If user explicitly sets a different currency, clear the ref
-      if (value && currencyFromUrl && value !== currencyFromUrl) {
-        currencyFromUrlRef.current = null
-      }
-      setCurrency(value)
-      // Only update URL if currency actually changed or if we're explicitly clearing it
-      // Don't clear currency if it exists in URL and we're just setting state
-      if (value || !searchParams?.has('currency')) {
-        setQueryParams({ currency: value || undefined })
-      }
-    },
-    [setQueryParams, searchParams]
-  )
-
-  useEffect(() => {
-    if (!hasInitializedFilters) return
-    
-    setCurrencyOptions(derivedCurrencyOptions)
-    
-    const currencyFromUrl = currencyFromUrlRef.current
-    
-    if (derivedCurrencyOptions.length === 0) {
-      // Only clear currency if it didn't come from URL
-      if (!currencyFromUrl) {
-        updateCurrency('')
-      }
-      // If currency came from URL but options haven't loaded yet, keep it
+    if (currencyOptions.length === 0) {
+      setCurrency('')
       return
     }
-    
-    // If currency came from URL, validate it's in available currencies
-    if (currencyFromUrl) {
-      if (derivedCurrencyOptions.includes(currencyFromUrl)) {
-        // Currency from URL is valid - keep the ref set to preserve it in URL
-        // Only clear ref if user explicitly changes to a different currency
-        if (currency !== currencyFromUrl) {
-          currencyFromUrlRef.current = null
-        }
-      } else {
-        // Currency from URL is not in available currencies
-        // Keep it in URL and state - let the API handle validation
-        // Don't update or clear it
-        return
-      }
-    }
-    
-    // Only update currency if it's not in available currencies AND didn't come from URL
-    if (!derivedCurrencyOptions.includes(currency) && !currencyFromUrl) {
-      updateCurrency(derivedCurrencyOptions[0])
-    }
-  }, [derivedCurrencyOptions, currency, updateCurrency, hasInitializedFilters])
 
-  useEffect(() => {
-    if (!hasInitializedFilters) return
-    // Don't clear currency if it came from URL
-    if (!currency && !currencyFromUrlRef.current) {
-      setIncludeConverted(false)
-      setQueryParams({ includeConverted: undefined, currency: undefined })
+    if (currency && currencyOptions.includes(currency)) {
+      return
     }
-  }, [currency, setQueryParams, hasInitializedFilters])
 
-  const loadStats = useCallback(async () => {
+    if (defaultCurrency?.code && currencyOptions.includes(defaultCurrency.code)) {
+      setCurrency(defaultCurrency.code)
+      return
+    }
+
+    setCurrency(currencyOptions[0])
+  }, [currency, currencyOptions, defaultCurrency?.code, hasInitializedFromUrl])
+
+  const latestActivityMonth = useMemo(() => {
+    const candidates = profileTransactions
+      .filter((transaction) => includeConverted || !currency || transaction.currency === currency)
+      .sort((left, right) => right.occurredAt.localeCompare(left.occurredAt))
+
+    return candidates[0]?.occurredAt.slice(0, 7) || null
+  }, [currency, includeConverted, profileTransactions])
+
+  const loadCalendarData = useCallback(async () => {
     if (!activeProfile || !currency) {
-      setStats(null)
-      setStatsError(null)
+      setCalendarData(null)
+      setCalendarError(null)
       return
     }
 
     try {
-      setIsLoading(true)
-      setStatsError(null)
-      const res = await api.getStatistics({
+      setIsLoadingCalendar(true)
+      setCalendarError(null)
+      const response = await api.getStatisticsCalendar({
         profile: activeProfile,
-        from: dateRange.from,
-        to: dateRange.to,
+        month: visibleMonth,
         currency,
         includeConverted,
       })
 
-      if (res.success && res.data) {
-        setStats(res.data)
-        setStatsError(null)
-
-        if (res.data.meta?.skippedCurrencies?.length) {
-          setSnackbar({
-            open: true,
-            severity: 'warning',
-            message: `Missing exchange rates for: ${res.data.meta.skippedCurrencies.join(', ')}`,
-          })
-        }
-      } else {
-        setStats(null)
-        setStatsError(
-          !res.success ? res.error.message : 'Failed to load statistics.'
+      if (!response.success || !response.data) {
+        throw new Error(
+          !response.success ? response.error.message : 'Failed to load calendar statistics.'
         )
       }
-    } catch (error: any) {
-      const message = getFriendlyErrorMessage(error, 'Failed to load statistics.')
-      setStats(null)
-      setStatsError(message)
-      setSnackbar({
-        open: true,
-        message,
-        severity: 'error',
-      })
+
+      setCalendarData(response.data)
+      showSkippedCurrencies(response.data.meta?.skippedCurrencies)
+    } catch (error) {
+      setCalendarData(null)
+      setCalendarError(
+        getFriendlyErrorMessage(error, 'Failed to load calendar statistics.')
+      )
     } finally {
-      setIsLoading(false)
+      setIsLoadingCalendar(false)
     }
-  }, [activeProfile, dateRange.from, dateRange.to, currency, api, includeConverted])
+  }, [activeProfile, api, currency, includeConverted, showSkippedCurrencies, visibleMonth])
+
+  const loadRangeData = useCallback(async () => {
+    if (!activeProfile || !currency) {
+      setStats(null)
+      setRangeTransactions([])
+      setRangeError(null)
+      return
+    }
+
+    try {
+      setIsLoadingRange(true)
+      setRangeError(null)
+
+      const [statsResponse, transactionsResponse] = await Promise.all([
+        api.getStatistics({
+          profile: activeProfile,
+          from: selectedRange.from,
+          to: selectedRange.to,
+          currency,
+          includeConverted,
+        }),
+        api.getTransactions({
+          profile: activeProfile,
+          from: selectedRange.from,
+          to: selectedRange.to,
+          currency,
+          displayCurrency: currency,
+          includeConverted,
+          sort: 'desc',
+        }),
+      ])
+
+      if (!statsResponse.success || !statsResponse.data) {
+        throw new Error(
+          !statsResponse.success ? statsResponse.error.message : 'Failed to load statistics.'
+        )
+      }
+
+      if (!transactionsResponse.success || !transactionsResponse.data) {
+        throw new Error(
+          !transactionsResponse.success
+            ? transactionsResponse.error.message
+            : 'Failed to load transactions.'
+        )
+      }
+
+      setStats(statsResponse.data)
+      setRangeTransactions(transactionsResponse.data.transactions)
+
+      showSkippedCurrencies([
+        ...(statsResponse.data.meta?.skippedCurrencies || []),
+        ...(transactionsResponse.data.meta?.skippedCurrencies || []),
+      ])
+    } catch (error) {
+      setStats(null)
+      setRangeTransactions([])
+      setRangeError(getFriendlyErrorMessage(error, 'Failed to load statistics.'))
+    } finally {
+      setIsLoadingRange(false)
+    }
+  }, [
+    activeProfile,
+    api,
+    currency,
+    includeConverted,
+    selectedRange.from,
+    selectedRange.to,
+    showSkippedCurrencies,
+  ])
 
   useEffect(() => {
-    if (!hasInitializedFilters) return
-    loadStats()
-  }, [loadStats, hasInitializedFilters])
+    if (!hasInitializedFromUrl) return
+    loadCalendarData()
+  }, [hasInitializedFromUrl, loadCalendarData])
 
-  const handleRetryStats = () => {
-    loadStats()
-  }
+  useEffect(() => {
+    if (
+      !hasInitializedFromUrl ||
+      !allowInitialActivityAutofocus ||
+      didAutofocusActivityMonth ||
+      isLoadingCalendar ||
+      !currency ||
+      !latestActivityMonth ||
+      latestActivityMonth === visibleMonth
+    ) {
+      return
+    }
 
-  const hasData = stats && (stats.summary.totalIncome.amountMinor > 0 || stats.summary.totalExpense.amountMinor > 0)
+    if (calendarData && calendarData.days.length === 0) {
+      setVisibleMonth(latestActivityMonth)
+      setSelectedRange(getMonthBounds(latestActivityMonth))
+      setDidAutofocusActivityMonth(true)
+      setSnackbar({
+        open: true,
+        severity: 'info',
+        message: `Showing the latest month with activity: ${format(parseISO(`${latestActivityMonth}-01`), 'MMMM yyyy')}.`,
+      })
+    }
+  }, [
+    allowInitialActivityAutofocus,
+    calendarData,
+    currency,
+    didAutofocusActivityMonth,
+    hasInitializedFromUrl,
+    isLoadingCalendar,
+    latestActivityMonth,
+    visibleMonth,
+  ])
 
-  // Prepare pie data for expense breakdown
+  useEffect(() => {
+    if (!hasInitializedFromUrl) return
+    loadRangeData()
+  }, [hasInitializedFromUrl, loadRangeData])
+
+  useEffect(() => {
+    if (!dialogState.open || !dialogState.date || !dialogState.type || !activeProfile || !currency) {
+      if (!dialogState.open) {
+        setDayTransactions([])
+      }
+      return
+    }
+
+    let cancelled = false
+
+    const loadDayTransactions = async () => {
+      try {
+        setIsLoadingDayTransactions(true)
+        const response = await api.getTransactions({
+          profile: activeProfile,
+          from: dialogState.date ?? undefined,
+          to: dialogState.date ?? undefined,
+          type: dialogState.type ?? undefined,
+          currency,
+          displayCurrency: currency,
+          includeConverted,
+          sort: 'asc',
+        })
+
+        if (!response.success || !response.data) {
+          throw new Error(
+            !response.success ? response.error.message : 'Failed to load transactions.'
+          )
+        }
+
+        if (!cancelled) {
+          setDayTransactions(response.data.transactions)
+          showSkippedCurrencies(response.data.meta?.skippedCurrencies)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setDayTransactions([])
+          setSnackbar({
+            open: true,
+            severity: 'error',
+            message: getFriendlyErrorMessage(error, 'Failed to load day transactions.'),
+          })
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingDayTransactions(false)
+        }
+      }
+    }
+
+    loadDayTransactions()
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeProfile, api, currency, dialogState.date, dialogState.open, dialogState.type, includeConverted, showSkippedCurrencies])
+
+  const handleDateSelect = useCallback((date: string) => {
+    if (!pendingRangeStart) {
+      setPendingRangeStart(date)
+      setHasCommittedRangeSelection(false)
+      return
+    }
+
+    setSelectedRange(normalizeRange(pendingRangeStart, date))
+    setPendingRangeStart(null)
+    setHasCommittedRangeSelection(true)
+  }, [pendingRangeStart])
+
+  const handleEventClick = useCallback((date: string, type: TransactionType) => {
+    setDialogState({
+      open: true,
+      date,
+      type,
+    })
+  }, [])
+
   const pieData = useMemo(() => {
     if (!stats) return []
     return stats.expenseBreakdown.map((item) => ({
       name: item.tag,
       value: item.amountMinor / 100,
-      // Color will be generated by ExpenseBreakdownPie component
     }))
   }, [stats])
 
-  // Prepare bar data for income vs expense
   const incomeMajor = stats ? stats.summary.totalIncome.amountMinor / 100 : 0
   const expenseMajor = stats ? stats.summary.totalExpense.amountMinor / 100 : 0
 
-  // Calculate expense percentage relative to income
   const expensePercentage = useMemo(() => {
     if (!stats || stats.summary.totalIncome.amountMinor === 0) {
       return null
     }
+
     return (stats.summary.totalExpense.amountMinor / stats.summary.totalIncome.amountMinor) * 100
   }, [stats])
 
-  // Filter transactions that match the current statistics filters
-  const filteredTransactions = useMemo(() => {
-    if (!profileTransactions.length || !currency) return []
-    
-    // Compare dates as strings in YYYY-MM-DD format to avoid timezone issues
-    // Extract just the date part from the transaction's occurredAt in local timezone
-    return profileTransactions
-      .filter((t) => {
-        // Convert transaction date to YYYY-MM-DD in local timezone
-        const transactionDate = format(parseISO(t.occurredAt), 'yyyy-MM-dd')
-        const inDateRange = transactionDate >= dateRange.from && transactionDate <= dateRange.to
-        
-        if (includeConverted) {
-          // Include all currencies when conversion is enabled
-          return inDateRange
-        } else {
-          // Only include transactions in the selected currency
-          return inDateRange && t.currency === currency
-        }
-      })
-      .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
-  }, [profileTransactions, dateRange.from, dateRange.to, currency, includeConverted])
-
-  const shouldShowSkeleton =
-    isLoadingTransactions || isLoading || (!currency && derivedCurrencyOptions.length > 0)
-  const shouldShowEmptyState = !shouldShowSkeleton && (!currency || !hasData)
-
-  const filtersKey = useMemo(
-    () =>
-      `${advancedDateSearch ? 'advanced' : 'ym'}-${selectedYear}-${selectedMonth}-${currency || 'none'}-${
-        includeConverted ? 'with-conversions' : 'base'
-      }-${dateRange.from}-${dateRange.to}`,
-    [advancedDateSearch, selectedYear, selectedMonth, currency, includeConverted, dateRange.from, dateRange.to]
+  const hasRangeData = Boolean(
+    stats &&
+      (stats.summary.totalIncome.amountMinor > 0 ||
+        stats.summary.totalExpense.amountMinor > 0)
   )
 
-  const statsView = useMemo(() => {
-    if (shouldShowSkeleton) {
-      return {
-        key: `loading-${filtersKey}`,
-        node: (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <Grid container spacing={2}>
-              {[0, 1, 2, 3].map((item) => (
-                <Grid key={item} size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
-                  <Card sx={{ p: 2 }}>
-                    <Skeleton variant="text" width="40%" />
-                    <Skeleton variant="text" height={36} />
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-            <Paper elevation={2} sx={{ p: 3 }}>
-              <Skeleton variant="text" width="30%" height={28} />
-              <Skeleton variant="rectangular" height={240} sx={{ mt: 2, borderRadius: 1 }} />
-            </Paper>
-          </Box>
-        ),
-      }
+  const selectedRangeLabel = useMemo(() => {
+    return `${format(parseISO(selectedRange.from), 'MMM d, yyyy')} - ${format(
+      parseISO(selectedRange.to),
+      'MMM d, yyyy'
+    )}`
+  }, [selectedRange.from, selectedRange.to])
+
+  const selectionStatusText = useMemo(() => {
+    if (pendingRangeStart) {
+      return 'Pick end date'
     }
 
-    if (shouldShowEmptyState) {
-      return {
-        key: `empty-${filtersKey}`,
-        node: (
-          <EmptyState
-            title="No statistics available"
-            message={
-              !currency
-                ? 'No currencies found for the selected period.'
-                : 'No data for the selected filters.'
-            }
-          />
-        ),
-      }
+    if (hasCommittedRangeSelection) {
+      return `Selected range: ${selectedRangeLabel}`
     }
 
-    return {
-      key: `stats-${filtersKey}-${stats!.summary.totalIncome.amountMinor}-${stats!.summary.totalExpense.amountMinor}-${stats!.summary.netBalance.amountMinor}`,
-      node: (
-        <>
-          <AnimatedSection delay={50}>
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
-                <Card sx={{ borderLeft: '4px solid', borderColor: 'success.main' }}>
-                  <CardContent>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Total Income
-                    </Typography>
-                    <Typography variant="h5" color="success.main">
-                      {formatAmount(stats!.summary.totalIncome.amountMinor, currency)}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
-                <Card sx={{ borderLeft: '4px solid', borderColor: 'error.main' }}>
-                  <CardContent>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Total Expense
-                    </Typography>
-                    <Typography variant="h5" color="error.main">
-                      {formatAmount(stats!.summary.totalExpense.amountMinor, currency)}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
-                <Card sx={{ borderLeft: '4px solid', borderColor: 'primary.main' }}>
-                  <CardContent>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Net Balance
-                    </Typography>
-                    <Typography
-                      variant="h5"
-                      color={stats!.summary.netBalance.amountMinor >= 0 ? 'success.main' : 'error.main'}
-                    >
-                      {formatAmount(stats!.summary.netBalance.amountMinor, currency)}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
-                <Card sx={{ borderLeft: '4px solid', borderColor: expensePercentage !== null && expensePercentage > 100 ? 'error.main' : expensePercentage !== null && expensePercentage > 80 ? 'warning.main' : 'info.main' }}>
-                  <CardContent>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Expense / Income
-                    </Typography>
-                    <Typography
-                      variant="h5"
-                      color={expensePercentage !== null && expensePercentage > 100 ? 'error.main' : expensePercentage !== null && expensePercentage > 80 ? 'warning.main' : 'info.main'}
-                    >
-                      {expensePercentage !== null ? `${expensePercentage.toFixed(1)}%` : 'N/A'}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-          </AnimatedSection>
+    return 'Select to pick starting date for filter'
+  }, [hasCommittedRangeSelection, pendingRangeStart, selectedRangeLabel])
 
-          <AnimatedSection delay={120}>
-            <Grid container spacing={3}>
-              <Grid size={{ xs: 12, md: 7 }} sx={{ minWidth: 0 }}>
-                <ExpenseBreakdownPie items={pieData} height={420} />
-              </Grid>
-              <Grid size={{ xs: 12, md: 5 }} sx={{ minWidth: 0 }}>
-                <IncomeExpenseBar income={incomeMajor} expense={expenseMajor} currency={currency} />
-              </Grid>
-            </Grid>
-          </AnimatedSection>
-
-          <AnimatedSection delay={200}>
-            <Paper elevation={2} sx={{ mt: 3 }}>
-              <Accordion expanded>
-                <AccordionSummary>
-                  <Typography variant="h6">
-                    Underlying Transactions ({filteredTransactions.length})
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  {filteredTransactions.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-                      No transactions match the current filters.
-                    </Typography>
-                  ) : (
-                    <TableContainer>
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Date</TableCell>
-                            <TableCell>Type</TableCell>
-                            <TableCell>Description</TableCell>
-                            <TableCell>Tags</TableCell>
-                            <TableCell align="right">Amount</TableCell>
-                            <TableCell>Currency</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {filteredTransactions.map((transaction) => (
-                            <TableRow
-                              key={transaction.id}
-                              hover
-                              onClick={() => router.push(`/transactions/${transaction.id}/edit`)}
-                              sx={{ cursor: 'pointer' }}
-                            >
-                              <TableCell>
-                                {format(parseISO(transaction.occurredAt), 'MMM d, yyyy')}
-                              </TableCell>
-                              <TableCell>
-                                <Chip
-                                  label={transaction.type}
-                                  size="small"
-                                  color={transaction.type === 'expense' ? 'error' : 'success'}
-                                  sx={{ textTransform: 'capitalize' }}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                {transaction.note || <em>No description</em>}
-                              </TableCell>
-                              <TableCell>
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                  {transaction.tags.map((tagName) => {
-                                    const tag = tags.find((t) => t.name === tagName)
-                                    if (tag) {
-                                      return <TagChip key={tag.id} tag={tag} size="small" />
-                                    }
-                                    return (
-                                      <Chip
-                                        key={tagName}
-                                        label={tagName}
-                                        size="small"
-                                        sx={{
-                                          border: `2px solid ${transaction.type === 'expense' ? '#c62828' : '#2e7d32'}`,
-                                        }}
-                                      />
-                                    )
-                                  })}
-                                </Box>
-                              </TableCell>
-                              <TableCell
-                                align="right"
-                                sx={{
-                                  color:
-                                    transaction.type === 'expense' ? 'error.main' : 'success.main',
-                                  fontWeight: 'bold',
-                                }}
-                              >
-                                {transaction.type === 'expense' ? '-' : '+'}
-                                {formatAmount(transaction.amountMinor, transaction.currency)}
-                              </TableCell>
-                              <TableCell>
-                                {transaction.currency}
-                                {includeConverted && transaction.currency !== currency && (
-                                  <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
-                                    (converted)
-                                  </Typography>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  )}
-                </AccordionDetails>
-              </Accordion>
-            </Paper>
-          </AnimatedSection>
-        </>
-      ),
+  const selectionSecondaryText = useMemo(() => {
+    if (pendingRangeStart || hasCommittedRangeSelection) {
+      return undefined
     }
-  }, [currency, expenseMajor, expensePercentage, filtersKey, incomeMajor, pieData, shouldShowEmptyState, shouldShowSkeleton, stats, filteredTransactions, tags, includeConverted])
+
+    return `Active date range: ${selectedRangeLabel}`
+  }, [hasCommittedRangeSelection, pendingRangeStart, selectedRangeLabel])
+
+  const visibleMonthHasEvents = Boolean(
+    calendarData?.days.some((day) => day.date.startsWith(`${visibleMonth}-`))
+  )
 
   const bannerActions = (
     <Button
@@ -800,249 +589,307 @@ export default function StatisticsPage() {
   return (
     <PageLayout pageName="Statistics" bannerActions={bannerActions}>
       <Container maxWidth="lg">
-        {statsError && (
-          <ErrorState
-            title="Unable to load statistics"
-            message={statsError}
-            onRetry={handleRetryStats}
-          />
-        )}
-
-        {/* Filters */}
         <AnimatedSection>
-          <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Filters
-            </Typography>
-            <Stack
-              direction={{ xs: 'column', md: 'row' }}
-              spacing={2}
-              sx={{ flexWrap: 'wrap', alignItems: 'center' }}
+          {calendarError ? (
+            <ErrorState
+              title="Unable to load calendar"
+              message={calendarError}
+              onRetry={loadCalendarData}
+            />
+          ) : (
+            <StatisticsCalendar
+              visibleMonth={visibleMonth}
+              currency={currency || 'USD'}
+              currencyOptions={currencyOptions}
+              includeConverted={includeConverted}
+              days={calendarData?.days || []}
+              selectedRange={selectedRange}
+              pendingRangeStart={pendingRangeStart}
+              selectionStatusText={selectionStatusText}
+              selectionSecondaryText={selectionSecondaryText}
+              isLoading={isLoadingCalendar}
+              isLoadingCurrencies={isLoadingCurrencies}
+              onMonthChange={setVisibleMonth}
+              onDateSelect={handleDateSelect}
+              onEventClick={handleEventClick}
+              onCurrencyChange={setCurrency}
+              onIncludeConvertedChange={setIncludeConverted}
+            />
+          )}
+          {!calendarError && !isLoadingCalendar && currency && !visibleMonthHasEvents && (
+            <Paper
+              elevation={0}
+              sx={{
+                mt: 1.5,
+                px: 2,
+                py: 1.25,
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'divider',
+                backgroundColor: 'background.paper',
+              }}
             >
-              {!advancedDateSearch && (
-                <>
-                  <FormControl sx={{ minWidth: 140 }}>
-                    <InputLabel>Year</InputLabel>
-                    <Select
-                      value={selectedYear}
-                      label="Year"
-                      onChange={(e) => {
-                        const newYear = Number(e.target.value)
-                        setSelectedYear(newYear)
-                        if (!advancedDateSearch) {
-                          const nextRange = computeRangeFromYearMonth(newYear, selectedMonth)
-                          setDateRange(nextRange)
-                          setQueryParams({
-                            year: String(newYear),
-                            month: selectedMonth === 'all' ? 'all' : String(selectedMonth),
-                            from: nextRange.from,
-                            to: nextRange.to,
-                            advanced: undefined,
-                          })
-                        } else {
-                          setQueryParams({
-                            year: String(newYear),
-                            month: selectedMonth === 'all' ? 'all' : String(selectedMonth),
-                          })
-                        }
-                      }}
-                    >
-                      {years.map((y) => (
-                        <MenuItem key={y} value={y}>
-                          {y}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  <FormControl sx={{ minWidth: 180 }}>
-                    <InputLabel>Month</InputLabel>
-                    <Select
-                      value={selectedMonth}
-                      label="Month"
-                      onChange={(e) =>
-                        {
-                          const newMonth = e.target.value === 'all' ? 'all' : Number(e.target.value)
-                          setSelectedMonth(newMonth)
-                          if (!advancedDateSearch) {
-                            const nextRange = computeRangeFromYearMonth(selectedYear, newMonth)
-                            setDateRange(nextRange)
-                            setQueryParams({
-                              year: String(selectedYear),
-                              month: newMonth === 'all' ? 'all' : String(newMonth),
-                              from: nextRange.from,
-                              to: nextRange.to,
-                              advanced: undefined,
-                            })
-                          } else {
-                            setQueryParams({
-                              year: String(selectedYear),
-                              month: newMonth === 'all' ? 'all' : String(newMonth),
-                            })
-                          }
-                        }
-                      }
-                    >
-                      <MenuItem value="all">All months</MenuItem>
-                      {months.map((m) => (
-                        <MenuItem key={m.value} value={m.value}>
-                          {m.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </>
-              )}
-
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={advancedDateSearch}
-                    onChange={(e) => {
-                      const enabled = e.target.checked
-                      setAdvancedDateSearch(enabled)
-                      setQueryParams({
-                        advanced: enabled ? 'true' : undefined,
-                        from: dateRange.from,
-                        to: dateRange.to,
-                        year: String(selectedYear),
-                        month: selectedMonth === 'all' ? 'all' : String(selectedMonth),
-                      })
-                    }}
-                  />
-                }
-                label="Advanced date search (use exact dates)"
-              />
-
-              {advancedDateSearch && (
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ minWidth: 300 }}>
-                  <TextField
-                    label="From"
-                    type="date"
-                    value={advancedFrom}
-                    onChange={(e) => {
-                      const val = e.target.value
-                      setAdvancedFrom(val)
-                      if (advancedDateSearch && val) {
-                        setDateRange((prev) => ({ ...prev, from: val }))
-                        setQueryParams({
-                          from: val,
-                          to: dateRange.to,
-                          advanced: 'true',
-                        })
-                      }
-                    }}
-                    InputLabelProps={{ shrink: true }}
-                    sx={{ minWidth: 150 }}
-                  />
-                  <TextField
-                    label="To"
-                    type="date"
-                    value={advancedTo}
-                    onChange={(e) => {
-                      const val = e.target.value
-                      setAdvancedTo(val)
-                      if (advancedDateSearch && val) {
-                        setDateRange((prev) => ({ ...prev, to: val }))
-                        setQueryParams({
-                          from: dateRange.from,
-                          to: val,
-                          advanced: 'true',
-                        })
-                      }
-                    }}
-                    InputLabelProps={{ shrink: true }}
-                    sx={{ minWidth: 150 }}
-                  />
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                alignItems={{ xs: 'flex-start', sm: 'center' }}
+                justifyContent="space-between"
+              >
+                <Typography variant="body2" color="text.secondary">
+                  No income or expense events were found for {format(parseISO(`${visibleMonth}-01`), 'MMMM yyyy')} in {currency}.
+                </Typography>
+                {latestActivityMonth && latestActivityMonth !== visibleMonth && (
                   <Button
-                    variant="outlined"
+                    size="small"
                     onClick={() => {
-                      const start = format(startOfMonth(new Date()), 'yyyy-MM-dd')
-                      const end = format(endOfMonth(new Date()), 'yyyy-MM-dd')
-                      setAdvancedFrom(start)
-                      setAdvancedTo(end)
-                      setDateRange({ from: start, to: end })
-                      setQueryParams({
-                        from: start,
-                        to: end,
-                        advanced: 'true',
-                      })
+                      setVisibleMonth(latestActivityMonth)
+                      setSelectedRange(getMonthBounds(latestActivityMonth))
                     }}
                   >
-                    Reset Range
+                    Jump To Latest Activity
                   </Button>
-                </Stack>
-              )}
-
-              {advancedDateSearch && (
-                <>
-                  <FormControl sx={{ minWidth: 180 }} disabled={currencyOptions.length === 0}>
-                    <InputLabel>Currency</InputLabel>
-                    <Select
-                      value={currency}
-                      label="Currency"
-                      onChange={(e) => {
-                        const val = String(e.target.value)
-                        updateCurrency(val)
-                      }}
-                    >
-                      {currencyOptions.map((c) => (
-                        <MenuItem key={c} value={c}>
-                          {c}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={includeConverted}
-                    onChange={(event) => {
-                      const checked = event.target.checked
-                      setIncludeConverted(checked)
-                      setQueryParams({ includeConverted: checked ? 'true' : undefined })
-                    }}
-                        disabled={!currency}
-                      />
-                    }
-                    label="Include other currencies (convert to selected currency)"
-                  />
-                </>
-              )}
-            </Stack>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-              Exchange rates fetched from https://open.er-api.com (base currency: {currency || 'N/A'}).
-            </Typography>
-          </Paper>
+                )}
+              </Stack>
+            </Paper>
+          )}
         </AnimatedSection>
 
-        {/* Content */}
-        {!statsError &&
-          (prefersReducedMotion ? (
-            <Box key={statsView.key}>{statsView.node}</Box>
+        <AnimatedSection delay={40}>
+          {rangeError ? (
+            <Box sx={{ mt: 3 }}>
+              <ErrorState
+                title="Unable to load statistics"
+                message={rangeError}
+                onRetry={loadRangeData}
+              />
+            </Box>
+          ) : isLoadingRange ? (
+            <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <Grid container spacing={2}>
+                {[0, 1, 2, 3].map((item) => (
+                  <Grid key={item} size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
+                    <Card sx={{ p: 2 }}>
+                      <Skeleton variant="text" width="40%" />
+                      <Skeleton variant="text" height={36} />
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+              <Paper elevation={2} sx={{ p: 3 }}>
+                <Skeleton variant="text" width="30%" height={28} />
+                <Skeleton variant="rectangular" height={240} sx={{ mt: 2, borderRadius: 1 }} />
+              </Paper>
+            </Box>
+          ) : !currency ? (
+            <Box sx={{ mt: 3 }}>
+              <EmptyState
+                title="No currencies found"
+                message="No transaction currencies are available for the active profile."
+              />
+            </Box>
+          ) : !hasRangeData ? (
+            <Box sx={{ mt: 3 }}>
+              <EmptyState
+                title="No statistics available"
+                message="No transactions match the selected range and currency."
+              />
+            </Box>
           ) : (
-            <TransitionGroup component={null}>
-              <Fade
-                key={statsView.key}
-                timeout={contentTransitionDuration}
-                mountOnEnter
-                unmountOnExit
-              >
-                <Box sx={{ width: '100%' }}>{statsView.node}</Box>
-              </Fade>
-            </TransitionGroup>
-          ))}
+            <>
+              <Grid container spacing={2} sx={{ mt: 3, mb: 3 }}>
+                <Grid size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
+                  <Card sx={{ borderLeft: '4px solid', borderColor: 'success.main' }}>
+                    <CardContent>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Total Income
+                      </Typography>
+                      <Typography variant="h5" color="success.main">
+                        {formatAmount(stats!.summary.totalIncome.amountMinor, currency)}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
+                  <Card sx={{ borderLeft: '4px solid', borderColor: 'error.main' }}>
+                    <CardContent>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Total Expense
+                      </Typography>
+                      <Typography variant="h5" color="error.main">
+                        {formatAmount(stats!.summary.totalExpense.amountMinor, currency)}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
+                  <Card sx={{ borderLeft: '4px solid', borderColor: 'primary.main' }}>
+                    <CardContent>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Net Balance
+                      </Typography>
+                      <Typography
+                        variant="h5"
+                        color={
+                          stats!.summary.netBalance.amountMinor >= 0
+                            ? 'success.main'
+                            : 'error.main'
+                        }
+                      >
+                        {formatAmount(stats!.summary.netBalance.amountMinor, currency)}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
+                  <Card
+                    sx={{
+                      borderLeft: '4px solid',
+                      borderColor:
+                        expensePercentage !== null && expensePercentage > 100
+                          ? 'error.main'
+                          : expensePercentage !== null && expensePercentage > 80
+                            ? 'warning.main'
+                            : 'info.main',
+                    }}
+                  >
+                    <CardContent>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Expense / Income
+                      </Typography>
+                      <Typography
+                        variant="h5"
+                        color={
+                          expensePercentage !== null && expensePercentage > 100
+                            ? 'error.main'
+                            : expensePercentage !== null && expensePercentage > 80
+                              ? 'warning.main'
+                              : 'info.main'
+                        }
+                      >
+                        {expensePercentage !== null ? `${expensePercentage.toFixed(1)}%` : 'N/A'}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+
+              <Grid container spacing={3}>
+                <Grid size={{ xs: 12, md: 7 }} sx={{ minWidth: 0 }}>
+                  <ExpenseBreakdownPie items={pieData} height={420} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 5 }} sx={{ minWidth: 0 }}>
+                  <IncomeExpenseBar income={incomeMajor} expense={expenseMajor} currency={currency} />
+                </Grid>
+              </Grid>
+
+              <Paper elevation={2} sx={{ mt: 3 }}>
+                <Box sx={{ px: 3, pt: 3 }}>
+                  <Typography variant="h6">
+                    Underlying Transactions ({rangeTransactions.length})
+                  </Typography>
+                </Box>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Date</TableCell>
+                        <TableCell>Type</TableCell>
+                        <TableCell>Description</TableCell>
+                        <TableCell>Tags</TableCell>
+                        <TableCell align="right">Amount</TableCell>
+                        <TableCell>Currency</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {rangeTransactions.map((transaction) => (
+                        <TableRow
+                          key={transaction.id}
+                          hover
+                          onClick={() => router.push(`/transactions/${transaction.id}/edit`)}
+                          sx={{ cursor: 'pointer' }}
+                        >
+                          <TableCell>
+                            {format(parseISO(transaction.occurredAt), 'MMM d, yyyy')}
+                          </TableCell>
+                          <TableCell sx={{ textTransform: 'capitalize' }}>
+                            {transaction.type}
+                          </TableCell>
+                          <TableCell>
+                            {transaction.note || <em>No description</em>}
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {transaction.tags.map((tagName) => {
+                                const tag = tags.find((item) => item.name === tagName)
+                                return tag ? (
+                                  <TagChip key={tag.id} tag={tag} size="small" />
+                                ) : (
+                                  <Box
+                                    key={`${transaction.id}-${tagName}`}
+                                    sx={{
+                                      px: 1,
+                                      py: 0.25,
+                                      borderRadius: 10,
+                                      border: '1px solid',
+                                      borderColor: 'divider',
+                                      fontSize: 12,
+                                    }}
+                                  >
+                                    {tagName}
+                                  </Box>
+                                )
+                              })}
+                            </Box>
+                          </TableCell>
+                          <TableCell
+                            align="right"
+                            sx={{
+                              color:
+                                transaction.type === 'expense' ? 'error.main' : 'success.main',
+                              fontWeight: 700,
+                            }}
+                          >
+                            {transaction.type === 'expense' ? '-' : '+'}
+                            {formatAmount(
+                              transaction.displayAmountMinor ?? transaction.amountMinor,
+                              transaction.displayCurrency ?? transaction.currency
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {transaction.displayCurrency ?? transaction.currency}
+                            {transaction.displayWasConverted ? ' (converted)' : ''}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+            </>
+          )}
+        </AnimatedSection>
+
+        <StatisticsDayTransactionsDialog
+          open={dialogState.open}
+          date={dialogState.date}
+          type={dialogState.type}
+          transactions={dayTransactions}
+          tags={tags}
+          isLoading={isLoadingDayTransactions}
+          onClose={() => setDialogState({ open: false, date: null, type: null })}
+          onTransactionClick={(transactionId) => {
+            setDialogState({ open: false, date: null, type: null })
+            router.push(`/transactions/${transactionId}/edit`)
+          }}
+        />
 
         <Snackbar
           open={snackbar.open}
           message={snackbar.message}
           severity={snackbar.severity}
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          onClose={() => setSnackbar((current) => ({ ...current, open: false }))}
         />
       </Container>
     </PageLayout>
   )
 }
-
-

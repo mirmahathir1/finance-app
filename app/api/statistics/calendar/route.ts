@@ -1,16 +1,17 @@
 import type { NextRequest } from 'next/server'
+import { startOfMonth, endOfMonth, format } from 'date-fns'
 import { prisma } from '@/lib/prisma'
 import { requireAuthenticatedUser } from '@/app/api/_lib/auth'
 import { success, errorResponse } from '@/app/api/auth/_lib/responses'
 import { getConversionRates } from '@/lib/exchange-rates'
 import {
-  buildStatisticsData,
+  buildStatisticsCalendarData,
   normalizeTransactionsForDisplay,
 } from '@/lib/statistics'
 import type { Transaction } from '@/types'
 
-function isValidDate(value: string) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value)
+function isValidMonth(value: string) {
+  return /^\d{4}-\d{2}$/.test(value)
 }
 
 function toExpandedDateRange(fromDate: string, toDate: string) {
@@ -60,21 +61,25 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl
     const profile = searchParams.get('profile')?.trim()
+    const month = searchParams.get('month')?.trim()
     const currency = searchParams.get('currency')?.trim().toUpperCase()
     const includeConverted = searchParams.get('includeConverted') === 'true'
-    const fromDate = searchParams.get('from')
-    const toDate = searchParams.get('to')
 
-    if (!profile || !currency || !fromDate || !toDate) {
+    if (!profile || !month || !currency) {
       return errorResponse(
-        'Profile, currency, from (YYYY-MM-DD), and to (YYYY-MM-DD) parameters are required.',
+        'Profile, month (YYYY-MM), and currency parameters are required.',
         400
       )
     }
 
-    if (!isValidDate(fromDate) || !isValidDate(toDate)) {
-      return errorResponse('Dates must be in YYYY-MM-DD format.', 400)
+    if (!isValidMonth(month)) {
+      return errorResponse('Month must be in YYYY-MM format.', 400)
     }
+
+    const [year, monthNumber] = month.split('-').map(Number)
+    const monthDate = new Date(year, monthNumber - 1, 1)
+    const fromDate = format(startOfMonth(monthDate), 'yyyy-MM-dd')
+    const toDate = format(endOfMonth(monthDate), 'yyyy-MM-dd')
 
     const rows = await prisma.transaction.findMany({
       where: {
@@ -117,14 +122,13 @@ export async function GET(request: NextRequest) {
     )
 
     return success(
-      buildStatisticsData(normalized.transactions, {
-        from: fromDate,
-        to: toDate,
+      buildStatisticsCalendarData(normalized.transactions, {
+        month,
         currency,
         skippedCurrencies: normalized.skippedCurrencies,
       })
     )
   } catch {
-    return errorResponse('Unable to load statistics.', 500)
+    return errorResponse('Unable to load calendar statistics.', 500)
   }
 }

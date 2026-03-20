@@ -8,12 +8,20 @@ import type {
   UpdateTransactionRequest,
   TransactionQueryParams,
   StatisticsQueryParams,
+  StatisticsCalendarQueryParams,
   StatisticsData,
+  StatisticsCalendarData,
   TagBreakdown,
   AmountData,
   UserData,
   PreviewResponse,
 } from '@/types'
+import { getConversionRates } from '@/lib/exchange-rates'
+import {
+  buildStatisticsCalendarData,
+  buildStatisticsData,
+  normalizeTransactionsForDisplay,
+} from '@/lib/statistics'
 
 /**
  * Guest Data Service
@@ -120,7 +128,11 @@ class GuestDataService {
    */
   async getTransactions(
     params: TransactionQueryParams = {}
-  ): Promise<{ transactions: Transaction[]; pagination: any }> {
+  ): Promise<{
+    transactions: Transaction[]
+    pagination: any
+    meta?: { skippedCurrencies?: string[] }
+  }> {
     await this.delay(100)
 
     let filtered = Array.from(this.transactions.values())
@@ -135,6 +147,14 @@ class GuestDataService {
       filtered = filtered.filter((t) => t.type === params.type)
     }
 
+    if (params.currency && !params.includeConverted) {
+      filtered = filtered.filter((t) => t.currency === params.currency)
+    }
+
+    if (params.tag) {
+      filtered = filtered.filter((t) => t.tags.includes(params.tag!))
+    }
+
     // Filter by date range
     if (params.from) {
       filtered = filtered.filter((t) => t.occurredAt >= params.from!)
@@ -144,26 +164,52 @@ class GuestDataService {
       filtered = filtered.filter((t) => t.occurredAt <= params.to!)
     }
 
-    // Sort by date (newest first)
-    filtered.sort(
-      (a, b) =>
-        new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
-    )
+    const sortDirection = params.sort === 'asc' ? 'asc' : 'desc'
+    filtered.sort((a, b) => {
+      const left = new Date(a.occurredAt).getTime()
+      const right = new Date(b.occurredAt).getTime()
+      return sortDirection === 'asc' ? left - right : right - left
+    })
+
+    const targetDisplayCurrency = params.displayCurrency || params.currency
+    const normalized = targetDisplayCurrency
+      ? normalizeTransactionsForDisplay(
+          filtered,
+          {
+            targetCurrency: targetDisplayCurrency,
+            includeConverted: params.includeConverted,
+            sourceCurrencyFilter:
+              params.includeConverted ? undefined : params.currency || targetDisplayCurrency,
+          },
+          params.includeConverted
+            ? await getConversionRates(targetDisplayCurrency)
+            : {}
+        )
+      : {
+          transactions: filtered,
+          skippedCurrencies: [] as string[],
+        }
 
     // Pagination
-    const limit = params.limit || 50
+    const limit = params.limit
     const offset = params.offset || 0
-    const total = filtered.length
-    const paginated = filtered.slice(offset, offset + limit)
-    const hasMore = offset + limit < total
+    const total = normalized.transactions.length
+    const paginated =
+      limit !== undefined
+        ? normalized.transactions.slice(offset, offset + limit)
+        : normalized.transactions.slice(offset)
+    const hasMore = limit !== undefined ? offset + limit < total : false
 
     return {
       transactions: paginated,
       pagination: {
         total,
-        limit,
+        limit: limit ?? total,
         offset,
         hasMore,
+      },
+      meta: {
+        skippedCurrencies: normalized.skippedCurrencies,
       },
     }
   }
@@ -321,96 +367,48 @@ class GuestDataService {
   ): Promise<StatisticsData> {
     await this.delay(150)
 
-    // Get all transactions matching the filters
     const allTransactions = await this.getTransactions({
       profile: params.profile,
       from: params.from,
       to: params.to,
+      currency: params.currency,
+      displayCurrency: params.currency,
+      includeConverted: params.includeConverted,
+    })
+    return buildStatisticsData(allTransactions.transactions, {
+      from: params.from,
+      to: params.to,
+      currency: params.currency,
+      skippedCurrencies: allTransactions.meta?.skippedCurrencies || [],
+    })
+  }
+
+  async getStatisticsCalendar(
+    params: StatisticsCalendarQueryParams
+  ): Promise<StatisticsCalendarData> {
+    await this.delay(150)
+
+    const from = `${params.month}-01`
+    const to = `${params.month}-31`
+    const transactions = await this.getTransactions({
+      profile: params.profile,
+      from,
+      to,
+      currency: params.currency,
+      displayCurrency: params.currency,
+      includeConverted: params.includeConverted,
+      sort: 'asc',
     })
 
-    // Filter by currency
-    const filtered = allTransactions.transactions.filter(
-      (t) => t.currency === params.currency
+    const monthTransactions = transactions.transactions.filter((transaction) =>
+      transaction.occurredAt.startsWith(`${params.month}-`)
     )
 
-    // Calculate totals
-    let totalIncome = 0
-    let totalExpense = 0
-
-    const expenseByTag: Record<string, number> = {}
-    const incomeByTag: Record<string, number> = {}
-
-    for (const transaction of filtered) {
-      if (transaction.type === 'expense') {
-        totalExpense += transaction.amountMinor
-        transaction.tags.forEach((tag) => {
-          expenseByTag[tag] = (expenseByTag[tag] || 0) + transaction.amountMinor
-        })
-      } else {
-        totalIncome += transaction.amountMinor
-        transaction.tags.forEach((tag) => {
-          incomeByTag[tag] = (incomeByTag[tag] || 0) + transaction.amountMinor
-        })
-      }
-    }
-
-    const netBalance = totalIncome - totalExpense
-
-    // Create expense breakdown
-    const expenseBreakdown: TagBreakdown[] = Object.entries(expenseByTag)
-      .map(([tag, amountMinor]) => ({
-        tag,
-        amountMinor,
-        currency: params.currency,
-        percentage:
-          totalExpense > 0
-            ? Math.round((amountMinor / totalExpense) * 100)
-            : 0,
-      }))
-      .sort((a, b) => b.amountMinor - a.amountMinor)
-
-    // Create income breakdown
-    const incomeBreakdown: TagBreakdown[] = Object.entries(incomeByTag)
-      .map(([tag, amountMinor]) => ({
-        tag,
-        amountMinor,
-        currency: params.currency,
-        percentage:
-          totalIncome > 0
-            ? Math.round((amountMinor / totalIncome) * 100)
-            : 0,
-      }))
-      .sort((a, b) => b.amountMinor - a.amountMinor)
-
-    const summary: {
-      totalIncome: AmountData
-      totalExpense: AmountData
-      netBalance: AmountData
-    } = {
-      totalIncome: {
-        amountMinor: totalIncome,
-        currency: params.currency,
-      },
-      totalExpense: {
-        amountMinor: totalExpense,
-        currency: params.currency,
-      },
-      netBalance: {
-        amountMinor: netBalance,
-        currency: params.currency,
-      },
-    }
-
-    return {
-      summary,
-      expenseBreakdown,
-      incomeBreakdown,
-      period: {
-        from: params.from,
-        to: params.to,
-        currency: params.currency,
-      },
-    }
+    return buildStatisticsCalendarData(monthTransactions, {
+      month: params.month,
+      currency: params.currency,
+      skippedCurrencies: transactions.meta?.skippedCurrencies || [],
+    })
   }
 
   /**
@@ -566,4 +564,3 @@ class GuestDataService {
 
 // Singleton instance
 export const guestDataService = new GuestDataService()
-

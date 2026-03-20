@@ -3,7 +3,10 @@ import { prisma } from '@/lib/prisma'
 import { requireAuthenticatedUser } from '@/app/api/_lib/auth'
 import { success, errorResponse } from '@/app/api/auth/_lib/responses'
 import { recordCatalogValidationFailure } from '@/lib/telemetry'
+import { getConversionRates } from '@/lib/exchange-rates'
+import { normalizeTransactionsForDisplay } from '@/lib/statistics'
 import type { Prisma, TransactionType } from '@prisma/client'
+import type { Transaction } from '@/types'
 
 const DEFAULT_LIMIT = 50
 const MAX_LIMIT = 10000
@@ -36,7 +39,7 @@ function parseDateForFilter(input?: string | null): { start?: Date; end?: Date }
   return { start, end }
 }
 
-function toTransactionPayload(record: Prisma.TransactionGetPayload<{}>) {
+function toTransactionPayload(record: Prisma.TransactionGetPayload<{}>): Transaction {
   return {
     id: record.id,
     userId: record.userId,
@@ -72,6 +75,13 @@ export async function GET(request: NextRequest) {
     const currencyFilter = currencyParam
       ? currencyParam.trim().toUpperCase()
       : undefined
+    const displayCurrencyParam = searchParams.get('displayCurrency')
+    const displayCurrency = displayCurrencyParam
+      ? displayCurrencyParam.trim().toUpperCase()
+      : undefined
+    const includeConverted = searchParams.get('includeConverted') === 'true'
+    const sortParam = searchParams.get('sort')
+    const sortDirection = sortParam === 'asc' ? 'asc' : 'desc'
 
     const tagParam = searchParams.get('tag')
     const tagFilter = tagParam ? tagParam.trim() : undefined
@@ -113,7 +123,7 @@ export async function GET(request: NextRequest) {
       where.type = typeFilter as TransactionType
     }
 
-    if (currencyFilter) {
+    if (currencyFilter && !includeConverted) {
       where.currency = currencyFilter
     }
 
@@ -143,10 +153,10 @@ export async function GET(request: NextRequest) {
 
     const rows = await prisma.transaction.findMany({
       where,
-      orderBy: [
-        { occurredAt: 'desc' },
-        { createdAt: 'desc' },
-      ],
+      orderBy:
+        sortDirection === 'asc'
+          ? [{ occurredAt: 'asc' }, { createdAt: 'asc' }]
+          : [{ occurredAt: 'desc' }, { createdAt: 'desc' }],
     })
 
     // Filter by date on application side for accurate date-only comparison
@@ -166,19 +176,41 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Apply pagination after filtering
-    const total = filteredRows.length
-    const paginatedRows = limit !== undefined
-      ? filteredRows.slice(offset, offset + limit)
-      : filteredRows.slice(offset)
+    const baseTransactions = filteredRows.map(toTransactionPayload)
+    const targetDisplayCurrency = displayCurrency || currencyFilter
+    const normalizedTransactions = targetDisplayCurrency
+      ? normalizeTransactionsForDisplay(
+          baseTransactions,
+          {
+            targetCurrency: targetDisplayCurrency,
+            includeConverted,
+            sourceCurrencyFilter:
+              includeConverted ? undefined : currencyFilter || targetDisplayCurrency,
+          },
+          includeConverted ? await getConversionRates(targetDisplayCurrency) : {}
+        )
+      : {
+          transactions: baseTransactions,
+          skippedCurrencies: [] as string[],
+        }
+
+    // Apply pagination after filtering and display conversion
+    const total = normalizedTransactions.transactions.length
+    const paginatedRows =
+      limit !== undefined
+        ? normalizedTransactions.transactions.slice(offset, offset + limit)
+        : normalizedTransactions.transactions.slice(offset)
 
     return success({
-      transactions: paginatedRows.map(toTransactionPayload),
+      transactions: paginatedRows,
       pagination: {
         total,
         limit: limit ?? total,
         offset,
         hasMore: limit !== undefined ? offset + limit < total : false,
+      },
+      meta: {
+        skippedCurrencies: normalizedTransactions.skippedCurrencies,
       },
     })
   } catch (error) {
@@ -285,5 +317,4 @@ export async function POST(request: Request) {
     )
   }
 }
-
 
