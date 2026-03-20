@@ -42,6 +42,17 @@ interface StatisticsCalendarProps {
   currency: string
   currencyOptions: string[]
   includeConverted: boolean
+  yearSummaryOptions: Array<{
+    year: number
+    totalIncomeMinor: number
+    totalExpenseMinor: number
+  }>
+  monthSummaryOptions: Array<{
+    monthIndex: number
+    label: string
+    totalIncomeMinor: number
+    totalExpenseMinor: number
+  }>
   days: StatisticsCalendarDay[]
   selectedRange: { from: string; to: string }
   pendingRangeStart?: string | null
@@ -49,6 +60,7 @@ interface StatisticsCalendarProps {
   selectionSecondaryText?: string
   isLoading?: boolean
   isLoadingCurrencies?: boolean
+  isLoadingPeriodSummaries?: boolean
   onMonthChange: (month: string) => void
   onDateSelect: (date: string) => void
   onEventClick: (date: string, type: TransactionType) => void
@@ -57,10 +69,6 @@ interface StatisticsCalendarProps {
 }
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => ({
-  value: index,
-  label: format(new Date(2026, index, 1), 'MMMM'),
-}))
 
 function formatCompactAmount(amountMinor: number, currency: string) {
   return new Intl.NumberFormat('en-US', {
@@ -75,11 +83,40 @@ function eventLabel(amountMinor: number, currency: string) {
   return formatCompactAmount(amountMinor, currency)
 }
 
+function SummaryBreakdown({
+  totalIncomeMinor,
+  totalExpenseMinor,
+  currency,
+}: {
+  totalIncomeMinor: number
+  totalExpenseMinor: number
+  currency: string
+}) {
+  return (
+    <Stack spacing={0.2} alignItems="flex-end" sx={{ minWidth: 0 }}>
+      <Typography
+        variant="caption"
+        sx={{ color: 'success.main', fontWeight: 600, lineHeight: 1.2 }}
+      >
+        In {formatCompactAmount(totalIncomeMinor, currency)}
+      </Typography>
+      <Typography
+        variant="caption"
+        sx={{ color: 'error.main', fontWeight: 600, lineHeight: 1.2 }}
+      >
+        Out {formatCompactAmount(totalExpenseMinor, currency)}
+      </Typography>
+    </Stack>
+  )
+}
+
 export function StatisticsCalendar({
   visibleMonth,
   currency,
   currencyOptions,
   includeConverted,
+  yearSummaryOptions,
+  monthSummaryOptions,
   days,
   selectedRange,
   pendingRangeStart,
@@ -87,6 +124,7 @@ export function StatisticsCalendar({
   selectionSecondaryText,
   isLoading = false,
   isLoadingCurrencies = false,
+  isLoadingPeriodSummaries = false,
   onMonthChange,
   onDateSelect,
   onEventClick,
@@ -100,10 +138,6 @@ export function StatisticsCalendar({
     () => parseISO(`${visibleMonth}-01`),
     [visibleMonth]
   )
-  const yearOptions = useMemo(() => {
-    const visibleYear = monthDate.getFullYear()
-    return Array.from({ length: 17 }, (_, index) => visibleYear - 8 + index)
-  }, [monthDate])
 
   const calendarDays = useMemo(() => {
     const intervalStart = startOfWeek(startOfMonth(monthDate))
@@ -138,14 +172,14 @@ export function StatisticsCalendar({
       elevation={2}
       sx={{
         overflow: 'hidden',
-        width: { xs: '100%', md: '50%' },
-        mx: { xs: 0, md: 'auto' },
+        width: '100%',
       }}
     >
       <Stack
-        direction="row"
-        alignItems="center"
+        direction={{ xs: 'column', sm: 'row' }}
+        alignItems={{ xs: 'stretch', sm: 'center' }}
         justifyContent="space-between"
+        spacing={1.5}
         sx={{
           px: { xs: 2, sm: 3 },
           py: 2,
@@ -153,39 +187,58 @@ export function StatisticsCalendar({
           borderColor: 'divider',
         }}
       >
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <Button
-              variant="text"
-              endIcon={<ArrowDropDownIcon />}
-              onClick={handleMonthPickerOpen}
-              sx={{
-                minWidth: 0,
-                px: 0.5,
-                color: 'text.primary',
-                fontSize: { xs: '1.5rem', sm: '1.75rem' },
-                fontWeight: 500,
-                letterSpacing: '-0.01em',
-                textTransform: 'none',
-              }}
-            >
-              {format(monthDate, 'MMMM')}
-            </Button>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1.25}
+          alignItems={{ xs: 'flex-start', sm: 'center' }}
+        >
+          <Stack
+            direction="row"
+            spacing={0.35}
+            alignItems="center"
+            sx={{ flexWrap: 'wrap' }}
+          >
             <Button
               variant="text"
               endIcon={<ArrowDropDownIcon />}
               onClick={handleYearPickerOpen}
               sx={{
                 minWidth: 0,
-                px: 0.5,
+                px: 0.25,
                 color: 'text.primary',
-                fontSize: { xs: '1.5rem', sm: '1.75rem' },
-                fontWeight: 500,
-                letterSpacing: '-0.01em',
+                fontSize: { xs: '1.3rem', sm: '1.55rem' },
+                fontWeight: 600,
+                letterSpacing: '-0.02em',
                 textTransform: 'none',
               }}
             >
               {format(monthDate, 'yyyy')}
+            </Button>
+            <Typography
+              component="span"
+              sx={{
+                color: 'text.secondary',
+                fontSize: { xs: '1.1rem', sm: '1.2rem' },
+                fontWeight: 500,
+              }}
+            >
+              &gt;
+            </Typography>
+            <Button
+              variant="text"
+              endIcon={<ArrowDropDownIcon />}
+              onClick={handleMonthPickerOpen}
+              sx={{
+                minWidth: 0,
+                px: 0.25,
+                color: 'text.primary',
+                fontSize: { xs: '1.3rem', sm: '1.55rem' },
+                fontWeight: 600,
+                letterSpacing: '-0.02em',
+                textTransform: 'none',
+              }}
+            >
+              {format(monthDate, 'MMMM')}
             </Button>
           </Stack>
           <Button
@@ -203,7 +256,7 @@ export function StatisticsCalendar({
           </Button>
         </Stack>
 
-        <Stack direction="row" spacing={0.5}>
+        <Stack direction="row" spacing={0.5} sx={{ alignSelf: { xs: 'flex-end', sm: 'auto' } }}>
           <IconButton
             aria-label="Previous month"
             onClick={() => onMonthChange(format(addMonths(monthDate, -1), 'yyyy-MM'))}
@@ -226,15 +279,35 @@ export function StatisticsCalendar({
         open={Boolean(monthAnchorEl)}
         onClose={() => setMonthAnchorEl(null)}
       >
-        {MONTH_OPTIONS.map((month) => (
-          <MenuItem
-            key={month.value}
-            selected={month.value === monthDate.getMonth()}
-            onClick={() => handleMonthSelect(month.value)}
-          >
-            {month.label}
-          </MenuItem>
-        ))}
+        {isLoadingPeriodSummaries ? (
+          <MenuItem disabled>Loading months...</MenuItem>
+        ) : (
+          monthSummaryOptions.map((month) => (
+            <MenuItem
+              key={month.monthIndex}
+              selected={month.monthIndex === monthDate.getMonth()}
+              onClick={() => handleMonthSelect(month.monthIndex)}
+              sx={{ minWidth: 260 }}
+            >
+              <Stack
+                direction="row"
+                spacing={2}
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{ width: '100%' }}
+              >
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {month.label}
+                </Typography>
+                <SummaryBreakdown
+                  totalIncomeMinor={month.totalIncomeMinor}
+                  totalExpenseMinor={month.totalExpenseMinor}
+                  currency={currency}
+                />
+              </Stack>
+            </MenuItem>
+          ))
+        )}
       </Menu>
 
       <Menu
@@ -242,15 +315,35 @@ export function StatisticsCalendar({
         open={Boolean(yearAnchorEl)}
         onClose={() => setYearAnchorEl(null)}
       >
-        {yearOptions.map((year) => (
-          <MenuItem
-            key={year}
-            selected={year === monthDate.getFullYear()}
-            onClick={() => handleYearSelect(year)}
-          >
-            {year}
-          </MenuItem>
-        ))}
+        {isLoadingPeriodSummaries ? (
+          <MenuItem disabled>Loading years...</MenuItem>
+        ) : (
+          yearSummaryOptions.map((year) => (
+            <MenuItem
+              key={year.year}
+              selected={year.year === monthDate.getFullYear()}
+              onClick={() => handleYearSelect(year.year)}
+              sx={{ minWidth: 260 }}
+            >
+              <Stack
+                direction="row"
+                spacing={2}
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{ width: '100%' }}
+              >
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {year.year}
+                </Typography>
+                <SummaryBreakdown
+                  totalIncomeMinor={year.totalIncomeMinor}
+                  totalExpenseMinor={year.totalExpenseMinor}
+                  currency={currency}
+                />
+              </Stack>
+            </MenuItem>
+          ))
+        )}
       </Menu>
 
       <Box
@@ -301,14 +394,16 @@ export function StatisticsCalendar({
             (dateKey === selectedRange.from || dateKey === selectedRange.to)
           const totals = dayMap.get(dateKey)
           const isLastColumn = index % 7 === 6
+          const rangeHighlightColor = alpha(theme.palette.primary.main, 0.24)
+          const rangeBoundaryHighlightColor = alpha(theme.palette.primary.main, 0.38)
           const dayBackground = !inVisibleMonth
             ? alpha(theme.palette.action.hover, theme.palette.mode === 'dark' ? 0.16 : 0.38)
             : isPendingStart
               ? alpha(theme.palette.error.main, 0.12)
               : isRangeBoundary
-              ? alpha(theme.palette.primary.main, 0.2)
+              ? rangeBoundaryHighlightColor
               : isInRange
-                ? alpha(theme.palette.primary.main, 0.08)
+                ? rangeHighlightColor
                 : 'transparent'
 
           return (
@@ -323,8 +418,17 @@ export function StatisticsCalendar({
                 minHeight: { xs: 84, sm: 72 },
                 borderRight: isLastColumn ? 'none' : '1px solid',
                 borderBottom: '1px solid',
-                borderColor: alpha(theme.palette.divider, 0.85),
+                borderColor:
+                  isInRange && inVisibleMonth
+                    ? alpha(theme.palette.primary.main, 0.35)
+                    : alpha(theme.palette.divider, 0.85),
                 backgroundColor: dayBackground,
+                boxShadow:
+                  isRangeBoundary && inVisibleMonth
+                    ? `inset 0 0 0 1px ${alpha(theme.palette.primary.dark, 0.28)}`
+                    : isInRange && inVisibleMonth
+                      ? `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.18)}`
+                      : 'none',
                 px: 0.75,
                 py: 0.5,
                 cursor: inVisibleMonth ? 'pointer' : 'default',

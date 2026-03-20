@@ -13,22 +13,16 @@ import {
   Paper,
   Skeleton,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Typography,
 } from '@mui/material'
 import { PageLayout } from '@/components/PageLayout'
 import { Snackbar } from '@/components/Snackbar'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
-import { TagChip } from '@/components/TagChip'
 import { AnimatedSection } from '@/components/AnimatedSection'
 import { StatisticsCalendar } from '@/components/StatisticsCalendar'
 import { StatisticsDayTransactionsDialog } from '@/components/StatisticsDayTransactionsDialog'
+import { StatisticsTransactionsTable } from '@/components/StatisticsTransactionsTable'
 import { useProfile } from '@/contexts/ProfileContext'
 import { useTag } from '@/contexts/TagContext'
 import { useCurrency } from '@/contexts/CurrencyContext'
@@ -80,6 +74,10 @@ function isValidDate(value?: string | null) {
   return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value))
 }
 
+function isValidTransactionType(value?: string | null): value is TransactionType {
+  return value === 'expense' || value === 'income'
+}
+
 function normalizeRange(from: string, to: string) {
   return from <= to ? { from, to } : { from: to, to: from }
 }
@@ -90,6 +88,10 @@ function getMonthBounds(month: string) {
     from: format(startOfMonth(monthDate), 'yyyy-MM-dd'),
     to: format(endOfMonth(monthDate), 'yyyy-MM-dd'),
   }
+}
+
+function getDisplayAmountMinor(transaction: Transaction) {
+  return transaction.displayAmountMinor ?? transaction.amountMinor
 }
 
 export default function StatisticsPage() {
@@ -112,7 +114,9 @@ export default function StatisticsPage() {
   const [includeConverted, setIncludeConverted] = useState(false)
   const [currencyOptions, setCurrencyOptions] = useState<string[]>([])
   const [profileTransactions, setProfileTransactions] = useState<Transaction[]>([])
+  const [summaryTransactions, setSummaryTransactions] = useState<Transaction[]>([])
   const [isLoadingCurrencies, setIsLoadingCurrencies] = useState(false)
+  const [isLoadingSummaryTransactions, setIsLoadingSummaryTransactions] = useState(false)
   const [allowInitialActivityAutofocus, setAllowInitialActivityAutofocus] = useState(true)
   const [didAutofocusActivityMonth, setDidAutofocusActivityMonth] = useState(false)
 
@@ -142,6 +146,10 @@ export default function StatisticsPage() {
     severity: 'success' | 'error' | 'info' | 'warning'
   }>({ open: false, message: '', severity: 'info' })
 
+  const closeDayDialog = useCallback(() => {
+    setDialogState({ open: false, date: null, type: null })
+  }, [])
+
   const showSkippedCurrencies = useCallback((codes?: string[]) => {
     if (!codes || codes.length === 0) {
       return
@@ -162,8 +170,28 @@ export default function StatisticsPage() {
     const toParam = searchParams?.get('to')
     const currencyParam = searchParams?.get('currency')
     const includeConvertedParam = searchParams?.get('includeConverted') === 'true'
+    const dialogDateParam = searchParams?.get('dialogDate')
+    const dialogTypeParam = searchParams?.get('dialogType')
+    const nextDialogDate = isValidDate(dialogDateParam) ? dialogDateParam! : null
+    const nextDialogType = isValidTransactionType(dialogTypeParam) ? dialogTypeParam : null
+    const nextDialogState =
+      nextDialogDate && nextDialogType
+        ? {
+            open: true,
+            date: nextDialogDate,
+            type: nextDialogType,
+          }
+        : {
+            open: false,
+            date: null,
+            type: null,
+          }
 
-    const nextVisibleMonth = isValidMonth(monthParam) ? monthParam! : currentMonth
+    const nextVisibleMonth = isValidMonth(monthParam)
+      ? monthParam!
+      : nextDialogState.open && nextDialogState.date
+        ? nextDialogState.date.slice(0, 7)
+        : currentMonth
     const fallbackRange = getMonthBounds(nextVisibleMonth)
     const nextRange =
       isValidDate(fromParam) && isValidDate(toParam)
@@ -174,9 +202,43 @@ export default function StatisticsPage() {
     setSelectedRange(nextRange)
     setCurrency(currencyParam?.toUpperCase() || '')
     setIncludeConverted(includeConvertedParam)
+    setDialogState(nextDialogState)
     setAllowInitialActivityAutofocus(!isValidMonth(monthParam) && !(isValidDate(fromParam) && isValidDate(toParam)))
     setHasInitializedFromUrl(true)
   }, [currentMonth, hasInitializedFromUrl, searchParams])
+
+  useEffect(() => {
+    if (!hasInitializedFromUrl) return
+
+    const dialogDateParam = searchParams?.get('dialogDate')
+    const dialogTypeParam = searchParams?.get('dialogType')
+    const nextDialogDate = isValidDate(dialogDateParam) ? dialogDateParam! : null
+    const nextDialogType = isValidTransactionType(dialogTypeParam) ? dialogTypeParam : null
+    const nextDialogState =
+      nextDialogDate && nextDialogType
+        ? {
+            open: true,
+            date: nextDialogDate,
+            type: nextDialogType,
+          }
+        : {
+            open: false,
+            date: null,
+            type: null,
+          }
+
+    setDialogState((current) => {
+      if (
+        current.open === nextDialogState.open &&
+        current.date === nextDialogState.date &&
+        current.type === nextDialogState.type
+      ) {
+        return current
+      }
+
+      return nextDialogState
+    })
+  }, [hasInitializedFromUrl, searchParams])
 
   useEffect(() => {
     if (!hasInitializedFromUrl) return
@@ -194,8 +256,24 @@ export default function StatisticsPage() {
       params.set('includeConverted', 'true')
     }
 
+    if (dialogState.open && dialogState.date && dialogState.type) {
+      params.set('dialogDate', dialogState.date)
+      params.set('dialogType', dialogState.type)
+    }
+
     router.replace(`?${params.toString()}`)
-  }, [currency, hasInitializedFromUrl, includeConverted, router, selectedRange.from, selectedRange.to, visibleMonth])
+  }, [
+    currency,
+    dialogState.date,
+    dialogState.open,
+    dialogState.type,
+    hasInitializedFromUrl,
+    includeConverted,
+    router,
+    selectedRange.from,
+    selectedRange.to,
+    visibleMonth,
+  ])
 
   useEffect(() => {
     if (!activeProfile) {
@@ -279,6 +357,128 @@ export default function StatisticsPage() {
 
     return candidates[0]?.occurredAt.slice(0, 7) || null
   }, [currency, includeConverted, profileTransactions])
+
+  useEffect(() => {
+    if (!activeProfile || !currency) {
+      setSummaryTransactions([])
+      setIsLoadingSummaryTransactions(false)
+      return
+    }
+
+    let cancelled = false
+
+    const loadSummaryTransactions = async () => {
+      try {
+        setIsLoadingSummaryTransactions(true)
+        const response = await api.getTransactions({
+          profile: activeProfile,
+          currency,
+          displayCurrency: currency,
+          includeConverted,
+          sort: 'desc',
+        })
+
+        if (!response.success || !response.data) {
+          throw new Error(
+            !response.success ? response.error.message : 'Failed to load period summaries.'
+          )
+        }
+
+        if (!cancelled) {
+          setSummaryTransactions(response.data.transactions)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setSummaryTransactions([])
+          setSnackbar({
+            open: true,
+            severity: 'error',
+            message: getFriendlyErrorMessage(error, 'Failed to load period summaries.'),
+          })
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingSummaryTransactions(false)
+        }
+      }
+    }
+
+    loadSummaryTransactions()
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeProfile, api, currency, includeConverted])
+
+  const visibleYear = useMemo(() => {
+    return Number.parseInt(visibleMonth.slice(0, 4), 10)
+  }, [visibleMonth])
+
+  const yearSummaryOptions = useMemo(() => {
+    const totalsByYear = new Map<
+      number,
+      { totalIncomeMinor: number; totalExpenseMinor: number }
+    >()
+
+    for (const transaction of summaryTransactions) {
+      const year = Number.parseInt(transaction.occurredAt.slice(0, 4), 10)
+      const nextTotals = totalsByYear.get(year) || {
+        totalIncomeMinor: 0,
+        totalExpenseMinor: 0,
+      }
+      const amountMinor = getDisplayAmountMinor(transaction)
+
+      if (transaction.type === 'income') {
+        nextTotals.totalIncomeMinor += amountMinor
+      } else {
+        nextTotals.totalExpenseMinor += amountMinor
+      }
+
+      totalsByYear.set(year, nextTotals)
+    }
+
+    if (!totalsByYear.has(visibleYear)) {
+      totalsByYear.set(visibleYear, {
+        totalIncomeMinor: 0,
+        totalExpenseMinor: 0,
+      })
+    }
+
+    return Array.from(totalsByYear.entries())
+      .sort((left, right) => right[0] - left[0])
+      .map(([year, totals]) => ({
+        year,
+        totalIncomeMinor: totals.totalIncomeMinor,
+        totalExpenseMinor: totals.totalExpenseMinor,
+      }))
+  }, [summaryTransactions, visibleYear])
+
+  const monthSummaryOptions = useMemo(() => {
+    const totalsByMonth = Array.from({ length: 12 }, (_, monthIndex) => ({
+      monthIndex,
+      label: format(new Date(visibleYear, monthIndex, 1), 'MMMM'),
+      totalIncomeMinor: 0,
+      totalExpenseMinor: 0,
+    }))
+
+    for (const transaction of summaryTransactions) {
+      const transactionYear = Number.parseInt(transaction.occurredAt.slice(0, 4), 10)
+      if (transactionYear !== visibleYear) {
+        continue
+      }
+
+      const monthIndex = Number.parseInt(transaction.occurredAt.slice(5, 7), 10) - 1
+      const amountMinor = getDisplayAmountMinor(transaction)
+
+      if (transaction.type === 'income') {
+        totalsByMonth[monthIndex].totalIncomeMinor += amountMinor
+      } else {
+        totalsByMonth[monthIndex].totalExpenseMinor += amountMinor
+      }
+    }
+
+    return totalsByMonth
+  }, [summaryTransactions, visibleYear])
 
   const loadCalendarData = useCallback(async () => {
     if (!activeProfile || !currency) {
@@ -530,6 +730,87 @@ export default function StatisticsPage() {
         stats.summary.totalExpense.amountMinor > 0)
   )
 
+  const summaryCardsContent = stats ? (
+    <Stack spacing={2}>
+      <Card sx={{ borderLeft: '4px solid', borderColor: 'success.main' }}>
+        <CardContent>
+          <Typography variant="subtitle2" color="text.secondary">
+            Total Income
+          </Typography>
+          <Typography variant="h5" color="success.main">
+            {formatAmount(stats.summary.totalIncome.amountMinor, currency)}
+          </Typography>
+        </CardContent>
+      </Card>
+      <Card sx={{ borderLeft: '4px solid', borderColor: 'error.main' }}>
+        <CardContent>
+          <Typography variant="subtitle2" color="text.secondary">
+            Total Expense
+          </Typography>
+          <Typography variant="h5" color="error.main">
+            {formatAmount(stats.summary.totalExpense.amountMinor, currency)}
+          </Typography>
+        </CardContent>
+      </Card>
+      <Card sx={{ borderLeft: '4px solid', borderColor: 'primary.main' }}>
+        <CardContent>
+          <Typography variant="subtitle2" color="text.secondary">
+            Net Balance
+          </Typography>
+          <Typography
+            variant="h5"
+            color={stats.summary.netBalance.amountMinor >= 0 ? 'success.main' : 'error.main'}
+          >
+            {formatAmount(stats.summary.netBalance.amountMinor, currency)}
+          </Typography>
+        </CardContent>
+      </Card>
+      <Card
+        sx={{
+          borderLeft: '4px solid',
+          borderColor:
+            expensePercentage !== null && expensePercentage > 100
+              ? 'error.main'
+              : expensePercentage !== null && expensePercentage > 80
+                ? 'warning.main'
+                : 'info.main',
+        }}
+      >
+        <CardContent>
+          <Typography variant="subtitle2" color="text.secondary">
+            Expense / Income
+          </Typography>
+          <Typography
+            variant="h5"
+            color={
+              expensePercentage !== null && expensePercentage > 100
+                ? 'error.main'
+                : expensePercentage !== null && expensePercentage > 80
+                  ? 'warning.main'
+                  : 'info.main'
+            }
+          >
+            {expensePercentage !== null ? `${expensePercentage.toFixed(1)}%` : 'N/A'}
+          </Typography>
+        </CardContent>
+      </Card>
+    </Stack>
+  ) : null
+
+  const summaryCardsSkeleton = (
+    <Stack spacing={2}>
+      {[0, 1, 2, 3].map((item) => (
+        <Card key={item} sx={{ p: 2 }}>
+          <Skeleton variant="text" width="40%" />
+          <Skeleton variant="text" height={36} />
+        </Card>
+      ))}
+    </Stack>
+  )
+
+  const showDesktopSummaryColumn =
+    !calendarError && (isLoadingRange || (!rangeError && Boolean(currency) && hasRangeData))
+
   const selectedRangeLabel = useMemo(() => {
     return `${format(parseISO(selectedRange.from), 'MMM d, yyyy')} - ${format(
       parseISO(selectedRange.to),
@@ -590,68 +871,84 @@ export default function StatisticsPage() {
     <PageLayout pageName="Statistics" bannerActions={bannerActions}>
       <Container maxWidth="lg">
         <AnimatedSection>
-          {calendarError ? (
-            <ErrorState
-              title="Unable to load calendar"
-              message={calendarError}
-              onRetry={loadCalendarData}
-            />
-          ) : (
-            <StatisticsCalendar
-              visibleMonth={visibleMonth}
-              currency={currency || 'USD'}
-              currencyOptions={currencyOptions}
-              includeConverted={includeConverted}
-              days={calendarData?.days || []}
-              selectedRange={selectedRange}
-              pendingRangeStart={pendingRangeStart}
-              selectionStatusText={selectionStatusText}
-              selectionSecondaryText={selectionSecondaryText}
-              isLoading={isLoadingCalendar}
-              isLoadingCurrencies={isLoadingCurrencies}
-              onMonthChange={setVisibleMonth}
-              onDateSelect={handleDateSelect}
-              onEventClick={handleEventClick}
-              onCurrencyChange={setCurrency}
-              onIncludeConvertedChange={setIncludeConverted}
-            />
-          )}
-          {!calendarError && !isLoadingCalendar && currency && !visibleMonthHasEvents && (
-            <Paper
-              elevation={0}
-              sx={{
-                mt: 1.5,
-                px: 2,
-                py: 1.25,
-                borderRadius: 2,
-                border: '1px solid',
-                borderColor: 'divider',
-                backgroundColor: 'background.paper',
-              }}
-            >
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={1}
-                alignItems={{ xs: 'flex-start', sm: 'center' }}
-                justifyContent="space-between"
-              >
-                <Typography variant="body2" color="text.secondary">
-                  No income or expense events were found for {format(parseISO(`${visibleMonth}-01`), 'MMMM yyyy')} in {currency}.
-                </Typography>
-                {latestActivityMonth && latestActivityMonth !== visibleMonth && (
-                  <Button
-                    size="small"
-                    onClick={() => {
-                      setVisibleMonth(latestActivityMonth)
-                      setSelectedRange(getMonthBounds(latestActivityMonth))
-                    }}
+          <Grid container spacing={3} alignItems="flex-start">
+            <Grid size={showDesktopSummaryColumn ? { xs: 12, md: 8 } : { xs: 12 }} sx={{ minWidth: 0 }}>
+              {calendarError ? (
+                <ErrorState
+                  title="Unable to load calendar"
+                  message={calendarError}
+                  onRetry={loadCalendarData}
+                />
+              ) : (
+                <StatisticsCalendar
+                  visibleMonth={visibleMonth}
+                  currency={currency || 'USD'}
+                  currencyOptions={currencyOptions}
+                  includeConverted={includeConverted}
+                  yearSummaryOptions={yearSummaryOptions}
+                  monthSummaryOptions={monthSummaryOptions}
+                  days={calendarData?.days || []}
+                  selectedRange={selectedRange}
+                  pendingRangeStart={pendingRangeStart}
+                  selectionStatusText={selectionStatusText}
+                  selectionSecondaryText={selectionSecondaryText}
+                  isLoading={isLoadingCalendar}
+                  isLoadingCurrencies={isLoadingCurrencies}
+                  isLoadingPeriodSummaries={isLoadingSummaryTransactions}
+                  onMonthChange={setVisibleMonth}
+                  onDateSelect={handleDateSelect}
+                  onEventClick={handleEventClick}
+                  onCurrencyChange={setCurrency}
+                  onIncludeConvertedChange={setIncludeConverted}
+                />
+              )}
+              {!calendarError && !isLoadingCalendar && currency && !visibleMonthHasEvents && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    mt: 1.5,
+                    px: 2,
+                    py: 1.25,
+                    borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    backgroundColor: 'background.paper',
+                  }}
+                >
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={1}
+                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                    justifyContent="space-between"
                   >
-                    Jump To Latest Activity
-                  </Button>
-                )}
-              </Stack>
-            </Paper>
-          )}
+                    <Typography variant="body2" color="text.secondary">
+                      No income or expense events were found for {format(parseISO(`${visibleMonth}-01`), 'MMMM yyyy')} in {currency}.
+                    </Typography>
+                    {latestActivityMonth && latestActivityMonth !== visibleMonth && (
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          setVisibleMonth(latestActivityMonth)
+                          setSelectedRange(getMonthBounds(latestActivityMonth))
+                        }}
+                      >
+                        Jump To Latest Activity
+                      </Button>
+                    )}
+                  </Stack>
+                </Paper>
+              )}
+            </Grid>
+
+            {showDesktopSummaryColumn && (
+              <Grid
+                size={{ xs: 12, md: 4 }}
+                sx={{ display: { xs: 'none', md: 'block' }, minWidth: 0 }}
+              >
+                {isLoadingRange ? summaryCardsSkeleton : summaryCardsContent}
+              </Grid>
+            )}
+          </Grid>
         </AnimatedSection>
 
         <AnimatedSection delay={40}>
@@ -665,16 +962,9 @@ export default function StatisticsPage() {
             </Box>
           ) : isLoadingRange ? (
             <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <Grid container spacing={2}>
-                {[0, 1, 2, 3].map((item) => (
-                  <Grid key={item} size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
-                    <Card sx={{ p: 2 }}>
-                      <Skeleton variant="text" width="40%" />
-                      <Skeleton variant="text" height={36} />
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
+              <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+                {summaryCardsSkeleton}
+              </Box>
               <Paper elevation={2} sx={{ p: 3 }}>
                 <Skeleton variant="text" width="30%" height={28} />
                 <Skeleton variant="rectangular" height={240} sx={{ mt: 2, borderRadius: 1 }} />
@@ -696,84 +986,11 @@ export default function StatisticsPage() {
             </Box>
           ) : (
             <>
-              <Grid container spacing={2} sx={{ mt: 3, mb: 3 }}>
-                <Grid size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
-                  <Card sx={{ borderLeft: '4px solid', borderColor: 'success.main' }}>
-                    <CardContent>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Total Income
-                      </Typography>
-                      <Typography variant="h5" color="success.main">
-                        {formatAmount(stats!.summary.totalIncome.amountMinor, currency)}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
-                  <Card sx={{ borderLeft: '4px solid', borderColor: 'error.main' }}>
-                    <CardContent>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Total Expense
-                      </Typography>
-                      <Typography variant="h5" color="error.main">
-                        {formatAmount(stats!.summary.totalExpense.amountMinor, currency)}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
-                  <Card sx={{ borderLeft: '4px solid', borderColor: 'primary.main' }}>
-                    <CardContent>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Net Balance
-                      </Typography>
-                      <Typography
-                        variant="h5"
-                        color={
-                          stats!.summary.netBalance.amountMinor >= 0
-                            ? 'success.main'
-                            : 'error.main'
-                        }
-                      >
-                        {formatAmount(stats!.summary.netBalance.amountMinor, currency)}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid size={{ xs: 12, md: 3 }} sx={{ minWidth: 0 }}>
-                  <Card
-                    sx={{
-                      borderLeft: '4px solid',
-                      borderColor:
-                        expensePercentage !== null && expensePercentage > 100
-                          ? 'error.main'
-                          : expensePercentage !== null && expensePercentage > 80
-                            ? 'warning.main'
-                            : 'info.main',
-                    }}
-                  >
-                    <CardContent>
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Expense / Income
-                      </Typography>
-                      <Typography
-                        variant="h5"
-                        color={
-                          expensePercentage !== null && expensePercentage > 100
-                            ? 'error.main'
-                            : expensePercentage !== null && expensePercentage > 80
-                              ? 'warning.main'
-                              : 'info.main'
-                        }
-                      >
-                        {expensePercentage !== null ? `${expensePercentage.toFixed(1)}%` : 'N/A'}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
+              <Box sx={{ display: { xs: 'block', md: 'none' }, mt: 3 }}>
+                {summaryCardsContent}
+              </Box>
 
-              <Grid container spacing={3}>
+              <Grid container spacing={3} sx={{ mt: 3 }}>
                 <Grid size={{ xs: 12, md: 7 }} sx={{ minWidth: 0 }}>
                   <ExpenseBreakdownPie items={pieData} height={420} />
                 </Grid>
@@ -788,82 +1005,13 @@ export default function StatisticsPage() {
                     Underlying Transactions ({rangeTransactions.length})
                   </Typography>
                 </Box>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Date</TableCell>
-                        <TableCell>Type</TableCell>
-                        <TableCell>Description</TableCell>
-                        <TableCell>Tags</TableCell>
-                        <TableCell align="right">Amount</TableCell>
-                        <TableCell>Currency</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {rangeTransactions.map((transaction) => (
-                        <TableRow
-                          key={transaction.id}
-                          hover
-                          onClick={() => router.push(`/transactions/${transaction.id}/edit`)}
-                          sx={{ cursor: 'pointer' }}
-                        >
-                          <TableCell>
-                            {format(parseISO(transaction.occurredAt), 'MMM d, yyyy')}
-                          </TableCell>
-                          <TableCell sx={{ textTransform: 'capitalize' }}>
-                            {transaction.type}
-                          </TableCell>
-                          <TableCell>
-                            {transaction.note || <em>No description</em>}
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                              {transaction.tags.map((tagName) => {
-                                const tag = tags.find((item) => item.name === tagName)
-                                return tag ? (
-                                  <TagChip key={tag.id} tag={tag} size="small" />
-                                ) : (
-                                  <Box
-                                    key={`${transaction.id}-${tagName}`}
-                                    sx={{
-                                      px: 1,
-                                      py: 0.25,
-                                      borderRadius: 10,
-                                      border: '1px solid',
-                                      borderColor: 'divider',
-                                      fontSize: 12,
-                                    }}
-                                  >
-                                    {tagName}
-                                  </Box>
-                                )
-                              })}
-                            </Box>
-                          </TableCell>
-                          <TableCell
-                            align="right"
-                            sx={{
-                              color:
-                                transaction.type === 'expense' ? 'error.main' : 'success.main',
-                              fontWeight: 700,
-                            }}
-                          >
-                            {transaction.type === 'expense' ? '-' : '+'}
-                            {formatAmount(
-                              transaction.displayAmountMinor ?? transaction.amountMinor,
-                              transaction.displayCurrency ?? transaction.currency
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {transaction.displayCurrency ?? transaction.currency}
-                            {transaction.displayWasConverted ? ' (converted)' : ''}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                <StatisticsTransactionsTable
+                  transactions={rangeTransactions}
+                  tags={tags}
+                  onTransactionClick={(transactionId) => {
+                    router.push(`/transactions/${transactionId}/edit`)
+                  }}
+                />
               </Paper>
             </>
           )}
@@ -876,9 +1024,8 @@ export default function StatisticsPage() {
           transactions={dayTransactions}
           tags={tags}
           isLoading={isLoadingDayTransactions}
-          onClose={() => setDialogState({ open: false, date: null, type: null })}
+          onClose={closeDayDialog}
           onTransactionClick={(transactionId) => {
-            setDialogState({ open: false, date: null, type: null })
             router.push(`/transactions/${transactionId}/edit`)
           }}
         />
