@@ -4,7 +4,10 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 
 export const SESSION_COOKIE_NAME = 'session_token'
-export const SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 7 // 7 days
+// Persistent cookies require a finite date. The app does not impose a
+// session expiry; this far-future date keeps the session until explicit
+// logout, token invalidation, or browser cookie clearing.
+export const SESSION_COOKIE_EXPIRES_AT = new Date('9999-12-31T23:59:59.000Z')
 export const VERIFICATION_TOKEN_TTL_MS = 60 * 60 * 1000 // 1 hour
 export const RESET_TOKEN_TTL_MS = 30 * 60 * 1000 // 30 minutes
 
@@ -45,7 +48,7 @@ export async function setSessionCookie(token: string) {
     name: SESSION_COOKIE_NAME,
     value: token,
     httpOnly: true,
-    maxAge: SESSION_COOKIE_MAX_AGE,
+    expires: SESSION_COOKIE_EXPIRES_AT,
     sameSite: 'lax',
     path: '/',
     secure: process.env.NODE_ENV !== 'development',
@@ -76,4 +79,3 @@ export function isValidPassword(password?: string | null): boolean {
   if (!password) return false
   return password.length >= 6
 }
-

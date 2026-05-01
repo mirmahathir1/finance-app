@@ -23,11 +23,10 @@ export async function GET() {
 
     if (!user) {
       await clearSessionCookie()
-      return errorResponse('Session expired.', 401)
+      return errorResponse('Session is no longer valid.', 401)
     }
 
-    // Refresh the session cookie to implement sliding sessions
-    // This extends the expiration each time the session is checked
+    // Re-assert the persistent cookie on session checks.
     await setSessionCookie(token)
 
     return success({
@@ -47,4 +46,3 @@ export async function GET() {
     return errorResponse('Unable to fetch session.', 500)
   }
 }
-

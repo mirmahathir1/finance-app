@@ -22,7 +22,7 @@ export async function DELETE() {
 
     if (!user) {
       await clearSessionCookie()
-      return errorResponse('Session expired.', 401)
+      return errorResponse('Session is no longer valid.', 401)
     }
 
     await prisma.user.delete({
@@ -39,5 +39,4 @@ export async function DELETE() {
     )
   }
 }
-
 

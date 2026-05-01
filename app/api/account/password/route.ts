@@ -49,7 +49,7 @@ export async function PATCH(request: Request) {
     })
 
     if (!user) {
-      return errorResponse('Session expired. Please sign in again.', 401)
+      return errorResponse('Session is no longer valid. Please sign in again.', 401)
     }
 
     const isCurrentValid = await verifyPassword(
@@ -93,4 +93,3 @@ export async function PATCH(request: Request) {
     )
   }
 }
-

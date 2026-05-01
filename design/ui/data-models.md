@@ -24,10 +24,11 @@ create table if not exists sessions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
   token_hash text unique not null,
-  expires_at timestamptz not null,
   created_at timestamptz not null default now()
 );
 ```
+
+**Note:** Active sessions do not have an app-imposed expiry. Add an `expires_at` column only if reintroducing a deliberate idle or absolute timeout.
 
 ### roles (optional)
 ```sql
@@ -230,4 +231,3 @@ async function listTransactions(userId: string, profile: string, limit = 50, off
 - Use transactions for multi-step writes (e.g., create transaction + tags).
 - Enforce ownership checks at the service layer for every query.
 - Validate and sanitize inputs; use parameterized queries or a safe ORM.
-

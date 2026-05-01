@@ -15,7 +15,7 @@ interface AuthResult {
 /**
  * Helper that resolves the authenticated user from the session cookie.
  * Returns { user } when authenticated or { user: null, response } when not.
- * Also refreshes the session cookie to implement sliding sessions.
+ * Also re-asserts the persistent session cookie.
  */
 export async function requireAuthenticatedUser(): Promise<AuthResult> {
   const token = await getSessionToken()
@@ -35,15 +35,12 @@ export async function requireAuthenticatedUser(): Promise<AuthResult> {
     await clearSessionCookie()
     return {
       user: null,
-      response: errorResponse('Session expired.', 401),
+      response: errorResponse('Session is no longer valid.', 401),
     }
   }
 
-  // Refresh the session cookie to implement sliding sessions
-  // This extends the expiration each time an authenticated request is made
+  // Re-assert the persistent cookie on authenticated requests.
   await setSessionCookie(token)
 
   return { user }
 }
-
-

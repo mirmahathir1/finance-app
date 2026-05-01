@@ -5,7 +5,7 @@
 **Endpoint:** `POST /api/auth/login`  
 **Rate limit:** 5 failed attempts per email/15min, 10 per IP/15min  
 **Account lockout:** 15 minutes after 5 failed attempts  
-**Description:** Login with email/password (sets HTTP-only cookie)
+**Description:** Login with email/password (sets persistent HTTP-only cookie)
 
 ## Request Body
 
@@ -38,6 +38,6 @@
 ```
 
 **Notes:**
-- Session cookie is set automatically in HTTP-only cookie
-- Verify credentials, create session/JWT, set cookie
-
+- Session cookie is set automatically as a persistent HTTP-only cookie.
+- The app does not impose a session expiry. The session remains valid until explicit logout, account deletion, token replacement, or browser cookie clearing.
+- Verify credentials, create session, set cookie.

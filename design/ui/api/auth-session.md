@@ -29,4 +29,5 @@ No parameters or request body required. The endpoint uses the authenticated user
 
 **Notes:**
 - Returns authenticated user context
-
+- Re-asserts the persistent session cookie.
+- Sessions have no app-imposed expiry; they become invalid only when the token is cleared/replaced or the browser removes the cookie.

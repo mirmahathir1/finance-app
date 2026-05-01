@@ -105,7 +105,7 @@ After successful password set:
 - **Password mismatch**: Shows error when passwords don't match
 - **Weak password**: Shows which requirements are not met
 - **Rate limiting**: Shows message if attempts exceed limit (5 per email per hour)
-- **Session expired**: Redirects to sign in if session is invalid
+- **Session invalid**: Redirects to sign in if the session token is missing or no longer valid
 
 ## Set Password Flow
 
@@ -139,4 +139,3 @@ After successful password set:
 - Rate limiting prevents brute force attacks (5 attempts per email per hour, 10 per IP per hour)
 - Rate limit response: Return 429 Too Many Requests with `Retry-After` header
 - Session is created only after successful password set
-
