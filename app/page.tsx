@@ -36,7 +36,7 @@ import { AnimatedSection } from '@/components/AnimatedSection'
 export default function DashboardPage() {
   const router = useRouter()
   const { activeProfile, profiles, isLoading: profilesLoading } = useProfile()
-  const { user, isGuestMode, isLoading: authLoading } = useAuth()
+  const { isLoading: authLoading } = useAuth()
   const { defaultCurrency, isLoading: currenciesLoading } = useCurrency()
   const api = useApi()
   const [statistics, setStatistics] = useState<StatisticsData | null>(null)
@@ -45,8 +45,6 @@ export default function DashboardPage() {
 
   // Consistent blue gradient for all action buttons
   const buttonGradient = 'linear-gradient(135deg, #1976d2 0%, #1565c0 50%, #0d47a1 100%)'
-
-  // Allow guest mode to render (API is intercepted)
 
   const loadStatistics = useCallback(async () => {
     if (!activeProfile) {

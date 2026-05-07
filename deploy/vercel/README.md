@@ -98,7 +98,6 @@ The following environment variables are automatically synced from Vercel to `.en
 - `BREVO_SENDER_NAME` - Brevo sender name
 - `EMAIL_PROVIDER` - Email provider selection
 - `NEXT_PUBLIC_APP_URL` - Public application URL
-- `NEXT_PUBLIC_FORCE_GUEST_MODE` - Force guest mode flag
 - `NEXT_PUBLIC_MAILHOG_HTTP_URL` - Mailhog HTTP URL
 - `MAILHOG_HOST` - Mailhog host
 - `MAILHOG_PORT` - Mailhog port
@@ -221,7 +220,6 @@ All variables are synced from Vercel to `.env.production` during build:
 
 **Application:**
 - `NEXT_PUBLIC_APP_URL` - Your production URL
-- `NEXT_PUBLIC_FORCE_GUEST_MODE` - `false` (or `true` for guest-only)
 
 ### Vercel-Specific Variables (Auto-set)
 
@@ -537,4 +535,3 @@ vercel env ls
 - The `.env.production` file is generated during the build process and should not be committed to git
 - Environment variables are read from Vercel's runtime environment (`process.env`)
 - The sync script only writes variables that are defined and non-empty
-

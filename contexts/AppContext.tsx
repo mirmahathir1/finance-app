@@ -25,11 +25,11 @@ export const VALID_DATE_FORMATS = [
 ] as const
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { user, isGuestMode, isLoading: authLoading } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const [dateFormat, setDateFormatState] = useState<string>(DEFAULT_DATE_FORMAT)
   const [isLoading, setIsLoading] = useState(true)
 
-  const authStateKey = user ? `user:${user.id}` : isGuestMode ? 'guest' : 'signed-out'
+  const authStateKey = user ? `user:${user.id}` : 'signed-out'
 
   useEffect(() => {
     if (authLoading) {
@@ -115,4 +115,3 @@ export function useApp() {
   }
   return context
 }
-

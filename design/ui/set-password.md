@@ -129,8 +129,6 @@ After successful password set:
 ### Set Password
 - `POST /api/auth/set-password` — See [API Response Documentation](./api/auth-set-password.md)
 
-**Note:** In Guest Mode, API calls are intercepted client-side and return mock data generated in the browser using Faker.js. No server requests are made in Guest Mode.
-
 ## Security Notes
 
 - Password is never sent in plain text (always hashed server-side)

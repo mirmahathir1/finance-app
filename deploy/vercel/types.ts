@@ -13,7 +13,6 @@ export type VercelEnvVarName =
   | 'BREVO_SENDER_NAME'
   | 'EMAIL_PROVIDER'
   | 'NEXT_PUBLIC_APP_URL'
-  | 'NEXT_PUBLIC_FORCE_GUEST_MODE'
   | 'NEXT_PUBLIC_MAILHOG_HTTP_URL'
   | 'MAILHOG_HOST'
   | 'MAILHOG_PORT'
@@ -41,4 +40,3 @@ export interface VercelBuildConfig {
 export interface EnvVarMapping {
   [key: string]: string | undefined
 }
-

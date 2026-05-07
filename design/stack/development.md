@@ -53,7 +53,6 @@ cp .env.example .env.local
 # Edit .env.local with:
 #   DATABASE_URL (Supabase or Docker Postgres connection string)
 #   SESSION_SECRET (32+ char string)
-#   NEXT_PUBLIC_FORCE_GUEST_MODE (true only for demo builds)
 
 # Run development server
 npm run dev
@@ -71,4 +70,3 @@ npx prisma studio
 npm run prisma:generate
 npm run prisma:migrate
 ```
-

@@ -32,9 +32,7 @@ Technology stack documentation covering:
 - Multi-currency transaction tracking
 - Profile-based data organization
 - Tag-based categorization
-- Guest mode for exploration
 - PWA support
 - Data backup and restore
 
 For detailed information, see the [Design Documentation](./ui/README.md).
-

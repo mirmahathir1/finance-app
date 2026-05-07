@@ -30,7 +30,6 @@ const ENV_VAR_NAMES = [
   
   // App Configuration
   'NEXT_PUBLIC_APP_URL',
-  'NEXT_PUBLIC_FORCE_GUEST_MODE',
   'NEXT_PUBLIC_MAILHOG_HTTP_URL',
   
   // Mailhog (for development/testing)
@@ -96,4 +95,3 @@ export function syncVercelEnvToFile(): void {
 if (require.main === module) {
   syncVercelEnvToFile()
 }
-

@@ -5,13 +5,11 @@ import { AccountCircle } from '@mui/icons-material'
 import { useAuth } from '@/contexts/AuthContext'
 
 export function Header() {
-  const { user, isGuestMode } = useAuth()
+  const { user } = useAuth()
 
   const getUserInitials = (email: string): string => {
     return email.charAt(0).toUpperCase()
   }
-
-  const displayEmail = user?.email || 'Guest'
 
   return (
     <AppBar position="static">
@@ -20,18 +18,13 @@ export function Header() {
           Finance App
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          {isGuestMode && (
-            <Typography variant="body2" sx={{ opacity: 0.9 }}>
-              Guest Mode
-            </Typography>
-          )}
           {user ? (
             <>
               <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
                 {getUserInitials(user.email)}
               </Avatar>
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                {displayEmail}
+                {user.email}
               </Typography>
             </>
           ) : (
@@ -42,4 +35,3 @@ export function Header() {
     </AppBar>
   )
 }
-

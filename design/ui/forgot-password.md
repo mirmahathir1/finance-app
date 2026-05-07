@@ -123,8 +123,6 @@ After submitting email:
 ### Forgot Password Request
 - `POST /api/auth/forgot-password/request` — See [API Response Documentation](./api/auth-forgot-password-request.md)
 
-**Note:** In Guest Mode, API calls are intercepted client-side and return mock data generated in the browser using Faker.js. No server requests are made in Guest Mode.
-
 ## Security Notes
 
 - Always returns success response to prevent email enumeration
@@ -154,4 +152,3 @@ The JWT payload includes the user's current `password_hash`. When the password i
   "iat": 1234567800
 }
 ```
-

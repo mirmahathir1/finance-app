@@ -98,7 +98,7 @@ export interface Transaction {
 ```
 
 **Note:** 
-- Profile, Tag, and Currency interfaces are defined below as the guest-mode IndexedDB mirror. In authenticated mode, these entities are captured directly on each transaction row (there is no separate backing table or metadata blob).
+- Profile, Tag, and Currency interfaces are defined below for IndexedDB. These entities are captured directly on each transaction row (there is no separate backing table or metadata blob).
 
 ### IndexedDB Interfaces
 
@@ -173,13 +173,13 @@ enum TransactionType {
 }
 ```
 
-**Note:** Only two tables live in Postgres/Prisma (`users` and `transactions`). Profiles, currencies, and tags live exclusively on the `transactions` rows (one row per ledger entry). Guest mode still mirrors simplified versions of these structures in IndexedDB for the demo experience—see [currency-system.md](currency-system.md) for those browser schemas.
+**Note:** Only two tables live in Postgres/Prisma (`users` and `transactions`). Profiles, currencies, and tags live exclusively on the `transactions` rows (one row per ledger entry). IndexedDB stores the local profile, tag, and currency lists used by the UI.
 
 ## Data Persistence Overview
 
 All authenticated data is stored in PostgreSQL (managed on Supabase) using just two tables. The `users` table owns every per-user concern (authentication credentials plus JSON fields for profiles/currencies/tags/settings/audit info), while the `transactions` table stores immutable ledger entries that reference the user and the profile name they belong to. No profile photo storage.
 
-**Note:** Profiles, Tags, and Currencies are persisted inside the `users` table as JSON for authenticated users (via Prisma) and mirrored in IndexedDB only when Guest Mode is active.
+**Note:** Profiles, Tags, and Currencies are stored in IndexedDB for fast local access and are represented on transactions by name/code.
 
 ## Example Operations (Prisma)
 
@@ -224,7 +224,7 @@ async function listTransactions(userId: string, profile: string, limit = 50, off
 }
 ```
 
-**Note:** Tag management uses Prisma-backed APIs that rewrite the `tags` arrays on each affected transaction in normal mode and IndexedDB only when Guest Mode is active.
+**Note:** Tag management uses Prisma-backed APIs that rewrite the `tags` arrays on each affected transaction.
 
 ## Security & Integrity
 

@@ -8,14 +8,13 @@ import { useProfile } from '@/contexts/ProfileContext'
 /**
  * StartupRedirect component
  * Handles app startup logic and redirects:
- * - Guest mode → dashboard
  * - Authenticated → dashboard or setup (if no profiles)
  * - If no active profile: set first profile as active
  */
 export function StartupRedirect({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { user, isGuestMode, isLoading: authLoading } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const { profiles, activeProfile, isLoading: profilesLoading, switchProfile } = useProfile()
 
   useEffect(() => {
@@ -35,20 +34,14 @@ export function StartupRedirect({ children }: { children: React.ReactNode }) {
       return
     }
 
-    // CRITICAL: Check authentication FIRST - do this immediately, don't wait
-    // Allow Guest Mode to proceed (API is intercepted client-side)
-
-    // If not authenticated (no real user), redirect to sign-in immediately
+    // Check authentication before profile state.
     if (!user) {
-      // Use replace to avoid adding to history
       if (pathname !== '/auth/signin') {
         router.replace('/auth/signin')
       }
       return
     }
 
-    // Only proceed with profile checks if we have a real authenticated user
-    // (not guest mode - we already handled that above)
     const handleStartup = async () => {
       try {
         // Wait for profiles to load
@@ -73,7 +66,7 @@ export function StartupRedirect({ children }: { children: React.ReactNode }) {
 
     handleStartup()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, profilesLoading, profiles.length, activeProfile, pathname, user, isGuestMode, router])
+  }, [authLoading, profilesLoading, profiles.length, activeProfile, pathname, user, router])
 
   // Show loading state while checking auth (profiles can load after)
   if (authLoading) {
@@ -91,14 +84,10 @@ export function StartupRedirect({ children }: { children: React.ReactNode }) {
     return <>{children}</>
   }
 
-  // If not authenticated (no real user), don't render children yet
-  // (will redirect to sign-in)
+  // If not authenticated, don't render children yet.
   if (!user) {
     return null
   }
-  
-  // Allow guest mode to render children as API is intercepted
 
   return <>{children}</>
 }
-

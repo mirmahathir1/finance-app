@@ -151,8 +151,6 @@ Error state - Already verified:
 ### Email Verification
 - `GET /api/auth/verify?token=` — See [API Response Documentation](./api/auth-verify.md)
 
-**Note:** In Guest Mode, API calls are intercepted client-side and return mock data generated in the browser using Faker.js. No server requests are made in Guest Mode.
-
 ## Security Notes
 
 - Verification token is short-lived (15 minutes) and signed
@@ -162,4 +160,3 @@ Error state - Already verified:
 - Failed attempts should not reveal whether the token is invalid or expired (generic error message)
 - User is created only after successful verification
 - Idempotent: if the user already exists and is verified, return success
-

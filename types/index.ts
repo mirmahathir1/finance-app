@@ -397,14 +397,3 @@ export interface CurrencyAmount {
   amountMinor: number // Stored amount in minor units
   currency: string
 }
-
-// ============================================================================
-// Guest Mode Types
-// ============================================================================
-
-/**
- * Guest mode state
- */
-export interface GuestModeState {
-  isGuestMode: boolean
-}

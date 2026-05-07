@@ -1,7 +1,5 @@
 'use client'
 
-import { guestDataService } from '@/services/guestDataService'
-import { getGuestModeState } from '@/utils/indexedDB'
 import type {
   ApiErrorResponse,
   ApiResponse,
@@ -10,7 +8,6 @@ import type {
   StatisticsData,
   StatisticsCalendarData,
   UserData,
-  PreviewResponse,
   CreateTransactionRequest,
   UpdateTransactionRequest,
   TransactionQueryParams,
@@ -19,13 +16,7 @@ import type {
   TransactionType,
   SetupCatalogData,
 } from '@/types'
-import { summarizeCatalog } from '@/lib/catalog-summary'
 import { getFriendlyErrorMessage, isNetworkError } from '@/utils/error'
-
-const GUEST_ROUTE_DELAY_MS = 2000
-const FORCE_GUEST_MODE =
-  typeof process !== 'undefined' &&
-  process.env.NEXT_PUBLIC_FORCE_GUEST_MODE === 'true'
 
 const REQUEST_LOG_STYLE = 'color: #9c27b0; font-weight: bold;'
 const RESPONSE_LOG_STYLE = 'color: #2e7d32; font-weight: bold;'
@@ -77,27 +68,6 @@ function getRequestInfo(endpoint: string, options?: RequestInit): RequestLogInfo
   return { method, url }
 }
 
-/**
- * Simulate backend latency for guest routes
- */
-async function simulateGuestRouteDelay(
-  delayMs: number = GUEST_ROUTE_DELAY_MS
-): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, delayMs))
-}
-
-/**
- * Check if guest mode is active
- */
-async function isGuestMode(): Promise<boolean> {
-  if (FORCE_GUEST_MODE) return true
-  if (typeof window === 'undefined') return false
-  return await getGuestModeState()
-}
-
-/**
- * Parse request body
- */
 function parseBody(body: BodyInit | null | undefined): any {
   if (!body) return {}
   if (typeof body === 'string') {
@@ -108,398 +78,6 @@ function parseBody(body: BodyInit | null | undefined): any {
     }
   }
   return {}
-}
-
-/**
- * Extract path parameters from URL
- */
-function extractPathParams(path: string, pattern: string): Record<string, string> {
-  const params: Record<string, string> = {}
-  const pathParts = path.split('/').filter(Boolean)
-  const patternParts = pattern.split('/').filter(Boolean)
-
-  for (let i = 0; i < patternParts.length; i++) {
-    if (patternParts[i].startsWith(':')) {
-      const paramName = patternParts[i].slice(1)
-      params[paramName] = pathParts[i] || ''
-    }
-  }
-
-  return params
-}
-
-/**
- * Handle guest mode API requests
- */
-async function handleGuestModeRequest(
-  endpoint: string,
-  options?: RequestInit
-): Promise<any> {
-  await simulateGuestRouteDelay()
-  const method = options?.method || 'GET'
-  const url = new URL(endpoint, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
-  const path = url.pathname
-  const searchParams = Object.fromEntries(url.searchParams)
-  const body = parseBody(options?.body)
-
-  // ============================================================================
-  // Setup Endpoints
-  // ============================================================================
-
-  if (path === '/api/setup/catalog' && method === 'GET') {
-    const limit = 500
-    let offset = 0
-    let hasMore = true
-    const transactions: TransactionsListData['transactions'] = []
-
-    while (hasMore) {
-      const batch = await guestDataService.getTransactions({ limit, offset })
-      transactions.push(...(batch.transactions || []))
-      hasMore = Boolean(batch.pagination?.hasMore)
-      offset += limit
-      if (!hasMore) {
-        break
-      }
-    }
-
-    const catalog = summarizeCatalog(
-      transactions.map((transaction) => ({
-        profile: transaction.profile,
-        currency: transaction.currency,
-        type: transaction.type,
-        tags: transaction.tags,
-      }))
-    )
-
-    return {
-      success: true,
-      data: { catalog },
-    }
-  }
-
-  // ============================================================================
-  // Transaction Endpoints
-  // ============================================================================
-
-  // GET /api/transactions
-  if (path === '/api/transactions' && method === 'GET') {
-    const params: TransactionQueryParams = {
-      profile: searchParams.profile,
-      from: searchParams.from,
-      to: searchParams.to,
-      type: searchParams.type as any,
-      currency: searchParams.currency,
-      displayCurrency: searchParams.displayCurrency,
-      tag: searchParams.tag,
-      includeConverted: searchParams.includeConverted === 'true',
-      sort: searchParams.sort === 'asc' ? 'asc' : 'desc',
-      limit: searchParams.limit ? parseInt(searchParams.limit, 10) : undefined,
-      offset: searchParams.offset ? parseInt(searchParams.offset, 10) : undefined,
-    }
-    const result = await guestDataService.getTransactions(params)
-    return {
-      success: true,
-      data: result,
-    }
-  }
-
-  // POST /api/transactions
-  if (path === '/api/transactions' && method === 'POST') {
-    const result = await guestDataService.createTransaction(body as CreateTransactionRequest)
-    return {
-      success: true,
-      data: result,
-    }
-  }
-
-  // PUT /api/transactions/:id
-  if (path.startsWith('/api/transactions/') && method === 'PUT') {
-    const params = extractPathParams(path, '/api/transactions/:id')
-    const result = await guestDataService.updateTransaction(
-      params.id,
-      body as UpdateTransactionRequest
-    )
-    return {
-      success: true,
-      data: result,
-    }
-  }
-
-  // DELETE /api/transactions/:id
-  if (path.startsWith('/api/transactions/') && method === 'DELETE') {
-    const params = extractPathParams(path, '/api/transactions/:id')
-    await guestDataService.deleteTransaction(params.id)
-    return {
-      success: true,
-      message: 'Transaction deleted successfully',
-    }
-  }
-
-  // ============================================================================
-  // Statistics Endpoints
-  // ============================================================================
-
-  // GET /api/statistics
-  if (path === '/api/statistics' && method === 'GET') {
-    const params: StatisticsQueryParams = {
-      profile: searchParams.profile || '',
-      from: searchParams.from || '',
-      to: searchParams.to || '',
-      currency: searchParams.currency || '',
-      includeConverted: searchParams.includeConverted === 'true',
-    }
-    const result = await guestDataService.getStatistics(params)
-    return {
-      success: true,
-      data: result,
-    }
-  }
-
-  if (path === '/api/statistics/calendar' && method === 'GET') {
-    const params: StatisticsCalendarQueryParams = {
-      profile: searchParams.profile || '',
-      month: searchParams.month || '',
-      currency: searchParams.currency || '',
-      includeConverted: searchParams.includeConverted === 'true',
-    }
-    const result = await guestDataService.getStatisticsCalendar(params)
-    return {
-      success: true,
-      data: result,
-    }
-  }
-
-  // ============================================================================
-  // Auth Endpoints
-  // ============================================================================
-
-  // POST /api/auth/login
-  if (path === '/api/auth/login' && method === 'POST') {
-    // In guest mode, login always succeeds
-    const user = await guestDataService.getCurrentUser()
-    return {
-      success: true,
-      data: user,
-    }
-  }
-
-  // POST /api/auth/logout
-  if (path === '/api/auth/logout' && method === 'POST') {
-    return {
-      success: true,
-      message: 'Logged out successfully',
-    }
-  }
-
-  // GET /api/auth/session
-  if (path === '/api/auth/session' && method === 'GET') {
-    // Only return user if we're in guest mode
-    // Otherwise, this should fail (backend not available or no session)
-    const guestMode = await isGuestMode()
-    if (guestMode) {
-      const user = await guestDataService.getCurrentUser()
-      return {
-        success: true,
-        data: user,
-      }
-    }
-    // Not in guest mode and no backend - return error
-    // This will be caught by AuthContext and user will remain null
-    throw new Error('404: Endpoint not found')
-  }
-
-  // POST /api/auth/signup-request
-  if (path === '/api/auth/signup-request' && method === 'POST') {
-    return {
-      success: true,
-      message: 'Verification email sent',
-    }
-  }
-
-  // GET /api/auth/verify
-  if (path === '/api/auth/verify' && method === 'GET') {
-    const token = searchParams.token || ''
-    // Mock verification - always succeeds
-    return {
-      success: true,
-      message: 'Email verified successfully',
-      data: {
-        verified: true,
-      },
-    }
-  }
-
-  // POST /api/auth/set-password
-  if (path === '/api/auth/set-password' && method === 'POST') {
-    return {
-      success: true,
-      message: 'Password set successfully',
-    }
-  }
-
-  // POST /api/auth/forgot-password-request
-  if (path === '/api/auth/forgot-password-request' && method === 'POST') {
-    return {
-      success: true,
-      message: 'Password reset email sent',
-    }
-  }
-
-  // GET /api/auth/reset-password-verify
-  if (path === '/api/auth/reset-password-verify' && method === 'GET') {
-    const token = searchParams.token || ''
-    // Mock verification - always succeeds
-    return {
-      success: true,
-      message: 'Token verified',
-      data: {
-        verified: true,
-      },
-    }
-  }
-
-  // POST /api/auth/reset-password
-  if (path === '/api/auth/reset-password' && method === 'POST') {
-    const { token, password } = body
-    // Mock password reset - always succeeds
-    return {
-      success: true,
-      message: 'Password reset successfully',
-    }
-  }
-
-  // ============================================================================
-  // Backup & Restore Endpoints
-  // ============================================================================
-
-  // GET /api/backup
-  if (path === '/api/backup' && method === 'GET') {
-    // In guest mode, generate a mock CSV
-    const transactions = await guestDataService.getTransactions({})
-    const csv = generateMockCSV(transactions.transactions)
-    return {
-      success: true,
-      data: { csv },
-    }
-  }
-
-  // POST /api/restore
-  if (path === '/api/restore' && method === 'POST') {
-    // In guest mode, restore is handled by resetting the service
-    guestDataService.reset()
-    return {
-      success: true,
-      message: 'Data restored successfully',
-    }
-  }
-
-  // ============================================================================
-  // Profile Endpoints
-  // ============================================================================
-
-  // POST /api/profiles/rename
-  if (path === '/api/profiles/rename' && method === 'POST') {
-    const { oldName, newName } = body
-    if (!oldName || !newName) {
-      return {
-        success: false,
-        error: {
-          message: 'Old name and new name are required',
-          code: '400',
-        },
-      }
-    }
-
-    // Update all transactions with the old profile name
-    const result = await guestDataService.bulkUpdateTransactionsProfile(oldName, newName)
-
-    return {
-      success: true,
-      data: result,
-    }
-  }
-
-  // POST /api/tags/update-transactions
-  if (path === '/api/tags/update-transactions' && method === 'POST') {
-    const { profile, oldTagName, newTagName, newTransactionType } = body
-    if (!profile || !oldTagName) {
-      return {
-        success: false,
-        error: {
-          message: 'Profile and old tag name are required',
-          code: '400',
-        },
-      }
-    }
-
-    if (!newTagName && !newTransactionType) {
-      return {
-        success: false,
-        error: {
-          message: 'Either new tag name or new transaction type must be provided',
-          code: '400',
-        },
-      }
-    }
-
-    // Update all transactions with the old tag name
-    const result = await guestDataService.bulkUpdateTransactionsTag(profile, oldTagName, {
-      newTagName,
-      newTransactionType,
-    })
-
-    return {
-      success: true,
-      data: result,
-    }
-  }
-
-  // ============================================================================
-  // Account Endpoints
-  // ============================================================================
-
-  if (path === '/api/account' && method === 'DELETE') {
-    guestDataService.reset()
-    return {
-      success: true,
-      message: 'Account deleted successfully',
-    }
-  }
-
-  if (path === '/api/account/password' && method === 'PATCH') {
-    return {
-      success: true,
-      message: 'Password updated successfully',
-    }
-  }
-
-  // ============================================================================
-  // Default: Return empty success response
-  // ============================================================================
-
-  return {
-    success: true,
-    data: {},
-  }
-}
-
-/**
- * Generate mock CSV for backup
- */
-function generateMockCSV(transactions: any[]): string {
-  const headers = ['profile', 'occurredAt', 'amountMinor', 'currency', 'type', 'tags', 'note']
-  const rows = transactions.map((t) => [
-    t.profile,
-    t.occurredAt,
-    t.amountMinor,
-    t.currency,
-    t.type,
-    t.tags.join(';'),
-    t.note || '',
-  ])
-
-  const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
-  return csv
 }
 
 export type BlobApiResponse = {
@@ -517,65 +95,11 @@ type ExchangeRateSnapshot = {
   error?: string
 }
 
-/**
- * Specialized helper to download the authenticated CSV backup while still leveraging the
- * centralized API logging/guest-mode interception so the request shows up in debugging tools.
- */
 export async function downloadBackupCsv(): Promise<BlobApiResponse> {
   const endpoint = '/api/backup'
   const requestOptions: RequestInit = { method: 'GET' }
   const info = getRequestInfo(endpoint, requestOptions)
   logClientRequest(info, undefined)
-
-  const guestMode = await isGuestMode()
-
-  if (guestMode) {
-    try {
-      const result = (await handleGuestModeRequest(
-        endpoint,
-        requestOptions
-      )) as ApiResponse<{ csv: string }>
-      logClientResponse(info, result)
-
-      if (result.success) {
-        if (result.data?.csv) {
-          return {
-            success: true,
-            data: new Blob([result.data.csv], { type: 'text/csv;charset=utf-8;' }),
-          }
-        }
-
-        return {
-          success: false,
-          error: {
-            message: 'Backup completed but CSV payload was missing.',
-            code: 'CSV_MISSING',
-          },
-        }
-      }
-
-      return {
-        success: false,
-        error: {
-          message: result.error.message || 'Failed to generate backup.',
-          code: result.error.code,
-        },
-      }
-    } catch (error) {
-      const message = getFriendlyErrorMessage(error, 'Failed to process request.')
-      logClientResponse(info, {
-        success: false,
-        error: { message },
-      })
-      return {
-        success: false,
-        error: {
-          message,
-          code: isNetworkError(error) ? 'NETWORK_ERROR' : 'UNKNOWN_ERROR',
-        },
-      }
-    }
-  }
 
   try {
     const response = await fetch(endpoint, {
@@ -587,7 +111,7 @@ export async function downloadBackupCsv(): Promise<BlobApiResponse> {
     })
 
     if (!response.ok) {
-      const errorPayload = await response.json().catch(async () => {
+      const errorPayload = await response.clone().json().catch(async () => {
         const fallbackText = await response.text().catch(() => '')
         return fallbackText ? { message: fallbackText } : null
       })
@@ -639,10 +163,6 @@ type ExchangeRateSnapshotResponse = {
   }
 }
 
-/**
- * Fetch exchange-rate snapshot (used for currency validation) while ensuring the request
- * participates in the standard API logging so the console captures the call.
- */
 export async function fetchExchangeRateSnapshot(
   currencyCode: string
 ): Promise<ExchangeRateSnapshotResponse> {
@@ -688,11 +208,6 @@ export async function fetchExchangeRateSnapshot(
   }
 }
 
-/**
- * Main API call function
- * Intercepts requests in guest mode and routes to GuestDataService
- * Otherwise makes normal fetch requests
- */
 export async function apiCall<T = any>(
   endpoint: string,
   options?: RequestInit
@@ -701,37 +216,6 @@ export async function apiCall<T = any>(
   const requestPayload = parseBody(options?.body)
   logClientRequest(info, requestPayload)
 
-  // Parse endpoint to check if it's an auth endpoint
-  const url = new URL(info.url)
-  const path = url.pathname
-  const guestMode = await isGuestMode()
-
-  // Only intercept in Guest Mode - generate data client-side
-  // When NOT in guest mode, make real API calls (will fail if backend is not available)
-  if (guestMode) {
-    try {
-      const result = await handleGuestModeRequest(endpoint, options)
-      logClientResponse(info, result)
-      return result as ApiResponse<T>
-    } catch (error) {
-      logClientResponse(info, {
-        success: false,
-        error: {
-          message: error instanceof Error ? error.message : String(error),
-        },
-      })
-      const message = getFriendlyErrorMessage(error, 'Failed to process request.')
-      return {
-        success: false,
-        error: {
-          message,
-          code: isNetworkError(error) ? 'NETWORK_ERROR' : 'UNKNOWN_ERROR',
-        },
-      }
-    }
-  }
-
-  // Normal API call
   try {
     const response = await fetch(endpoint, {
       ...options,
@@ -743,7 +227,6 @@ export async function apiCall<T = any>(
     })
 
     if (!response.ok) {
-      // Silently handle 404s when backend is not available (expected in development)
       if (response.status === 404) {
         const notFoundPayload: ApiErrorResponse = {
           success: false,
@@ -787,10 +270,6 @@ export async function apiCall<T = any>(
     }
   }
 }
-
-/**
- * Convenience functions for common API calls
- */
 
 export async function getTransactions(
   params: TransactionQueryParams = {}
@@ -967,19 +446,11 @@ export async function resetPassword(
   })
 }
 
-// ============================================================================
-// Setup API Calls
-// ============================================================================
-
 export async function getSetupCatalog(): Promise<
   ApiResponse<{ catalog: SetupCatalogData }>
 > {
   return apiCall<{ catalog: SetupCatalogData }>('/api/setup/catalog')
 }
-
-// ============================================================================
-// Profile API Calls
-// ============================================================================
 
 export async function bulkUpdateTransactionsProfile(
   oldName: string,

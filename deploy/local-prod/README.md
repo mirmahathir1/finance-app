@@ -104,7 +104,6 @@ BREVO_SENDER_NAME="Finance App"
 # APPLICATION
 # ============================================================================
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NEXT_PUBLIC_FORCE_GUEST_MODE="false"
 ```
 
 **Important Notes:**
@@ -422,12 +421,6 @@ npx dotenv -e .env.local-prod -- npx prisma migrate reset
 | `BREVO_SENDER_NAME` | Sender display name | `"Finance App"` |
 | `NEXT_PUBLIC_APP_URL` | Application URL | `"http://localhost:3000"` |
 
-### Optional Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NEXT_PUBLIC_FORCE_GUEST_MODE` | Force guest mode | `"false"` |
-
 ## Security Notes
 
 ⚠️ **Important Security Considerations:**
@@ -479,4 +472,3 @@ npx dotenv -e .env.local-prod -- npx prisma migrate reset
 - [Brevo Documentation](https://developers.brevo.com)
 - [Prisma Documentation](https://www.prisma.io/docs)
 - [Next.js Documentation](https://nextjs.org/docs)
-

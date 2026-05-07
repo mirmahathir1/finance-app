@@ -48,8 +48,6 @@
 │  │ └──────────────────┘                              │  │
 │  └───────────────────────────────────────────────────┘  │
 │                                                          │
-│  [Guest Mode Indicator] (floating, right side)          │
-│                                                          │
 │  [Global Progress Bar] (top of page, when loading)     │
 │                                                          │
 └─────────────────────────────────────────────────────────┘
@@ -60,20 +58,8 @@
 - **Profile Selector**: Dropdown showing active profile with option to switch or create new
 - **Quick Summary**: Optional current month statistics (income, expense, balance)
 - **Action Buttons**: Quick access to all main features
-- **Guest Mode Indicator**: Floating icon on right side when in Guest Mode
 - **Global Progress Bar**: Shows at top of page during API calls
 - **Profile Switching**: Instant switching between profiles (no page reload)
-
-## Guest Mode Indicator
-
-The Guest Mode Indicator appears as a floating icon/button on the right side of the screen when Guest Mode is active:
-
-- **Position**: Fixed at right edge (e.g., `position: fixed; right: 16px; top: 50%; transform: translateY(-50%)`)
-- **Icon**: Material-UI icon (e.g., `PersonIcon` or `VisibilityIcon`)
-- **Tooltip**: "Guest Mode - Using demo data" on hover
-- **Click Action**: Optional dialog to exit Guest Mode
-- **Styling**: Semi-transparent, subtle color, visible but not intrusive
-- **Visibility**: Only visible when Guest Mode is active
 
 ## Global Progress Bar
 
@@ -150,5 +136,4 @@ At app startup, the system automatically:
 - Make profile switching intuitive and easily accessible
 - Use smooth animations for component transitions (150-300ms)
 - Global progress bar shows during API calls
-- Guest Mode indicator appears as floating icon on right side when active
 - Responsive design: Mobile-first approach with breakpoints at 600px, 960px, 1280px

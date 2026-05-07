@@ -40,7 +40,7 @@ import { useThemeMode } from '@/components/ThemeProvider'
 
 export default function SettingsPage() {
   const router = useRouter()
-  const { user, isGuestMode, isLoading: authLoading, signOut } = useAuth()
+  const { user, isLoading: authLoading, signOut } = useAuth()
   const { mode, toggleColorMode } = useThemeMode()
   const api = useApi()
   const [isSigningOut, setIsSigningOut] = useState(false)
@@ -425,18 +425,16 @@ export default function SettingsPage() {
               gap: 2,
             }}
           >
-            {!isGuestMode && (
-              <LoadingButton
-                variant="contained"
-                color="warning"
-                startIcon={<DeleteForeverIcon />}
-                onClick={handleOpenDeleteDialog}
-                disabled={isDeletingAccount}
-                sx={{ minWidth: 220 }}
-              >
-                Delete Account
-              </LoadingButton>
-            )}
+            <LoadingButton
+              variant="contained"
+              color="warning"
+              startIcon={<DeleteForeverIcon />}
+              onClick={handleOpenDeleteDialog}
+              disabled={isDeletingAccount}
+              sx={{ minWidth: 220 }}
+            >
+              Delete Account
+            </LoadingButton>
             <LoadingButton
               variant="contained"
               color="error"
@@ -474,4 +472,3 @@ export default function SettingsPage() {
     </PageLayout>
   )
 }
-

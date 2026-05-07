@@ -46,14 +46,14 @@ const ProfileContext = createContext<ProfileContextType | undefined>(undefined)
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const api = useApi()
-  const { user, isGuestMode, isLoading: authLoading } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [activeProfile, setActiveProfile] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const activeLoadCountRef = useRef(0)
 
-  const authStateKey = user ? `user:${user.id}` : isGuestMode ? 'guest' : 'signed-out'
+  const authStateKey = user ? `user:${user.id}` : 'signed-out'
 
   const TRANSACTION_PAGE_SIZE = 200
 
@@ -355,4 +355,3 @@ export function useProfile() {
   }
   return context
 }
-

@@ -36,8 +36,6 @@ function getAppUrl(): string {
   return 'http://localhost:3000'
 }
 
-const FORCE_GUEST_MODE = process.env.NEXT_PUBLIC_FORCE_GUEST_MODE === 'true'
-
 const MAILHOG_HOST = process.env.MAILHOG_HOST || 'localhost'
 const MAILHOG_PORT = parseInt(process.env.MAILHOG_PORT || '1025', 10)
 const MAILHOG_USERNAME = process.env.MAILHOG_USERNAME || undefined
@@ -51,7 +49,7 @@ type EmailPayload = {
 }
 
 async function sendEmail(payload: EmailPayload): Promise<void> {
-  if (FORCE_GUEST_MODE || EMAIL_PROVIDER === 'mock') {
+  if (EMAIL_PROVIDER === 'mock') {
     return
   }
 
@@ -143,4 +141,3 @@ export async function sendPasswordResetEmail(
 <p>Reset link: ${resetLink}</p>`,
   })
 }
-

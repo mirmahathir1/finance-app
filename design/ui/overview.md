@@ -17,7 +17,6 @@ This document provides an overview of the finance-app personal finance tracking 
 8. **Currency Management**: Simple currency list management in IndexedDB (client-side)
 9. **Mobile-First PWA**: Works on all devices, installable as Android app
 10. **Backup & Restore**: Per-user backup to a single CSV file containing only transaction data (excludes `id` and `user_id` columns) for download; restore by uploading that CSV file (replaces all user transaction data). Profiles, tags, and currencies not included as they're stored locally.
-11. **Guest Mode**: Explore the app without authentication using generated fake data. All UI features work with mock data, and a floating indicator shows Guest Mode status.
 
 ### Multi-Currency System
 - **No Conversion**: Transactions are recorded and displayed in their original currency
@@ -38,4 +37,3 @@ This document provides an overview of the finance-app personal finance tracking 
 - **Easy Profile Switching**: Switch between profiles from the dashboard without re-authentication
 - **Independent Management**: Each profile can have different tags and transaction history
 - **No Backend Required**: Profile and tag management happens entirely on the frontend
-

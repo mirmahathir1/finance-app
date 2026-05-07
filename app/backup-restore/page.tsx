@@ -17,17 +17,14 @@ import { useProfile } from '@/contexts/ProfileContext'
 import { useLoading } from '@/contexts/LoadingContext'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material'
-import { guestDataService } from '@/services/guestDataService'
 import { LoadingButton } from '@/components/LoadingButton'
 import { standardDialogPaperSx } from '@/components/dialogSizing'
-import { useAuth } from '@/contexts/AuthContext'
 import { downloadBackupCsv } from '@/utils/api'
 
 export default function BackupRestorePage() {
   const router = useRouter()
   const { activeProfile } = useProfile()
   const { startLoading, stopLoading } = useLoading()
-  const { isGuestMode } = useAuth()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const [snackbar, setSnackbar] = useState<{
@@ -105,44 +102,34 @@ export default function BackupRestorePage() {
     try {
       setIsRestoring(true)
       startLoading()
-      if (isGuestMode) {
-        const text = await restoreFile.text()
-        const { imported } = guestDataService.importTransactionsFromCSV(text)
-        setSnackbar({
-          open: true,
-          message: `Restore complete: imported ${imported} transaction(s).`,
-          severity: 'success',
-        })
-      } else {
-        const formData = new FormData()
-        formData.append('file', restoreFile, restoreFile.name || 'backup.csv')
+      const formData = new FormData()
+      formData.append('file', restoreFile, restoreFile.name || 'backup.csv')
 
-        const response = await fetch('/api/restore', {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'x-restore-confirm': requiredConfirmText,
-          },
-          credentials: 'include',
-        })
+      const response = await fetch('/api/restore', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'x-restore-confirm': requiredConfirmText,
+        },
+        credentials: 'include',
+      })
 
-        const payload = await response.json().catch(() => null)
-        if (!response.ok || !payload?.success) {
-          const message =
-            payload?.error?.message || payload?.message || 'Failed to restore from CSV'
-          throw new Error(message)
-        }
-
-        const restoredSummary = payload.data?.restored ?? {}
-        const restoredCount = restoredSummary.transactionCount ?? 0
-        const deletedCount = restoredSummary.deletedCount ?? 0
-
-        setSnackbar({
-          open: true,
-          message: `Restore complete: imported ${restoredCount} transaction(s), replaced ${deletedCount}.`,
-          severity: 'success',
-        })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.success) {
+        const message =
+          payload?.error?.message || payload?.message || 'Failed to restore from CSV'
+        throw new Error(message)
       }
+
+      const restoredSummary = payload.data?.restored ?? {}
+      const restoredCount = restoredSummary.transactionCount ?? 0
+      const deletedCount = restoredSummary.deletedCount ?? 0
+
+      setSnackbar({
+        open: true,
+        message: `Restore complete: imported ${restoredCount} transaction(s), replaced ${deletedCount}.`,
+        severity: 'success',
+      })
     } catch (error: any) {
       setSnackbar({
         open: true,
@@ -178,17 +165,7 @@ export default function BackupRestorePage() {
               Active Profile: <strong>{activeProfile || 'None selected'}</strong>
             </Typography>
             <Alert severity="info">
-              {isGuestMode
-                ? (
-                  <>
-                    This backup includes the mock transactions stored for the demo experience. Identifiers such as <code>id</code> and <code>user_id</code> are excluded from the CSV.
-                  </>
-                )
-                : (
-                  <>
-                    This backup includes every transaction in your account. Identifiers such as <code>id</code> and <code>user_id</code> are excluded from the CSV.
-                  </>
-                )}
+              This backup includes every transaction in your account. Identifiers such as <code>id</code> and <code>user_id</code> are excluded from the CSV.
             </Alert>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <LoadingButton variant="contained" onClick={handleDownloadClick} loading={isDownloading}>
@@ -212,9 +189,7 @@ export default function BackupRestorePage() {
               />
             </Box>
             <Typography variant="body2" color="text.secondary">
-              {isGuestMode
-                ? 'Note: Restore will replace existing mock transactions in guest mode. You will be asked to confirm before proceeding.'
-                : 'Note: Restore will permanently replace all of your transactions with the contents of the selected CSV backup. You will be asked to confirm before proceeding.'}
+              Note: Restore will permanently replace all of your transactions with the contents of the selected CSV backup. You will be asked to confirm before proceeding.
             </Typography>
           </Stack>
         </Paper>
@@ -223,11 +198,7 @@ export default function BackupRestorePage() {
         <ConfirmDialog
           open={confirmRestoreOpen}
           title="Confirm Restore"
-          message={
-            isGuestMode
-              ? 'This will replace all current mock transactions with the contents of the selected CSV. Do you want to continue?'
-              : 'This will permanently replace all transactions in your account with the contents of the selected CSV. Do you want to continue?'
-          }
+          message="This will permanently replace all transactions in your account with the contents of the selected CSV. Do you want to continue?"
           confirmText="Continue"
           cancelText="Cancel"
           confirmColor="warning"
@@ -292,5 +263,4 @@ export default function BackupRestorePage() {
     </PageLayout>
   )
 }
-
 

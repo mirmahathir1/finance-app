@@ -30,21 +30,6 @@
 │  └───────────────────────────────────────────────────┘  │
 │                                                          │
 │  ┌───────────────────────────────────────────────────┐  │
-│  │                                                    │  │
-│  │         ───────────  OR  ───────────              │  │
-│  │                                                    │  │
-│  └───────────────────────────────────────────────────┘  │
-│                                                          │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │                                                    │  │
-│  │     ┌──────────────────────────────────────┐      │  │
-│  │     │   <a href="./guest.md">Continue as Guest</a>                  │      │  │
-│  │     │   (Explore with demo data)           │      │  │
-│  │     └──────────────────────────────────────┘      │  │
-│  │                                                    │  │
-│  └───────────────────────────────────────────────────┘  │
-│                                                          │
-│  ┌───────────────────────────────────────────────────┐  │
 │  │ Don't have an account?                            │  │
 │  │ <a href="./signup.md">Sign Up</a>                                    │  │
 │  └───────────────────────────────────────────────────┘  │
@@ -61,7 +46,6 @@ SignIn
 ├── AppLogo
 ├── WelcomeMessage
 ├── EmailPasswordForm (email, password, submit)
-├── GuestModeButton (prominent button: "Try Guest Mode" or "Continue as Guest")
 └── InfoText (security and password guidance)
 ```
 
@@ -69,7 +53,6 @@ SignIn
 
 - **Email and Password Authentication**: Standard email/password login form
 - **Forgot Password Link**: Link to password reset flow
-- **Guest Mode**: Prominent button to explore app without authentication
 - **Sign Up Link**: Easy navigation to sign up page
 - **Session Management**: HTTP-only cookie for secure session storage
 - **Rate Limiting**: 5 failed login attempts per email per 15 minutes, 10 per IP per 15 minutes
@@ -86,10 +69,6 @@ SignIn
    - Shows inline error message
    - After 5 failed attempts: Account locked for 15 minutes
    - Shows rate limit message if exceeded
-
-## Guest Mode
-
-For detailed Guest Mode specifications, see [Guest Mode](./guest.md).
 
 ## Error Handling
 
@@ -112,8 +91,6 @@ For detailed Guest Mode specifications, see [Guest Mode](./guest.md).
 ### Session Management
 - `POST /api/auth/logout` — See [API Response Documentation](./api/auth-logout.md)
 - `GET /api/auth/session` — See [API Response Documentation](./api/auth-session.md)
-
-**Note:** In Guest Mode, API calls are intercepted client-side and return mock data generated in the browser using Faker.js. No server requests are made in Guest Mode.
 
 ## Session Management
 

@@ -28,21 +28,6 @@
 │  └───────────────────────────────────────────────────┘ │
 │                                                          │
 │  ┌───────────────────────────────────────────────────┐ │
-│  │                                                    │ │
-│  │         ───────────  OR  ───────────              │ │
-│  │                                                    │ │
-│  └───────────────────────────────────────────────────┘ │
-│                                                          │
-│  ┌───────────────────────────────────────────────────┐ │
-│  │                                                    │ │
-│  │     ┌──────────────────────────────────────┐      │ │
-│  │     │   <a href="./guest.md">Continue as Guest</a>                  │      │ │
-│  │     │   (Explore with demo data)           │      │ │
-│  │     └──────────────────────────────────────┘      │ │
-│  │                                                    │ │
-│  └───────────────────────────────────────────────────┘ │
-│                                                          │
-│  ┌───────────────────────────────────────────────────┐ │
 │  │ Already have an account?                           │ │
 │  │ <a href="./signin.md">Sign In</a>                                    │ │
 │  └───────────────────────────────────────────────────┘ │
@@ -93,7 +78,6 @@ After submitting email:
 - **Resend link**: Option to resend verification link with rate limiting (5 requests per email per hour)
 - **Clear instructions**: Explains what happens next and where to find the email
 - **Expiration notice**: Informs users that the link expires in 15 minutes
-- **Guest mode option**: Users can explore the app without creating an account
 - **Link to sign in**: Easy navigation for existing users
 
 ## User Flow
@@ -137,8 +121,6 @@ After submitting email:
 ### Signup Request
 - `POST /api/auth/signup/request` — See [API Response Documentation](./api/auth-signup-request.md)
 
-**Note:** In Guest Mode, API calls are intercepted client-side and return mock data generated in the browser using Faker.js. No server requests are made in Guest Mode.
-
 ## Security Notes
 
 - No database writes occur before email verification (prevents storing unverified users)
@@ -148,4 +130,3 @@ After submitting email:
 - Rate limiting: 5 requests per email per hour, 10 requests per IP per hour
 - Rate limit response: Return 429 Too Many Requests with `Retry-After` header
 - Storage: Track attempts by email and IP in Redis or in-memory store with TTL
-

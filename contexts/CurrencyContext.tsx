@@ -65,13 +65,13 @@ async function validateCurrencyCodeWithAPI(currencyCode: string): Promise<boolea
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const api = useApi()
-  const { user, isGuestMode, isLoading: authLoading } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const [currencies, setCurrencies] = useState<Currency[]>([])
   const [defaultCurrency, setDefaultCurrency] = useState<Currency | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const activeLoadCountRef = useRef(0)
-  const authStateKey = user ? `user:${user.id}` : isGuestMode ? 'guest' : 'signed-out'
+  const authStateKey = user ? `user:${user.id}` : 'signed-out'
 
   const TRANSACTION_PAGE_SIZE = 200
 
@@ -133,7 +133,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    // When fully signed out (non-guest), ensure state is cleared without hitting the API
+    // When fully signed out, ensure state is cleared without hitting the API
     if (authStateKey === 'signed-out') {
       setCurrencies([])
       setDefaultCurrency(null)
@@ -142,7 +142,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    // When a user (or guest) is available, reload currencies
+    // When a user is available, reload currencies
     loadCurrencies()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authStateKey, authLoading])
@@ -356,4 +356,3 @@ export function useCurrency() {
   }
   return context
 }
-

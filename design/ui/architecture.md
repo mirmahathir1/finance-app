@@ -14,13 +14,9 @@
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │ │
 │  │  │   UI Layer   │  │  State Mgmt  │  │  Auth Layer  │ │ │
 │  │  │   (MUI)      │  │  (Context)   │  │ (Credentials)│ │ │
-│  │  │              │  │              │  │ (Guest Mode) │ │ │
 │  │  └──────────────┘  └──────────────┘  └──────────────┘ │ │
 │  │  ┌──────────────────────────────────────────────────┐  │ │
-│  │  │ Guest Mode Indicator (Floating Icon)              │  │ │
-│  │  └──────────────────────────────────────────────────┘  │ │
-│  │  ┌──────────────────────────────────────────────────┐  │ │
-│  │  │ IndexedDB (Profile, Currency & Guest Mode)      │  │ │
+│  │  │ IndexedDB (Profiles, Tags, Currencies, Settings)│  │ │
 │  │  └──────────────────────────────────────────────────┘  │ │
 │  └────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
@@ -31,9 +27,6 @@
 │  │  Auth API    │  │  Domain APIs │  │  Services    │     │
 │  │              │  │  (CRUD)      │  │  (Reports)   │     │
 │  └──────────────┘  └──────────────┘  └──────────────┘     │
-│                                                              │
-│  Note: Guest Mode bypasses server - data generated          │
-│  client-side using GuestDataService (Faker.js)              │
 └─────────────────────────────────────────────────────────────┘
                               ↕
 ┌─────────────────────────────────────────────────────────────┐
@@ -81,7 +74,6 @@
 5. **Mobile-First PWA**: Responsive design that works on all devices and can be installed as an app
 6. **Global Progress Indicator**: Unified loading feedback for API calls
 7. **Backups**: Per-user backup to a single CSV file containing only transaction data (excludes `id` and `user_id` columns) for download; restore by uploading that CSV file (replaces all user transaction data). Profile, tag, and currency data are not included in backups as they're stored locally in IndexedDB.
-8. **Guest Mode**: Allow users to explore the app without authentication. API calls are intercepted client-side before reaching the server, and a unified `GuestDataService` generates mock data directly in the browser using Faker.js. This approach eliminates the need for server-side guest routes, provides zero network overhead, and ensures instant responses. Guest mode state is stored in IndexedDB, and a floating indicator shows when Guest Mode is active.
 
 ## Data & Reporting Services
 
@@ -106,8 +98,6 @@ The application uses React Context API for global state management:
 - User session state
 - Sign in/out functions
 - Loading states
-- Guest mode state
-- Enter/exit guest mode functions
 
 #### AppContext
 - Global app settings
@@ -211,7 +201,6 @@ Rate limiting is critical for authentication endpoints to prevent brute force at
 - No API calls needed for profile, tag, or currency operations
 - Transaction queries filtered by profile name at the database level
 - Tags embedded in transactions as text array for efficient querying
-- **Guest Mode**: Zero network overhead - all data generated client-side with minimal delay simulation
 
 ### User Experience
 - Pre-select user's default currency from IndexedDB in transaction forms
@@ -235,5 +224,3 @@ Rate limiting is critical for authentication endpoints to prevent brute force at
 - Users need to re-create profiles, tags, and currencies when moving to a new device/browser
 - **Profile Auto-Population**: At startup, if IndexedDB profiles are empty, automatically populate from existing profiles in transactions for that user
 - **Import from Database**: Provide "Import from Database" option in tags and currency screens to scan transactions and auto-populate IndexedDB (handles duplicates gracefully)
-- **Guest Mode**: Provide seamless experience with fake data; clearly indicate Guest Mode status; allow easy exit to login page
-

@@ -17,7 +17,7 @@
 
 ### Page Documentation
 10. **[Dashboard](./dashboard.md)** - Main home page for logged-in users
-11. **[Sign In](./signin.md)** - Authentication page (with guest mode option and link to sign up)
+11. **[Sign In](./signin.md)** - Authentication page with link to sign up
 12. **[Sign Up](./signup.md)** - User registration page
 13. **[Verify](./verify.md)** - Email verification page
 14. **[Set Password](./set-password.md)** - Password setup page
@@ -39,7 +39,7 @@
 - For UI/UX designers: See [UI/UX Guidelines](./ui-ux-guidelines.md) (shared components, design system, and guidelines)
 - For understanding user experience: Check individual page documentation (each page includes its user flow and component structure)
 - For backend development: Review [Data Models](./data-models.md) (includes Prisma operations and data persistence), [Architecture](./architecture.md) (security, error handling, state management, best practices), [Deployment](../stack/deployment.md) (environment variables), and individual page documentation (each page includes its API endpoints)
-- For authentication: See [Sign In](./signin.md) (includes guest mode implementation), [Sign Up](./signup.md), [Verify](./verify.md), [Set Password](./set-password.md), [Forgot Password](./forgot-password.md), and [Reset Password](./reset-password.md) (each includes API endpoints and security notes)
+- For authentication: See [Sign In](./signin.md), [Sign Up](./signup.md), [Verify](./verify.md), [Set Password](./set-password.md), [Forgot Password](./forgot-password.md), and [Reset Password](./reset-password.md) (each includes API endpoints and security notes)
 - For API endpoints: See individual page documentation (each page includes its relevant API endpoints)
 - For currency system details: See [Manage Currencies](./manage-currencies.md) (includes IndexedDB operations, multi-currency support, and implementation details)
 - For setting up third-party services: See [Credentials Setup](../credentials-setup/README.md)

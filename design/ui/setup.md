@@ -162,7 +162,7 @@ Setup
 ## First-Time User Flow
 
 1. Start → Sign In Required
-2. Create Account (Email Verification) or Sign In or Guest Mode
+2. Create Account (Email Verification) or Sign In
 3. If Create Account:
    - Enter Email → Submit
    - Show "Check your email"

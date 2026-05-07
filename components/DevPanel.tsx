@@ -15,15 +15,12 @@ import {
   KeyboardArrowUp as ArrowUpIcon,
   KeyboardArrowDown as ArrowDownIcon,
   Close as CloseIcon,
-  Person as PersonIcon,
   Email as EmailIcon,
   OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material'
-import { useAuth } from '@/contexts/AuthContext'
 import { LoadingButton } from './LoadingButton'
 import { Snackbar } from './Snackbar'
 import { clearAllData } from '@/utils/indexedDB'
-import { guestDataService } from '@/services/guestDataService'
 
 const MAILHOG_HTTP_URL =
   process.env.NEXT_PUBLIC_MAILHOG_HTTP_URL || 'http://localhost:8025'
@@ -31,7 +28,6 @@ const IS_DEVELOPMENT = process.env.NODE_ENV === 'development'
 
 export function DevPanel() {
   const router = useRouter()
-  const { isGuestMode, enterGuestMode, exitGuestMode } = useAuth()
   const [isExpanded, setIsExpanded] = useState(false)
   const [isHidden, setIsHidden] = useState(false)
   const [isHardResetting, setIsHardResetting] = useState(false)
@@ -54,32 +50,6 @@ export function DevPanel() {
     setIsHidden(false)
   }
 
-  const handleGuestModeToggle = async () => {
-    try {
-      if (isGuestMode) {
-        await exitGuestMode()
-        setSnackbar({
-          open: true,
-          message: 'Exited Guest Mode',
-          severity: 'success',
-        })
-      } else {
-        await enterGuestMode()
-        setSnackbar({
-          open: true,
-          message: 'Entered Guest Mode',
-          severity: 'success',
-        })
-      }
-    } catch (error: any) {
-      setSnackbar({
-        open: true,
-        message: error?.message || 'Failed to toggle guest mode',
-        severity: 'error',
-      })
-    }
-  }
-
   const handleHardReset = async () => {
     if (isHardResetting) {
       return
@@ -87,7 +57,6 @@ export function DevPanel() {
     setIsHardResetting(true)
     try {
       await clearAllData()
-      guestDataService.reset()
       try {
         sessionStorage.clear()
       } catch {
@@ -213,20 +182,6 @@ export function DevPanel() {
               alignItems: 'center',
             }}
           >
-            {/* Guest Mode Toggle */}
-            <Button
-              variant="contained"
-              color={isGuestMode ? 'secondary' : 'primary'}
-              size="medium"
-              onClick={handleGuestModeToggle}
-              startIcon={<PersonIcon />}
-              aria-label={
-                isGuestMode ? 'Exit Guest Mode' : 'Enter Guest Mode'
-              }
-            >
-              {isGuestMode ? 'Exit Guest Mode' : 'Enter Guest Mode'}
-            </Button>
-
             {/* Hard Reset Button */}
             <LoadingButton
               variant="contained"
@@ -267,4 +222,3 @@ export function DevPanel() {
     </>
   )
 }
-

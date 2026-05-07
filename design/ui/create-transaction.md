@@ -98,8 +98,6 @@
 ### Create Transaction
 - `POST /api/transactions` — See [API Response Documentation](./api/transactions-create.md)
 
-**Note:** In Guest Mode, API calls are intercepted client-side and return mock data generated in the browser using Faker.js. No server requests are made in Guest Mode.
-
 ## Component Structure
 
 The Create Transaction page consists of:

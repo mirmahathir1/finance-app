@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import {
   Container,
   Box,
@@ -12,15 +11,12 @@ import {
   Paper,
 } from '@mui/material'
 import { CheckCircle as CheckCircleIcon } from '@mui/icons-material'
-import { useAuth } from '@/contexts/AuthContext'
 import { useApi } from '@/utils/useApi'
 import { Snackbar } from '@/components/Snackbar'
 import { LoadingButton } from '@/components/LoadingButton'
 import { validateEmail } from '@/utils/validation'
 
 export default function ForgotPasswordPage() {
-  const router = useRouter()
-  const { isGuestMode } = useAuth()
   const api = useApi()
   const [email, setEmail] = useState('')
   const [emailSent, setEmailSent] = useState(false)
@@ -168,18 +164,6 @@ export default function ForgotPasswordPage() {
                 </ul>
               </Typography>
             </Alert>
-
-            {isGuestMode && (
-              <Box sx={{ textAlign: 'center' }}>
-                <Link
-                  href="/auth/mock-email"
-                  variant="body2"
-                  sx={{ textDecoration: 'none' }}
-                >
-                  View Mock Email (Demo)
-                </Link>
-              </Box>
-            )}
           </Paper>
         </Box>
 
@@ -278,4 +262,3 @@ export default function ForgotPasswordPage() {
     </Container>
   )
 }
-

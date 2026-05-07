@@ -197,8 +197,6 @@ Error state - Invalid/Expired token:
 ### Reset Password
 - `POST /api/auth/reset-password` — See [API Response Documentation](./api/auth-reset-password.md)
 
-**Note:** In Guest Mode, API calls are intercepted client-side and return mock data generated in the browser using Faker.js. No server requests are made in Guest Mode.
-
 ## Security Notes
 
 - Password is never sent in plain text (always hashed server-side)
@@ -221,4 +219,3 @@ Reset tokens are JWT-based and include the user's current `password_hash` in the
 4. If they don't match, the token is rejected
 
 This approach ensures tokens are automatically invalidated without requiring a separate database table or Redis blacklist. See [Forgot Password](./forgot-password.md#token-invalidation-implementation) for more details.
-

@@ -8,16 +8,12 @@ import type { Profile, Tag, Currency, AppSettings } from '@/types'
 
 const DB_NAME = 'FinanceAppDB'
 const DB_VERSION = 1
-const FORCE_GUEST_MODE =
-  typeof process !== 'undefined' &&
-  process.env.NEXT_PUBLIC_FORCE_GUEST_MODE === 'true'
 
 // Object store names
 const STORE_PROFILES = 'profiles'
 const STORE_TAGS = 'tags'
 const STORE_CURRENCIES = 'currencies'
 const STORE_SETTINGS = 'settings'
-const STORE_GUEST_MODE = 'guestMode'
 
 // ============================================================================
 // Database Initialization
@@ -72,10 +68,6 @@ export async function initDB(): Promise<IDBDatabase> {
         db.createObjectStore(STORE_SETTINGS, { keyPath: 'key' })
       }
 
-      // Create guest mode store
-      if (!db.objectStoreNames.contains(STORE_GUEST_MODE)) {
-        db.createObjectStore(STORE_GUEST_MODE, { keyPath: 'key' })
-      }
     }
   })
 }
@@ -702,87 +694,9 @@ export async function setActiveProfile(profileName: string): Promise<void> {
   return setSetting('activeProfile', profileName)
 }
 
-// ============================================================================
-// Guest Mode Operations
-// ============================================================================
-
-/**
- * Get guest mode state
- */
-export async function getGuestModeState(): Promise<boolean> {
-  if (FORCE_GUEST_MODE) {
-    return true
-  }
-
-  if (typeof window === 'undefined') return false
-
-  try {
-    const db = await initDB()
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORE_GUEST_MODE], 'readonly')
-      const store = transaction.objectStore(STORE_GUEST_MODE)
-      const request = store.get('isGuestMode')
-
-      request.onerror = () => reject(request.error)
-      request.onsuccess = () => {
-        const result = request.result
-        resolve(result ? result.value === true : false)
-      }
-    })
-  } catch {
-    return false
-  }
-}
-
-/**
- * Set guest mode state
- */
-export async function setGuestModeState(value: boolean): Promise<void> {
-  if (typeof window === 'undefined') return
-
-  try {
-    const db = await initDB()
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORE_GUEST_MODE], 'readwrite')
-      const store = transaction.objectStore(STORE_GUEST_MODE)
-      const request = store.put({
-        key: 'isGuestMode',
-        value,
-        updatedAt: new Date().toISOString(),
-      })
-
-      request.onerror = () => reject(request.error)
-      request.onsuccess = () => resolve()
-    })
-  } catch (error) {
-    throw error
-  }
-}
-
-/**
- * Clear guest mode state
- */
-export async function clearGuestModeState(): Promise<void> {
-  if (typeof window === 'undefined') return
-
-  try {
-    const db = await initDB()
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORE_GUEST_MODE], 'readwrite')
-      const store = transaction.objectStore(STORE_GUEST_MODE)
-      const request = store.delete('isGuestMode')
-
-      request.onerror = () => reject(request.error)
-      request.onsuccess = () => resolve()
-    })
-  } catch (error) {
-    throw error
-  }
-}
-
 /**
  * Clear all data from IndexedDB
- * This removes all profiles, tags, currencies, settings, and guest mode state
+ * This removes all profiles, tags, currencies, and settings.
  */
 export async function clearAllData(): Promise<void> {
   if (typeof window === 'undefined') return
@@ -796,7 +710,6 @@ export async function clearAllData(): Promise<void> {
       STORE_TAGS,
       STORE_CURRENCIES,
       STORE_SETTINGS,
-      STORE_GUEST_MODE,
     ]
 
     return new Promise((resolve, reject) => {
@@ -827,4 +740,3 @@ export async function clearAllData(): Promise<void> {
     throw error
   }
 }
-

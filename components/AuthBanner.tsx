@@ -20,9 +20,9 @@ export function AuthBanner({
   showSettingsButton = false,
 }: AuthBannerProps) {
   const router = useRouter()
-  const { user, isGuestMode } = useAuth()
+  const { user } = useAuth()
 
-  const displayEmail = user?.email || 'Guest'
+  const displayEmail = user?.email || 'Signed out'
 
   const getUserInitials = (email: string): string => {
     return email.charAt(0).toUpperCase()
@@ -66,11 +66,6 @@ export function AuthBanner({
           ml: 'auto',
         }}
       >
-        {isGuestMode && (
-          <Typography variant="body2" sx={{ opacity: 0.9 }}>
-            Guest Mode
-          </Typography>
-        )}
         {user ? (
           <>
             <Avatar sx={{ width: 36, height: 36, bgcolor: 'secondary.main' }}>
@@ -82,7 +77,7 @@ export function AuthBanner({
           </>
         ) : (
           <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            Guest
+            Signed out
           </Typography>
         )}
         {actions}
@@ -100,4 +95,3 @@ export function AuthBanner({
     </Paper>
   )
 }
-

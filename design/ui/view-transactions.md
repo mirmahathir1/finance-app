@@ -95,8 +95,6 @@
 - `PUT /api/transactions/:id` — See [API Response Documentation](./api/transactions-update.md)
 - `DELETE /api/transactions/:id` — See [API Response Documentation](./api/transactions-delete.md)
 
-**Note:** In Guest Mode, API calls are intercepted client-side and return mock data generated in the browser using Faker.js. No server requests are made in Guest Mode.
-
 **Storage:** Backed by PostgreSQL (Supabase). All endpoints operate on database tables with server-side authorization checks.
 
 ## Component Structure

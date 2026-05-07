@@ -6,9 +6,9 @@
 
 Application data is persisted using a hybrid storage approach:
 - **PostgreSQL (Supabase)**: Source of truth for authenticated users — stores only two tables (`users` and `transactions`). User rows contain authentication data; every profile/currency/tag reference lives directly on each transaction row (no additional tables or metadata blobs).
-- **IndexedDB**: Mirrors profile/tag/currency data only when Guest Mode is active (demo experience) and caches lightweight client preferences.
+- **IndexedDB**: Stores profile/tag/currency data and lightweight client preferences.
 
-Prisma is the standard ORM for all PostgreSQL data access. The two-table schema plus JSON fields are documented in `design/ui/data-models.md`. Guest-mode IndexedDB schemas live in `design/currency-system.md`.
+Prisma is the standard ORM for all PostgreSQL data access. The two-table schema plus JSON fields are documented in `design/ui/data-models.md`.
 
 ## PostgreSQL (Supabase) with Prisma
 
@@ -121,7 +121,7 @@ See `design/currency-system.md` for detailed profile, tag, and currency operatio
 
 Backups are performed by exporting the logged-in user's transaction data from PostgreSQL to a single CSV file that the user downloads. The backup includes only the user's transactions (with embedded tag names). The CSV file does NOT contain `id` or `user_id` columns.
 
-**Note:** Backups currently include only transactions. Profile, tag, and currency information is inherently part of each transaction row (and mirrored in IndexedDB for Guest Mode), so exporting/importing the ledger automatically transfers these attributes.
+**Note:** Backups currently include only transactions. Profile, tag, and currency information is inherently part of each transaction row, so exporting/importing the ledger automatically transfers these attributes.
 
 Restores are performed by uploading that CSV file, which the server validates and then uses to transactionally restore the user's transaction data. On restore, all existing transaction data for the logged-in user is deleted before restoring the backup data. New `id` values are generated and `user_id` is set from the session.
 
@@ -129,4 +129,3 @@ Restores are performed by uploading that CSV file, which the server validates an
 - Endpoint contract is defined in `design/api-design.md` (`GET /api/backup`, `POST /api/restore`)
 - This approach is cloud-provider-agnostic and portable
 - Users can only backup and restore their own data
-

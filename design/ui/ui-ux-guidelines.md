@@ -188,36 +188,6 @@ async function fetchTransactions(params: { profileId: string; from?: string; to?
 - Data export/import operations
 - Settings initialization
 
-## Guest Mode Guidelines
-
-### Guest Mode UI
-- **Login Page**: Prominent "Guest Mode" or "Continue as Guest" button
-  - Positioned below the sign-in form or as a secondary action
-  - Clear visual distinction from primary sign-in action
-  - Tooltip or helper text: "Explore the app with demo data"
-  
-- **Guest Mode Indicator**: Floating icon on the right side of the screen
-  - Fixed position: `right: 16px; top: 50%; transform: translateY(-50%)`
-  - Semi-transparent or subtle styling to avoid intrusion
-  - Material-UI icon (e.g., `PersonIcon`, `VisibilityIcon`, or `InfoIcon`)
-  - Tooltip on hover: "Guest Mode - Using demo data"
-  - Optional: Click to show dialog with option to exit Guest Mode
-  - Z-index high enough to stay above other content but below modals
-
-- **Guest Mode Behavior**:
-  - All API calls are intercepted client-side and handled by GuestDataService
-  - No server requests are made in Guest Mode (zero network overhead)
-  - Fake data is generated deterministically for consistent experience
-  - Minimal delay simulation (50-150ms) to maintain realistic UX
-  - All UI features work normally with fake data
-  - Clear indication that data is not persisted
-
-### Data Generation
-- Use a JavaScript library (e.g., Faker.js, @faker-js/faker) for generating realistic fake data
-- Generate data that matches the structure of real data (transactions, statistics, settings)
-- Generate realistic amounts, dates, descriptions, and tag names
-- Ensure generated data covers various scenarios (multiple profiles, currencies, transaction types)
-
 ## User Experience Best Practices
 
 ### General
@@ -225,7 +195,6 @@ async function fetchTransactions(params: { profileId: string; from?: string; to?
 - Make profile switching intuitive and easily accessible
 - Provide clear explanations about profile separation during setup
 - Show confirmation dialogs when deleting profiles to prevent accidental data loss
-- Guest Mode should provide a seamless experience for exploring the app without authentication
 
 ### Profile Management
 - No profile photo storage; keep profile visuals simple and text-focused
@@ -295,19 +264,8 @@ The following components are shared across multiple pages and should be implemen
 - `CurrencySelector` - Currency dropdown component (loads from IndexedDB with "Add New Currency" option)
 - `TagChip` - Colored tag display
 - `EmptyState` - No data placeholder
-- `GuestModeIndicator` - Floating icon on the right side of the screen indicating Guest Mode is active
 
 **Note:** The `GlobalProgressBar` component displays an infinite progress indicator at the top of the page during API calls. It is managed globally and automatically shows/hides based on pending requests.
-
-### GuestModeIndicator Component Details
-The `GuestModeIndicator` component:
-- Displays a floating icon/button on the right side of the screen
-- Only visible when Guest Mode is active
-- Positioned fixed at the right edge (e.g., `position: fixed; right: 16px; top: 50%; transform: translateY(-50%)`)
-- Uses Material-UI icon (e.g., `PersonIcon` or `VisibilityIcon`) with appropriate styling
-- May include a tooltip on hover: "Guest Mode - Using demo data"
-- Clicking the icon can optionally show a dialog with option to exit Guest Mode
-- Styled to be visible but not intrusive (semi-transparent or subtle color)
 
 ### CurrencySelector Component Details
 The `CurrencySelector` component:
@@ -322,4 +280,3 @@ The `CurrencySelector` component:
   - Refreshes the dropdown to include the new currency
   - Selects the newly added currency
 - Default currency is pre-selected when the form loads
-
