@@ -126,6 +126,7 @@ export interface TransactionQueryParams {
   currency?: string
   displayCurrency?: string
   tag?: string
+  tags?: string // comma-separated tag names (matches any)
   includeConverted?: boolean
   sort?: 'asc' | 'desc'
   limit?: number
@@ -140,6 +141,7 @@ export interface StatisticsQueryParams {
   from: string // YYYY-MM-DD format
   to: string // YYYY-MM-DD format
   currency: string
+  tags?: string // comma-separated tag names (matches any)
   includeConverted?: boolean
 }
 
@@ -147,6 +149,7 @@ export interface StatisticsCalendarQueryParams {
   profile: string
   month: string // YYYY-MM format
   currency: string
+  tags?: string // comma-separated tag names (matches any)
   includeConverted?: boolean
 }
 

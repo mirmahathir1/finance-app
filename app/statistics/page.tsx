@@ -22,6 +22,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { AnimatedSection } from '@/components/AnimatedSection'
 import { StatisticsCalendar } from '@/components/StatisticsCalendar'
 import { StatisticsDayTransactionsDialog } from '@/components/StatisticsDayTransactionsDialog'
+import { StatisticsTagFilter } from '@/components/StatisticsTagFilter'
 import { StatisticsTransactionsTable } from '@/components/StatisticsTransactionsTable'
 import { useProfile } from '@/contexts/ProfileContext'
 import { useTag } from '@/contexts/TagContext'
@@ -112,6 +113,7 @@ export default function StatisticsPage() {
   const [hasCommittedRangeSelection, setHasCommittedRangeSelection] = useState(false)
   const [currency, setCurrency] = useState('')
   const [includeConverted, setIncludeConverted] = useState(false)
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [currencyOptions, setCurrencyOptions] = useState<string[]>([])
   const [profileTransactions, setProfileTransactions] = useState<Transaction[]>([])
   const [summaryTransactions, setSummaryTransactions] = useState<Transaction[]>([])
@@ -170,6 +172,17 @@ export default function StatisticsPage() {
     const toParam = searchParams?.get('to')
     const currencyParam = searchParams?.get('currency')
     const includeConvertedParam = searchParams?.get('includeConverted') === 'true'
+    const tagsParam = searchParams?.get('tags')
+    const nextTags = tagsParam
+      ? Array.from(
+          new Set(
+            tagsParam
+              .split(',')
+              .map((tag) => tag.trim())
+              .filter(Boolean)
+          )
+        )
+      : []
     const dialogDateParam = searchParams?.get('dialogDate')
     const dialogTypeParam = searchParams?.get('dialogType')
     const nextDialogDate = isValidDate(dialogDateParam) ? dialogDateParam! : null
@@ -202,6 +215,7 @@ export default function StatisticsPage() {
     setSelectedRange(nextRange)
     setCurrency(currencyParam?.toUpperCase() || '')
     setIncludeConverted(includeConvertedParam)
+    setSelectedTags(nextTags)
     setDialogState(nextDialogState)
     setAllowInitialActivityAutofocus(!isValidMonth(monthParam) && !(isValidDate(fromParam) && isValidDate(toParam)))
     setHasInitializedFromUrl(true)
@@ -256,6 +270,10 @@ export default function StatisticsPage() {
       params.set('includeConverted', 'true')
     }
 
+    if (selectedTags.length > 0) {
+      params.set('tags', selectedTags.join(','))
+    }
+
     if (dialogState.open && dialogState.date && dialogState.type) {
       params.set('dialogDate', dialogState.date)
       params.set('dialogType', dialogState.type)
@@ -272,6 +290,7 @@ export default function StatisticsPage() {
     router,
     selectedRange.from,
     selectedRange.to,
+    selectedTags,
     visibleMonth,
   ])
 
@@ -495,6 +514,7 @@ export default function StatisticsPage() {
         month: visibleMonth,
         currency,
         includeConverted,
+        tags: selectedTags.length > 0 ? selectedTags.join(',') : undefined,
       })
 
       if (!response.success || !response.data) {
@@ -513,7 +533,7 @@ export default function StatisticsPage() {
     } finally {
       setIsLoadingCalendar(false)
     }
-  }, [activeProfile, api, currency, includeConverted, showSkippedCurrencies, visibleMonth])
+  }, [activeProfile, api, currency, includeConverted, selectedTags, showSkippedCurrencies, visibleMonth])
 
   const loadRangeData = useCallback(async () => {
     if (!activeProfile || !currency) {
@@ -527,6 +547,8 @@ export default function StatisticsPage() {
       setIsLoadingRange(true)
       setRangeError(null)
 
+      const tagsFilter = selectedTags.length > 0 ? selectedTags.join(',') : undefined
+
       const [statsResponse, transactionsResponse] = await Promise.all([
         api.getStatistics({
           profile: activeProfile,
@@ -534,6 +556,7 @@ export default function StatisticsPage() {
           to: selectedRange.to,
           currency,
           includeConverted,
+          tags: tagsFilter,
         }),
         api.getTransactions({
           profile: activeProfile,
@@ -543,6 +566,7 @@ export default function StatisticsPage() {
           displayCurrency: currency,
           includeConverted,
           sort: 'desc',
+          tags: tagsFilter,
         }),
       ])
 
@@ -581,6 +605,7 @@ export default function StatisticsPage() {
     includeConverted,
     selectedRange.from,
     selectedRange.to,
+    selectedTags,
     showSkippedCurrencies,
   ])
 
@@ -650,6 +675,7 @@ export default function StatisticsPage() {
           displayCurrency: currency,
           includeConverted,
           sort: 'asc',
+          tags: selectedTags.length > 0 ? selectedTags.join(',') : undefined,
         })
 
         if (!response.success || !response.data) {
@@ -683,7 +709,7 @@ export default function StatisticsPage() {
     return () => {
       cancelled = true
     }
-  }, [activeProfile, api, currency, dialogState.date, dialogState.open, dialogState.type, includeConverted, showSkippedCurrencies])
+  }, [activeProfile, api, currency, dialogState.date, dialogState.open, dialogState.type, includeConverted, selectedTags, showSkippedCurrencies])
 
   const handleDateSelect = useCallback((date: string) => {
     if (!pendingRangeStart) {
@@ -952,6 +978,13 @@ export default function StatisticsPage() {
         </AnimatedSection>
 
         <AnimatedSection delay={40}>
+          {currency && (
+            <StatisticsTagFilter
+              tags={tags}
+              selectedTags={selectedTags}
+              onChange={setSelectedTags}
+            />
+          )}
           {rangeError ? (
             <Box sx={{ mt: 3 }}>
               <ErrorState
@@ -981,7 +1014,11 @@ export default function StatisticsPage() {
             <Box sx={{ mt: 3 }}>
               <EmptyState
                 title="No statistics available"
-                message="No transactions match the selected range and currency."
+                message={
+                  selectedTags.length > 0
+                    ? 'No transactions match the selected range, currency, and tags.'
+                    : 'No transactions match the selected range and currency.'
+                }
               />
             </Box>
           ) : (

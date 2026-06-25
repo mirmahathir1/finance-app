@@ -64,6 +64,17 @@ export async function GET(request: NextRequest) {
     const includeConverted = searchParams.get('includeConverted') === 'true'
     const fromDate = searchParams.get('from')
     const toDate = searchParams.get('to')
+    const tagsParam = searchParams.get('tags')
+    const tagFilter = tagsParam
+      ? Array.from(
+          new Set(
+            tagsParam
+              .split(',')
+              .map((tag) => tag.trim())
+              .filter(Boolean)
+          )
+        )
+      : []
 
     if (!profile || !currency || !fromDate || !toDate) {
       return errorResponse(
@@ -81,6 +92,7 @@ export async function GET(request: NextRequest) {
         userId: user.id,
         profile,
         occurredAt: toExpandedDateRange(fromDate, toDate),
+        ...(tagFilter.length > 0 ? { tags: { hasSome: tagFilter } } : {}),
       },
       select: {
         id: true,

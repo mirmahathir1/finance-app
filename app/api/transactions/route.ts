@@ -86,6 +86,18 @@ export async function GET(request: NextRequest) {
     const tagParam = searchParams.get('tag')
     const tagFilter = tagParam ? tagParam.trim() : undefined
 
+    const tagsParam = searchParams.get('tags')
+    const tagsFilter = tagsParam
+      ? Array.from(
+          new Set(
+            tagsParam
+              .split(',')
+              .map((tag) => tag.trim())
+              .filter(Boolean)
+          )
+        )
+      : []
+
     const fromDateParam = searchParams.get('from')
     const toDateParam = searchParams.get('to')
     
@@ -127,7 +139,11 @@ export async function GET(request: NextRequest) {
       where.currency = currencyFilter
     }
 
-    if (tagFilter) {
+    if (tagsFilter.length > 0) {
+      where.tags = {
+        hasSome: tagsFilter,
+      }
+    } else if (tagFilter) {
       where.tags = {
         has: tagFilter,
       }
