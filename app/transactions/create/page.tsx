@@ -287,9 +287,8 @@ export default function CreateTransactionPage() {
           severity: 'success',
         })
 
-        // Reset form
+        // Reset form, but keep the date so it can be reused for the next entry
         setType('expense')
-        setDate(format(new Date(), 'yyyy-MM-dd'))
         setAmount(0)
         setCurrency(defaultCurrency?.code || '')
         setDescription('')
