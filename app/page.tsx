@@ -29,9 +29,10 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useApi } from '@/utils/useApi'
 import { ErrorState } from '@/components/ErrorState'
 import { getFriendlyErrorMessage } from '@/utils/error'
-import { format, startOfMonth, endOfMonth } from 'date-fns'
+import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
 import type { StatisticsData } from '@/types'
 import { AnimatedSection } from '@/components/AnimatedSection'
+import { RemainingBudgetPrediction } from '@/components/RemainingBudgetPrediction'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -40,6 +41,7 @@ export default function DashboardPage() {
   const { defaultCurrency, isLoading: currenciesLoading } = useCurrency()
   const api = useApi()
   const [statistics, setStatistics] = useState<StatisticsData | null>(null)
+  const [prevStatistics, setPrevStatistics] = useState<StatisticsData | null>(null)
   const [isLoadingStats, setIsLoadingStats] = useState(false)
   const [statsError, setStatsError] = useState<string | null>(null)
 
@@ -49,6 +51,7 @@ export default function DashboardPage() {
   const loadStatistics = useCallback(async () => {
     if (!activeProfile) {
       setStatistics(null)
+      setPrevStatistics(null)
       setStatsError(null)
       setIsLoadingStats(false)
       return
@@ -73,13 +76,24 @@ export default function DashboardPage() {
       const now = new Date()
       const from = format(startOfMonth(now), 'yyyy-MM-dd')
       const to = format(endOfMonth(now), 'yyyy-MM-dd')
+      const prevMonth = subMonths(now, 1)
+      const prevFrom = format(startOfMonth(prevMonth), 'yyyy-MM-dd')
+      const prevTo = format(endOfMonth(prevMonth), 'yyyy-MM-dd')
 
-      const response = await api.getStatistics({
-        profile: activeProfile,
-        from,
-        to,
-        currency: currencyCode,
-      })
+      const [response, prevResponse] = await Promise.all([
+        api.getStatistics({
+          profile: activeProfile,
+          from,
+          to,
+          currency: currencyCode,
+        }),
+        api.getStatistics({
+          profile: activeProfile,
+          from: prevFrom,
+          to: prevTo,
+          currency: currencyCode,
+        }),
+      ])
 
       if (response.success && response.data) {
         setStatistics(response.data)
@@ -90,8 +104,13 @@ export default function DashboardPage() {
           !response.success ? response.error.message : 'Failed to load statistics.'
         )
       }
+
+      setPrevStatistics(
+        prevResponse.success && prevResponse.data ? prevResponse.data : null
+      )
     } catch (error) {
       setStatistics(null)
+      setPrevStatistics(null)
       setStatsError(getFriendlyErrorMessage(error, 'Failed to load statistics.'))
     } finally {
       setIsLoadingStats(false)
@@ -317,6 +336,14 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
               </Box>
+              {prevStatistics && (
+                <RemainingBudgetPrediction
+                  previousIncomeMinor={prevStatistics.summary.totalIncome.amountMinor}
+                  currentExpenseMinor={statistics.summary.totalExpense.amountMinor}
+                  currency={statistics.period.currency}
+                  formatAmount={formatAmount}
+                />
+              )}
             </Paper>
           </AnimatedSection>
         )}
