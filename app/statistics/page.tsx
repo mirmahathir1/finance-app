@@ -67,6 +67,17 @@ const IncomeExpenseBar = dynamic(
   }
 )
 
+const CumulativeBalanceLine = dynamic(
+  () =>
+    import('@/components/CumulativeBalanceLine').then((mod) => ({
+      default: mod.CumulativeBalanceLine,
+    })),
+  {
+    ssr: false,
+    loading: () => <ChartSkeleton height={380} />,
+  }
+)
+
 function isValidMonth(value?: string | null) {
   return Boolean(value && /^\d{4}-\d{2}$/.test(value))
 }
@@ -499,6 +510,50 @@ export default function StatisticsPage() {
     return totalsByMonth
   }, [summaryTransactions, visibleYear])
 
+  // Running balance across the selected range. `occurredAt` is a plain YYYY-MM-DD
+  // string, so lexicographic comparison is a timezone-proof date comparison.
+  // Points are emitted only on days that actually move the balance, plus both
+  // range endpoints; the chart draws them as steps, so untouched days read flat.
+  const cumulativeBalanceSeries = useMemo(() => {
+    if (summaryTransactions.length === 0) {
+      return []
+    }
+
+    const { from, to } = selectedRange
+    let openingMinor = 0
+    const deltaByDate = new Map<string, number>()
+
+    for (const transaction of summaryTransactions) {
+      const signedMinor =
+        (transaction.type === 'income' ? 1 : -1) * getDisplayAmountMinor(transaction)
+      const date = transaction.occurredAt
+
+      if (date < from) {
+        openingMinor += signedMinor
+      } else if (date <= to) {
+        deltaByDate.set(date, (deltaByDate.get(date) ?? 0) + signedMinor)
+      }
+    }
+
+    const points: { date: string; balance: number }[] = []
+    let runningMinor = openingMinor
+
+    for (const date of Array.from(deltaByDate.keys()).sort()) {
+      runningMinor += deltaByDate.get(date) ?? 0
+      points.push({ date, balance: runningMinor / 100 })
+    }
+
+    if (points.length === 0 || points[0].date !== from) {
+      points.unshift({ date: from, balance: openingMinor / 100 })
+    }
+
+    if (points[points.length - 1].date !== to) {
+      points.push({ date: to, balance: runningMinor / 100 })
+    }
+
+    return points
+  }, [summaryTransactions, selectedRange])
+
   const loadCalendarData = useCallback(async () => {
     if (!activeProfile || !currency) {
       setCalendarData(null)
@@ -723,6 +778,18 @@ export default function StatisticsPage() {
     setHasCommittedRangeSelection(true)
   }, [pendingRangeStart])
 
+  const handleBalanceFromChange = useCallback((value: string) => {
+    setSelectedRange((current) => normalizeRange(value, current.to))
+    setPendingRangeStart(null)
+    setHasCommittedRangeSelection(true)
+  }, [])
+
+  const handleBalanceToChange = useCallback((value: string) => {
+    setSelectedRange((current) => normalizeRange(current.from, value))
+    setPendingRangeStart(null)
+    setHasCommittedRangeSelection(true)
+  }, [])
+
   const handleEventClick = useCallback((date: string, type: TransactionType) => {
     setDialogState({
       open: true,
@@ -832,6 +899,18 @@ export default function StatisticsPage() {
         </Card>
       ))}
     </Stack>
+  )
+
+  const cumulativeBalanceChart = (
+    <CumulativeBalanceLine
+      data={cumulativeBalanceSeries}
+      currency={currency}
+      from={selectedRange.from}
+      to={selectedRange.to}
+      onFromChange={handleBalanceFromChange}
+      onToChange={handleBalanceToChange}
+      isLoading={isLoadingSummaryTransactions}
+    />
   )
 
   const showDesktopSummaryColumn =
@@ -998,6 +1077,7 @@ export default function StatisticsPage() {
               <Box sx={{ display: { xs: 'block', md: 'none' } }}>
                 {summaryCardsSkeleton}
               </Box>
+              {cumulativeBalanceChart}
               <Paper elevation={2} sx={{ p: 3 }}>
                 <Skeleton variant="text" width="30%" height={28} />
                 <Skeleton variant="rectangular" height={240} sx={{ mt: 2, borderRadius: 1 }} />
@@ -1011,7 +1091,8 @@ export default function StatisticsPage() {
               />
             </Box>
           ) : !hasRangeData ? (
-            <Box sx={{ mt: 3 }}>
+            <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {cumulativeBalanceChart}
               <EmptyState
                 title="No statistics available"
                 message={
@@ -1026,6 +1107,8 @@ export default function StatisticsPage() {
               <Box sx={{ display: { xs: 'block', md: 'none' }, mt: 3 }}>
                 {summaryCardsContent}
               </Box>
+
+              <Box sx={{ mt: 3 }}>{cumulativeBalanceChart}</Box>
 
               <Grid container spacing={3} sx={{ mt: 3 }}>
                 <Grid size={{ xs: 12, md: 7 }} sx={{ minWidth: 0 }}>
