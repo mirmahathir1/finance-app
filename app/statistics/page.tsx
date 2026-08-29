@@ -78,6 +78,17 @@ const CumulativeBalanceLine = dynamic(
   }
 )
 
+const TagTrendLine = dynamic(
+  () =>
+    import('@/components/TagTrendLine').then((mod) => ({
+      default: mod.TagTrendLine,
+    })),
+  {
+    ssr: false,
+    loading: () => <ChartSkeleton height={420} />,
+  }
+)
+
 function isValidMonth(value?: string | null) {
   return Boolean(value && /^\d{4}-\d{2}$/.test(value))
 }
@@ -913,6 +924,15 @@ export default function StatisticsPage() {
     />
   )
 
+  const tagTrendChart = (
+    <TagTrendLine
+      transactions={rangeTransactions}
+      currency={currency}
+      from={selectedRange.from}
+      to={selectedRange.to}
+    />
+  )
+
   const showDesktopSummaryColumn =
     !calendarError && (isLoadingRange || (!rangeError && Boolean(currency) && hasRangeData))
 
@@ -1109,6 +1129,8 @@ export default function StatisticsPage() {
               </Box>
 
               <Box sx={{ mt: 3 }}>{cumulativeBalanceChart}</Box>
+
+              <Box sx={{ mt: 3 }}>{tagTrendChart}</Box>
 
               <Grid container spacing={3} sx={{ mt: 3 }}>
                 <Grid size={{ xs: 12, md: 7 }} sx={{ minWidth: 0 }}>
