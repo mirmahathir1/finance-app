@@ -13,7 +13,14 @@ import {
 } from 'recharts'
 import {
   Box,
+  Checkbox,
+  Chip,
+  FormControl,
+  InputLabel,
+  ListItemText,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
@@ -32,8 +39,7 @@ interface TagTrendLineProps {
 }
 
 const UNTAGGED_KEY = 'Untagged'
-const OTHER_KEY = 'Other'
-const MAX_TAG_LINES = 8
+const DEFAULT_TAG_LINES = 5
 
 const LINE_COLORS = [
   '#1976d2',
@@ -78,9 +84,14 @@ export function TagTrendLine({
   height = 420,
 }: TagTrendLineProps) {
   const [type, setType] = useState<TransactionType>('expense')
-  const chartHeight = Math.max(height - 130, 240)
+  // Kept per type because expense and income have different tag sets; `null`
+  // means "untouched", so the default top tags apply.
+  const [selectionByType, setSelectionByType] = useState<
+    Record<TransactionType, string[] | null>
+  >({ expense: null, income: null })
+  const chartHeight = Math.max(height - 190, 240)
 
-  const { data, lineKeys, hasData } = useMemo(() => {
+  const { data, availableTags, colorByTag } = useMemo(() => {
     const months = getMonthsInRange(from, to)
     const monthIndex = new Map(months.map((month, index) => [month, index]))
     // tag -> month -> minor units
@@ -110,38 +121,42 @@ export function TagTrendLine({
       }))
       .sort((left, right) => right.total - left.total)
 
-    const visible = ranked.slice(0, MAX_TAG_LINES)
-    const remainder = ranked.slice(MAX_TAG_LINES)
-
-    if (remainder.length > 0) {
-      visible.push({
-        tag: OTHER_KEY,
-        series: months.map((_, index) =>
-          remainder.reduce((sum, entry) => sum + entry.series[index], 0)
-        ),
-        total: remainder.reduce((sum, entry) => sum + entry.total, 0),
-      })
-    }
-
     const rows = months.map((month, index) => {
       const row: Record<string, string | number> = {
         month,
         label: format(parseISO(`${month}-01`), 'MMM yyyy'),
       }
 
-      for (const entry of visible) {
+      for (const entry of ranked) {
         row[entry.tag] = entry.series[index] / 100
       }
 
       return row
     })
 
+    // Colour comes from the overall ranking so a tag keeps its line colour no
+    // matter which other tags are selected.
+    const colors = new Map<string, string>(
+      ranked.map((entry, index) => [entry.tag, LINE_COLORS[index % LINE_COLORS.length]])
+    )
+
     return {
       data: rows,
-      lineKeys: visible.map((entry) => entry.tag),
-      hasData: ranked.length > 0,
+      availableTags: ranked.map((entry) => entry.tag),
+      colorByTag: colors,
     }
   }, [from, to, transactions, type])
+
+  const selectedTags = useMemo(() => {
+    const stored = selectionByType[type]
+    if (stored === null) {
+      return availableTags.slice(0, DEFAULT_TAG_LINES)
+    }
+    const available = new Set(availableTags)
+    return stored.filter((tag) => available.has(tag))
+  }, [availableTags, selectionByType, type])
+
+  const hasData = availableTags.length > 0
 
   const formatCurrency = (value: number, maximumFractionDigits?: number) => {
     try {
@@ -186,13 +201,72 @@ export function TagTrendLine({
         </ToggleButtonGroup>
       </Stack>
 
+      <FormControl size="small" fullWidth sx={{ mb: 1.5, flexShrink: 0 }} disabled={!hasData}>
+        <InputLabel id="tag-trend-tags-label">Tags</InputLabel>
+        <Select
+          multiple
+          labelId="tag-trend-tags-label"
+          id="tag-trend-tags"
+          label="Tags"
+          value={selectedTags}
+          onChange={(event) => {
+            const value = event.target.value
+            const next = typeof value === 'string' ? value.split(',') : value
+            setSelectionByType((current) => ({ ...current, [type]: next }))
+          }}
+          renderValue={(selected) =>
+            selected.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                No tags selected
+              </Typography>
+            ) : (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {selected.map((tag) => (
+                  <Chip
+                    key={tag}
+                    label={tag}
+                    size="small"
+                    sx={{
+                      backgroundColor: colorByTag.get(tag),
+                      color: 'white',
+                      fontWeight: 600,
+                    }}
+                  />
+                ))}
+              </Box>
+            )
+          }
+          MenuProps={{ PaperProps: { style: { maxHeight: 320 } } }}
+        >
+          {availableTags.map((tag) => (
+            <MenuItem key={tag} value={tag} dense>
+              <Checkbox size="small" checked={selectedTags.includes(tag)} />
+              <ListItemText
+                primary={tag}
+                primaryTypographyProps={{ variant: 'body2' }}
+              />
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: '50%',
+                  ml: 1,
+                  backgroundColor: colorByTag.get(tag),
+                }}
+              />
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
       <Box sx={{ flexGrow: 1, minWidth: 0, width: '100%', minHeight: chartHeight }}>
-        {hasData ? (
+        {hasData && selectedTags.length > 0 ? (
           <ResponsiveContainer width="100%" height={chartHeight}>
             <LineChart data={data} margin={{ left: 20, right: 20, top: 5, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="label" tick={{ fontSize: 12 }} minTickGap={16} />
               <YAxis
+                domain={[0, 'auto']}
                 tickFormatter={(value: number) => formatCurrency(value, 0)}
                 width={80}
                 tick={{ fontSize: 12 }}
@@ -201,12 +275,12 @@ export function TagTrendLine({
                 formatter={(value: any, name: any) => [formatCurrency(value as number), name]}
               />
               <Legend />
-              {lineKeys.map((key, index) => (
+              {selectedTags.map((key) => (
                 <Line
                   key={key}
                   type="monotone"
                   dataKey={key}
-                  stroke={LINE_COLORS[index % LINE_COLORS.length]}
+                  stroke={colorByTag.get(key)}
                   strokeWidth={2}
                   dot={{ r: 2 }}
                   activeDot={{ r: 5 }}
@@ -226,7 +300,9 @@ export function TagTrendLine({
             }}
           >
             <Typography variant="body2" color="text.secondary">
-              No {type} transactions in the selected range.
+              {hasData
+                ? 'Select at least one tag to show.'
+                : `No ${type} transactions in the selected range.`}
             </Typography>
           </Box>
         )}
