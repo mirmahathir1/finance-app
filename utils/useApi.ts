@@ -23,6 +23,7 @@ import {
   verifyResetPasswordToken as apiVerifyResetPasswordToken,
   resetPassword as apiResetPassword,
   getSetupCatalog as apiGetSetupCatalog,
+  updateBudgetPercentage as apiUpdateBudgetPercentage,
   bulkUpdateTransactionsProfile as apiBulkUpdateTransactionsProfile,
   bulkUpdateTransactionsTag as apiBulkUpdateTransactionsTag,
 } from './api'
@@ -115,6 +116,10 @@ export function useApi() {
 
       deleteAccount: async () => {
         return callWithLoading(() => apiDeleteAccount())
+      },
+
+      updateBudgetPercentage: async (percentage: number) => {
+        return callWithLoading(() => apiUpdateBudgetPercentage(percentage))
       },
 
       changePassword: async (currentPassword: string, newPassword: string) => {

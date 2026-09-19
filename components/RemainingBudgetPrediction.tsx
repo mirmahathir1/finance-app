@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Box, Slider, Typography } from '@mui/material'
+import { useAuth } from '@/contexts/AuthContext'
 
-const BUDGET_PERCENTAGE_STORAGE_KEY = 'finance-app-budget-percentage'
+const DEFAULT_BUDGET_PERCENTAGE = 100
 
 interface RemainingBudgetPredictionProps {
   previousIncomeMinor: number
@@ -18,25 +19,35 @@ export function RemainingBudgetPrediction({
   currency,
   formatAmount,
 }: RemainingBudgetPredictionProps) {
-  const [percentage, setPercentage] = useState(100)
-  const [mounted, setMounted] = useState(false)
+  const { user, updateBudgetPercentage } = useAuth()
+  const [percentage, setPercentage] = useState(DEFAULT_BUDGET_PERCENTAGE)
+  // Last value known to be persisted, used to restore the slider if a save fails.
+  const savedPercentage = useRef(DEFAULT_BUDGET_PERCENTAGE)
 
   useEffect(() => {
-    const saved = localStorage.getItem(BUDGET_PERCENTAGE_STORAGE_KEY)
-    if (saved !== null) {
-      const parsed = parseInt(saved, 10)
-      if (!Number.isNaN(parsed)) {
-        setPercentage(Math.min(100, Math.max(0, parsed)))
-      }
-    }
-    setMounted(true)
-  }, [])
+    const stored = user?.budgetPercentage
+    const next =
+      typeof stored === 'number' && !Number.isNaN(stored)
+        ? Math.min(100, Math.max(0, Math.round(stored)))
+        : DEFAULT_BUDGET_PERCENTAGE
+    setPercentage(next)
+    savedPercentage.current = next
+  }, [user?.id, user?.budgetPercentage])
 
-  useEffect(() => {
-    if (mounted) {
-      localStorage.setItem(BUDGET_PERCENTAGE_STORAGE_KEY, String(percentage))
+  const persistPercentage = async (value: number) => {
+    if (value === savedPercentage.current) {
+      return
     }
-  }, [percentage, mounted])
+
+    try {
+      await updateBudgetPercentage(value)
+      savedPercentage.current = value
+    } catch {
+      // Restore the last persisted value so the slider never shows an
+      // unsaved budget.
+      setPercentage(savedPercentage.current)
+    }
+  }
 
   const remainingMinor =
     Math.round((previousIncomeMinor * percentage) / 100) - currentExpenseMinor
@@ -57,6 +68,9 @@ export function RemainingBudgetPrediction({
         <Slider
           value={percentage}
           onChange={(_, value) => setPercentage(value as number)}
+          onChangeCommitted={(_, value) => {
+            void persistPercentage(value as number)
+          }}
           min={0}
           max={100}
           step={5}

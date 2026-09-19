@@ -452,6 +452,15 @@ export async function getSetupCatalog(): Promise<
   return apiCall<{ catalog: SetupCatalogData }>('/api/setup/catalog')
 }
 
+export async function updateBudgetPercentage(
+  percentage: number
+): Promise<ApiResponse<{ budgetPercentage: number }>> {
+  return apiCall<{ budgetPercentage: number }>('/api/account/budget-percentage', {
+    method: 'PUT',
+    body: JSON.stringify({ percentage }),
+  })
+}
+
 export async function bulkUpdateTransactionsProfile(
   oldName: string,
   newName: string

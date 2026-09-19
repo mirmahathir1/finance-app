@@ -21,6 +21,7 @@ interface AuthContextType {
   refreshBackendStatus: () => Promise<boolean>
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
+  updateBudgetPercentage: (percentage: number) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -157,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 email: response.data.user.email,
                 passwordHash: '',
                 emailVerifiedAt: response.data.user.emailVerifiedAt || null,
+                budgetPercentage: response.data.user.budgetPercentage ?? 100,
                 createdAt: response.data.user.createdAt,
                 updatedAt: response.data.user.updatedAt,
               }
@@ -208,6 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: response.data.user.email,
         passwordHash: '',
         emailVerifiedAt: response.data.user.emailVerifiedAt || null,
+        budgetPercentage: response.data.user.budgetPercentage ?? 100,
         createdAt: response.data.user.createdAt,
         updatedAt: response.data.user.updatedAt,
       }
@@ -223,6 +226,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ? response.error.message
         : 'Login failed. Please check your credentials.'
     throw new Error(errorMessage)
+  }
+
+  /**
+   * Persist the home page budget percentage on the user record and keep the
+   * in-memory/cached user in sync.
+   */
+  const updateBudgetPercentage = async (percentage: number) => {
+    const response = await api.updateBudgetPercentage(percentage)
+
+    if (!response.success) {
+      const errorMessage =
+        'error' in response
+          ? response.error.message
+          : 'Unable to save budget percentage.'
+      throw new Error(errorMessage)
+    }
+
+    const saved = response.data.budgetPercentage
+
+    setUser((current) => {
+      if (!current) {
+        return current
+      }
+      const updated = { ...current, budgetPercentage: saved }
+      cachedAuthResult = { user: updated }
+      return updated
+    })
   }
 
   const signOut = async () => {
@@ -258,6 +288,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshBackendStatus,
         signIn,
         signOut,
+        updateBudgetPercentage,
       }}
     >
       {children}

@@ -22,6 +22,7 @@ model User {
   currencyMetadata Json?
   tagMetadata     Json?
   appSettings     Json?
+  budgetPercentage Int     @default(100)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   transactions    Transaction[]

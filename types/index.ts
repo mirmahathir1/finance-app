@@ -15,6 +15,7 @@ export interface User {
   email: string
   passwordHash: string
   emailVerifiedAt?: string | null
+  budgetPercentage: number
   createdAt: string
   updatedAt: string
 }
